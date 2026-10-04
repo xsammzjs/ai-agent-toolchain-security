@@ -71,9 +71,10 @@ class ScanEngine:
 
         # ===== 阶段 2：漏洞研判 =====
         _notify(f"开始四源漏洞研判（共 {len(self.dep_list)} 个依赖）…", percent=15)
+        self.scan_stats: dict = {}
         self.vulns = vulnerability.detect_vulnerabilities(
             self.dep_list, parser, use_nvd=use_nvd, do_epss=do_epss,
-            progress_cb=progress_cb
+            progress_cb=progress_cb, stats=self.scan_stats
         )
 
         # ===== 阶段 3：生成 SBOM =====
@@ -163,9 +164,20 @@ class ScanEngine:
         priority_1 = sum(1 for v in self.vulns if v.get("fix_priority", {}).get("priority") == 1)
         actively_exploited = sum(1 for v in self.vulns if v.get("is_actively_exploited"))
 
+        indirect = sum(1 for d in self.dep_list if d.get("is_transitive"))
+        stats = getattr(self, "scan_stats", {}) or {}
+        skipped = stats.get("skipped", []) or []
+
         return {
             "total_dependencies": len(self.dep_list),
-            "indirect_count": sum(1 for d in self.dep_list if d.get("is_transitive")),
+            # ai.py 的 _scan_brief 一直读这个字段，但原实现从未生成 → 恒为 None
+            "direct_count": len(self.dep_list) - indirect,
+            "indirect_count": indirect,
+            # 检测覆盖度（原先被跳过的依赖是静默丢弃的，用户无从得知）
+            "scanned_count": stats.get("scanned_count", len(self.dep_list)),
+            "skipped_count": len(skipped),
+            "skipped_deps": skipped,
+            "lower_bound_count": stats.get("lower_bound_count", 0),
             "total_vulnerabilities": total_vulns,
             "critical_count": critical,
             "high_confidence_count": high_confidence,
@@ -179,18 +191,46 @@ class ScanEngine:
 # ==========================================
 # SBOM 生成（简洁版 CycloneDX 1.5）
 # ==========================================
+def _sbom_version(raw_version: str) -> tuple:
+    """
+    清洗版本号，产出 CycloneDX 合规的 (version, 是否精确定位)。
+
+    依赖声明里的版本常带操作符（"== 2.2.0"、">= 1.26.5"），原实现直接写入 SBOM，
+    会产生 "version": "== 2.2.0"、purl "pkg:pypi/django@== 2.2.0" 这类非法值，
+    下游 SBOM 工具（Dependency-Track、cyclonedx-cli 等）会直接拒绝解析。
+
+    规则：
+      - 有明确下界（== / >= / ~=）→ 写入清洗后的版本号，标记精确
+      - 无版本号或仅有上界（如 <1.20、未限定）→ 写 "unknown"，不可拿推断值冒充
+        实际版本（把 "<1.20" 写成 "1.20" 会让下游误判为「装的正是 1.20」）
+    """
+    if not raw_version:
+        return "unknown", False
+    if vulnerability.version_basis(raw_version) == "unknown":
+        return "unknown", False
+    cleaned = parser.extract_clean_version(str(raw_version))
+    return (cleaned, True) if cleaned else ("unknown", False)
+
+
 def generate_sbom(dep_list: list[dict]) -> dict:
     """生成最小但合规的 CycloneDX 1.5 SBOM（含直接/间接依赖标记）"""
     import uuid
 
     components = []
     for dep in dep_list:
+        ver, located = _sbom_version(dep.get("version", ""))
         comp = {
             "type": "library",
             "name": dep["package"],
-            "version": dep["version"],
-            "purl": f"pkg:{dep.get('ecosystem', 'PyPI').lower()}/{dep['package']}@{dep['version']}",
+            "version": ver,
+            "purl": f"pkg:{dep.get('ecosystem', 'PyPI').lower()}/{dep['package']}@{ver}",
         }
+        if not located:
+            # 版本无法定位：如实标记，避免下游把推断值当成实际安装版本
+            comp["properties"] = [{
+                "name": "dependency:versionUnresolved",
+                "value": f"true (declared as {dep.get('version', '')})",
+            }]
         if dep.get("is_transitive"):
             comp["description"] = "间接依赖（一层推断）"
             comp["properties"] = [{

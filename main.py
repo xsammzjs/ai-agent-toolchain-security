@@ -502,6 +502,34 @@ if st.session_state.scan_done and st.session_state.result:
         st.warning(f"⚠️ 间接依赖超过上限 {t_info.get('limit', 0)} 个，已截断。"
                    f"建议用 `pip freeze > requirements.txt` 导出完整清单后扫描。")
 
+    # 检测覆盖度披露（原实现静默丢弃部分依赖，用户完全看不到，属于隐性漏检）
+    if summary.get("skipped_count"):
+        with st.expander(
+            f"⚠️ 有 {summary['skipped_count']} 个依赖未纳入检测（点击查看）",
+            expanded=True,
+        ):
+            st.caption(
+                "以下依赖的版本声明无法定位实际安装版本，因此未查询漏洞库。"
+                "用 `pip freeze > requirements.txt` 导出精确版本后可覆盖。"
+            )
+            st.dataframe(
+                pd.DataFrame([
+                    {"包名": d["package"], "声明版本": d["version"], "未检测原因": d["reason"]}
+                    for d in summary.get("skipped_deps", [])
+                ]),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    # 版本下限推断披露：>= / ~= 声明按最坏情况检查，结论偏保守，必须告知用户
+    if summary.get("lower_bound_count"):
+        st.info(
+            f"ℹ️ 有 {summary['lower_bound_count']} 条结论基于版本下限推断"
+            f"（依赖声明为 `>=` / `~=`，实际安装版本可能更高）。"
+            f"这类结论偏保守，可能包含已在新版本中修复的漏洞；"
+            f"用 `pip freeze` 导出精确版本可获得更准确结果。"
+        )
+
     # ===== 顶部指标卡 =====
     st.markdown('<div class="section-title">📊 扫描总览</div>', unsafe_allow_html=True)
     col1, col2, col3, col4, col5, col6 = st.columns(6)
@@ -747,6 +775,7 @@ if st.session_state.scan_done and st.session_state.result:
                     "CVE 编号": v["cve_id"],
                     "组件": v["package"],
                     "版本": v["version"],
+                    "版本依据": "⚠️ 下限推断" if v.get("version_basis") == "lower_bound" else "精确锁定",
                     "层级": "🔸 间接" if v.get("is_transitive") else "🔹 直接",
                     "生态": v.get("ecosystem", "PyPI"),
                     "风险等级": v["severity"],
@@ -764,6 +793,7 @@ if st.session_state.scan_done and st.session_state.result:
                     "优先级": st.column_config.TextColumn(width="small"),
                     "CVSS": st.column_config.NumberColumn(width="small"),
                     "层级": st.column_config.TextColumn(width="small"),
+                    "版本依据": st.column_config.TextColumn(width="small"),
                     "置信度": st.column_config.TextColumn(width="small"),
                     "EPSS": st.column_config.TextColumn(width="small"),
                 }
@@ -811,7 +841,12 @@ if st.session_state.scan_done and st.session_state.result:
                             )
                         else:
                             st.markdown("**依赖层级**: 🔹 直接依赖")
-                        st.markdown(f"**当前版本**: {v['version']}")
+                        if v.get("version_basis") == "lower_bound":
+                            st.markdown(
+                                f"**当前版本**: {v['version']} ⚠️（声明下限，实际可能更高）"
+                            )
+                        else:
+                            st.markdown(f"**当前版本**: {v['version']}")
                         st.markdown(f"**修复版本**: {v.get('fixed_version', '未知')}")
                         st.markdown(f"**CWE 类型**: {v.get('cwe_id', '未知')}")
 
@@ -1289,7 +1324,7 @@ if st.session_state.skill_benchmark:
                 <div class="metric-card">
                     <div class="metric-icon">⚡</div>
                     <div class="metric-value">{m.group(5)}ms</div>
-                    <div class="metric-label">7 个样本总耗时（本地规则引擎）</div>
+                    <div class="metric-label">50 个样本总耗时（本地规则引擎）</div>
                 </div>
                 """, unsafe_allow_html=True)
         st.code(_bench_out, language=None)

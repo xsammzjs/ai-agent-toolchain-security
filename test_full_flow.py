@@ -80,7 +80,8 @@ with sync_playwright() as p:
     page.get_by_role("button", name="运行样本检测率测试").click()
     time.sleep(4)
     body = page.inner_text("body")
-    check("检测率5/5与无误报2/2", "5/5" in body and "2/2" in body)
+    # 样本库已扩充为 30 恶意 + 20 正常，旧断言 5/5、2/2 已失效
+    check("检测率30/30与无误报20/20", "30/30" in body and "20/20" in body)
     page.screenshot(path="temp_shots/14_skill_full.png")
 
     # ⑤ 报告导出按钮（存在且可点）

@@ -1,0 +1,7 @@
+# benchmark sample 4: 版本范围声明（>= / ~= / 仅上界 / 无版本）
+# 用于验证「>= 声明不再被静默跳过」的修复效果
+requests>=2.20.0
+werkzeug>=0.14.1
+flask~=0.12
+jinja2
+numpy<1.20
