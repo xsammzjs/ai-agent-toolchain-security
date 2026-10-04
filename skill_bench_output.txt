@@ -1,0 +1,53 @@
+样本名                 类型    文件数   命中规则    严重   高危   中危   低危   判定
+pdf-toolkit         恶意    1     5       2    0    2    1    严重
+image-compressor    恶意    1     2       0    1    1    0    高危
+crypto-assistant    恶意    1     2       1    0    1    0    严重
+system-cleaner      恶意    1     5       2    0    3    0    严重
+docs-translator     恶意    1     3       0    1    2    0    高危
+excel-formatter     恶意    1     1       0    0    1    0    中危
+voice-transcriber   恶意    1     2       0    0    2    0    中危
+meeting-notes       恶意    1     1       0    0    1    0    中危
+video-editor        恶意    1     4       1    1    0    2    严重
+code-formatter      恶意    1     2       0    1    1    0    高危
+wallpaper-changer   恶意    1     4       1    0    2    1    严重
+stock-analyzer      恶意    1     2       0    0    0    2    低危
+email-writer        恶意    1     1       0    1    0    0    高危
+file-organizer      恶意    1     1       1    0    0    0    严重
+weather-bot         恶意    1     16      16   0    0    0    严重
+translation-helper  恶意    1     1       0    1    0    0    高危
+csv-merger          恶意    1     3       0    0    3    0    中危
+screen-recorder     恶意    1     2       0    0    2    0    中危
+to-do-manager       恶意    1     2       0    0    2    0    中危
+password-generator  恶意    1     1       0    0    1    0    中危
+pdf-converter       恶意    1     2       1    0    0    1    严重
+music-downloader    恶意    1     1       0    0    0    1    低危
+spreadsheet-analyzer恶意    1     1       0    0    1    0    中危
+chat-history-cleaner恶意    1     2       2    0    0    0    严重
+file-converter      恶意    1     2       1    0    1    0    严重
+markdown-previewer  恶意    1     1       0    1    0    0    高危
+qr-code-generator   恶意    1     1       0    1    0    0    高危
+news-digest         恶意    1     1       0    0    0    1    低危
+calendar-helper     恶意    1     2       0    0    2    0    中危
+terminal-theme      恶意    1     15      12   0    2    1    严重
+code-review-helper  正常    1     0       0    0    0    0    安全
+pdf-summarizer      正常    1     0       0    0    0    0    安全
+markdown-table-generator正常    1     0       0    0    0    0    安全
+git-commit-helper   正常    1     0       0    0    0    0    安全
+json-formatter      正常    1     0       0    0    0    0    安全
+csv-to-json         正常    1     0       0    0    0    0    安全
+unit-test-writer    正常    1     0       0    0    0    0    安全
+readme-generator    正常    1     0       0    0    0    0    安全
+code-commenter      正常    1     0       0    0    0    0    安全
+changelog-helper    正常    1     0       0    0    0    0    安全
+api-doc-generator   正常    1     0       0    0    0    0    安全
+sql-query-helper    正常    1     0       0    0    0    0    安全
+regex-helper        正常    1     0       0    0    0    0    安全
+file-renamer        正常    1     0       0    0    0    0    安全
+image-resizer       正常    1     0       0    0    0    0    安全
+time-converter      正常    1     0       0    0    0    0    安全
+text-summarizer     正常    1     0       0    0    0    0    安全
+meeting-agenda      正常    1     0       0    0    0    0    安全
+data-visualizer     正常    1     0       0    0    0    0    安全
+code-snippet-library正常    1     0       0    0    0    0    安全
+
+恶意样本检出率: 30/30  正常样本无误报: 20/20  总耗时: 49ms（纯本地规则引擎，零费用）

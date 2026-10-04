@@ -1,0 +1,4 @@
+# benchmark sample 3: clean control (recent fixed versions, expect zero findings)
+requests==2.32.3
+flask==3.0.3
+urllib3==2.2.3

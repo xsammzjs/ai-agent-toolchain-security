@@ -1,0 +1,28 @@
+# ===== 运行生成物 =====
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+reports/
+temp_upload/
+temp_shots/
+temp_*/
+trivy_cache/
+
+# ===== 本地日志与临时结果 =====
+*.log
+temp_scan_result.json
+
+# ===== 编辑器 / IDE =====
+.idea/
+.vscode/
+
+# ===== 密钥（.env 含真实 API key，禁止提交）=====
+.env
+
+# ===== 大文件 / 打包物 =====
+*.exe
+*.zip
+*.pptx
+download.txt

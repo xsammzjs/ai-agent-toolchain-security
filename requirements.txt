@@ -1,0 +1,21 @@
+# ===== Web UI =====
+streamlit>=1.28.0
+pandas>=2.0,<3
+
+# ===== 漏洞数据源 =====
+requests>=2.31.0
+nvdlib>=0.7.0
+
+# ===== 依赖解析 =====
+packaging>=23.0
+tomli>=2.0.0
+
+# ===== 报告生成 =====
+python-docx>=0.8.11
+reportlab>=4.0.0
+
+# ===== 配置管理 =====
+python-dotenv>=1.0.0
+
+# ===== RAR 支持 =====
+rarfile>=4.0

@@ -1,0 +1,1 @@
+{"SchemaVersion": 2, "Trivy": {"Version": "0.74.0"}, "ReportID": "01a0a00b-fde5-712a-a0bb-d23c91412da5", "CreatedAt": "2026-09-14T21:12:15.5890763+08:00", "ArtifactName": "D:/DeskApp/python_xiangmu/python-sbom-security-tool/samples/vuln_reqs/real_projects/trivy_OpenManus", "ArtifactType": "filesystem"}

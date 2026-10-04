@@ -1,0 +1,16 @@
+[
+  {
+    "repo": "unclecode/crawl4ai",
+    "stars": 83465,
+    "deps": 33,
+    "ours": 5,
+    "trivy": 0
+  },
+  {
+    "repo": "Comfy-Org/ComfyUI",
+    "stars": 133078,
+    "deps": 35,
+    "ours": 1,
+    "trivy": 0
+  }
+]

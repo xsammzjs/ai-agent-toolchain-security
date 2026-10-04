@@ -1,0 +1,11 @@
+[
+  {
+    "repo": "FoundationAgents/MetaGPT",
+    "stars": 70380,
+    "deps": 71,
+    "ours": 75,
+    "pipaudit": 0,
+    "trivy": 63,
+    "note": "pip-audit失败: \\Temp\\\\tmp5f4jsbo9\\\\tmpeg6rsim9', '-r', 'D:\\\\DeskApp\\\\python_xiangmu\\\\python-sbom-security-tool\\\\samples\\\\vuln_reqs\\\\real_projects\\\\req_MetaGPT.txt']\n"
+  }
+]

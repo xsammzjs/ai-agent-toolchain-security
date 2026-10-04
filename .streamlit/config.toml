@@ -1,0 +1,9 @@
+# ==========================================
+# 界面主题（v3.1：白底 · 深藏青 · 卡片化）
+# ==========================================
+[theme]
+primaryColor = "#1a3a5c"
+backgroundColor = "#f5f7fb"
+secondaryBackgroundColor = "#f0f3f7"
+textColor = "#23272f"
+font = "sans serif"

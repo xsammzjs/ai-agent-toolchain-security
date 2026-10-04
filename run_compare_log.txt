@@ -1,0 +1,47 @@
+=== jingyaogong/minimind ===
+  本工具: 73 条 (644s)
+  pip-audit: 87 条 (182s)
+  Trivy: 64 条
+=== FoundationAgents/MetaGPT ===
+  下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+=== FoundationAgents/OpenManus ===
+  本工具: 22 条 (228s)
+  pip-audit: 0 条 (600s)
+  Trivy: 0 条
+=== binary-husky/gpt_academic ===
+  本工具: 9 条 (96s)
+  pip-audit: 92 条 (140s)
+  Trivy: 9 条
+=== unclecode/crawl4ai ===
+  下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+=== harry0703/MoneyPrinterTurbo ===
+  本工具: 4 条 (79s)
+  pip-audit: 21 条 (59s)
+  Trivy: 4 条
+=== NanmiCoder/MediaCrawler ===
+  本工具: 4 条 (36s)
+  pip-audit: 0 条 (130s)
+  Trivy: 4 条
+=== home-assistant/core ===
+  下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+=== Comfy-Org/ComfyUI ===
+  下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+=== hacksider/Deep-Live-Cam ===
+  本工具: 0 条 (22s)
+  pip-audit: 0 条 (600s)
+  Trivy: 0 条
+| 项目 | 依赖数 | 本工具 | pip-audit | Trivy |
+|---|---|---|---|---|
+| jingyaogong/minimind (61031 star) | 30 | 73 | 87 | 64 |
+| FoundationAgents/MetaGPT | 下载失败: 下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None)) | - | - | - |
+| FoundationAgents/OpenManus (58303 star) | 36 | 22 | 0 | 0 |
+| binary-husky/gpt_academic (71337 star) | 44 | 9 | 92 | 9 |
+| unclecode/crawl4ai | 下载失败: 下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None)) | - | - | - |
+| harry0703/MoneyPrinterTurbo (123517 star) | 21 | 4 | 21 | 4 |
+| NanmiCoder/MediaCrawler (64970 star) | 31 | 4 | 0 | 4 |
+| home-assistant/core | 下载失败: 下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None)) | - | - | - |
+| Comfy-Org/ComfyUI | 下载失败: 下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None)) | - | - | - |
+| hacksider/Deep-Live-Cam (96641 star) | 18 | 0 | 0 | 0 |
+| **合计** | | **112** | **200** | **81** |
+
+结果已存 samples/vuln_reqs/real_projects/real_compare_results.json

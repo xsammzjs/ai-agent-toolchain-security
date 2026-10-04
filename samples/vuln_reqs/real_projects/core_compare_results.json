@@ -1,0 +1,11 @@
+[
+  {
+    "repo": "home-assistant/core",
+    "stars": 90438,
+    "deps": 58,
+    "ours": 3,
+    "pipaudit": 0,
+    "trivy": 3,
+    "note": "pip-audit失败: -run', '--report', 'C:\\\\Users\\\\34612\\\\AppData\\\\Local\\\\Temp\\\\tmp6im7ibkl\\\\tmpjxz_7ycn', '-r', 'D:\\\\DeskApp\\\\python_xiangmu\\\\python-sbom-security-tool\\\\samples\\\\vuln_reqs\\\\real_projects\\\\req_core.txt']\n"
+  }
+]

@@ -1,0 +1,3 @@
+# benchmark sample 1: serious vulns (old versions with many known CVEs)
+django==2.2.0
+requests==2.20.0

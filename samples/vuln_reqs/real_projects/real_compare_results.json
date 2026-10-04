@@ -1,0 +1,84 @@
+[
+  {
+    "repo": "jingyaogong/minimind",
+    "stars": 61031,
+    "deps": 30,
+    "ours": 73,
+    "pipaudit": 87,
+    "trivy": 64,
+    "our_secs": 643.9,
+    "pa_secs": 182.3,
+    "note": ""
+  },
+  {
+    "repo": "FoundationAgents/MetaGPT",
+    "error": "下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))"
+  },
+  {
+    "repo": "FoundationAgents/OpenManus",
+    "stars": 58303,
+    "deps": 36,
+    "ours": 22,
+    "pipaudit": 0,
+    "trivy": 0,
+    "our_secs": 228.1,
+    "pa_secs": 600.0,
+    "note": "失败: Command '['D:\\\\dev_jieshiqi\\\\python\\\\python3.11.9\\\\python.exe', '-m', 'pip_audit', '-r', 'D:\\\\DeskApp\\\\python_xiangmu\\\\python-sbom-security-tool\\\\samples\\\\vuln_reqs\\\\real_projects\\\\req_OpenManus.txt', '-f', 'json', '--no-deps', '--progress-spinner', 'off']' timed out after 600 seconds"
+  },
+  {
+    "repo": "binary-husky/gpt_academic",
+    "stars": 71337,
+    "deps": 44,
+    "ours": 9,
+    "pipaudit": 92,
+    "trivy": 9,
+    "our_secs": 96.0,
+    "pa_secs": 140.1,
+    "note": ""
+  },
+  {
+    "repo": "unclecode/crawl4ai",
+    "error": "下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))"
+  },
+  {
+    "repo": "harry0703/MoneyPrinterTurbo",
+    "stars": 123517,
+    "deps": 21,
+    "ours": 4,
+    "pipaudit": 21,
+    "trivy": 4,
+    "our_secs": 79.2,
+    "pa_secs": 59.4,
+    "note": ""
+  },
+  {
+    "repo": "NanmiCoder/MediaCrawler",
+    "stars": 64970,
+    "deps": 31,
+    "ours": 4,
+    "pipaudit": 0,
+    "trivy": 4,
+    "our_secs": 36.2,
+    "pa_secs": 129.8,
+    "note": " ConnectionError(e)\nrequests.exceptions.ConnectionError: HTTPSConnectionPool(host='pypi.org', port=443): Read timed out."
+  },
+  {
+    "repo": "home-assistant/core",
+    "error": "下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))"
+  },
+  {
+    "repo": "Comfy-Org/ComfyUI",
+    "error": "下载失败: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))"
+  },
+  {
+    "repo": "hacksider/Deep-Live-Cam",
+    "stars": 96641,
+    "deps": 18,
+    "ours": 0,
+    "pipaudit": 0,
+    "trivy": 0,
+    "our_secs": 22.4,
+    "pa_secs": 600.0,
+    "note": "失败: Command '['D:\\\\dev_jieshiqi\\\\python\\\\python3.11.9\\\\python.exe', '-m', 'pip_audit', '-r', 'D:\\\\DeskApp\\\\python_xiangmu\\\\python-sbom-security-tool\\\\samples\\\\vuln_reqs\\\\real_projects\\\\req_Deep-Live-Cam.txt', '-f', 'json', '--no-deps', '--progress-spinner', 'off']' timed out after 600 seconds"
+  }
+]
