@@ -20,20 +20,6 @@ from datetime import datetime
 from modules.engine import ScanEngine
 
 
-def _safe_ai_markdown(text: str) -> str:
-    """转义 AI 输出中会触发意外 Markdown 格式的字符（删除线/分隔线/链接/行内代码），保留加粗和列表。"""
-    if not text:
-        return text
-    text = text.replace("~", "\\~")
-    text = text.replace("[", "\\[").replace("]", "\\]")
-    text = text.replace("`", "\\`")
-    lines = text.split("\n")
-    for i, line in enumerate(lines):
-        if line.strip() in ("---", "***", "___", "- - -", "* * *"):
-            lines[i] = "—"
-    return "\n".join(lines)
-
-
 # ==========================================
 # 辅助函数（定义在使用之前，避免 NameError）
 # ==========================================
@@ -345,15 +331,8 @@ if "scan_result_pending" not in st.session_state:
     st.session_state.scan_result_pending = None
 if "scan_error" not in st.session_state:
     st.session_state.scan_error = None
-# AI 辅助研判状态（AI 模块新增）
-if "ai_judgements" not in st.session_state:
-    st.session_state.ai_judgements = {}   # cve_id → 研判文本
-if "ai_report_text" not in st.session_state:
-    st.session_state.ai_report_text = ""  # 一键报告文本
-if "ai_report_cost" not in st.session_state:
-    st.session_state.ai_report_cost = ""  # 一键报告费用小字
-if "ai_chat" not in st.session_state:
-    st.session_state.ai_chat = []         # [{q, a, cost}] 问答历史
+# 说明：AI 辅助研判功能已整体移除，系统不再调用任何大模型。
+# 全部结论由确定性规则 + OSV/NVD/GitHub/EPSS 权威数据得出。
 
 # ==========================================
 # 主页面
@@ -361,13 +340,13 @@ if "ai_chat" not in st.session_state:
 st.markdown("""
 <div id="top" class="hero-banner">
     <div class="hero-title">🔍 双链——软件供应链安全检测系统</div>
-    <div class="hero-sub">四源交叉验证 · 权威置信度评级 · EPSS 利用预测 · 修复优先级排序 · 证据溯源 · 一键修复 · AI 辅助研判 · Skill 安全检测</div>
+    <div class="hero-sub">四源交叉验证 · 权威置信度评级 · EPSS 利用预测 · 修复优先级排序 · 证据溯源 · 一键修复 · Skill 安全检测</div>
     <div class="hero-badges">
         <span class="hero-chip">OSV</span>
         <span class="hero-chip">NVD</span>
         <span class="hero-chip">GitHub Advisory</span>
         <span class="hero-chip">FIRST EPSS</span>
-        <span class="hero-chip">🤖 AI 辅助研判</span>
+        <span class="hero-chip">Skill 安全检测</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -501,6 +480,16 @@ if st.session_state.scan_done and st.session_state.result:
     if t_info.get("truncated"):
         st.warning(f"⚠️ 间接依赖超过上限 {t_info.get('limit', 0)} 个，已截断。"
                    f"建议用 `pip freeze > requirements.txt` 导出完整清单后扫描。")
+
+    # 查询失败披露：网络中断/限流时，"零漏洞"不再可信，必须明确告知
+    qe_total = summary.get("query_error_total", 0)
+    if qe_total:
+        qe = summary.get("query_errors", {})
+        st.error(
+            f"⚠️ 本次扫描有 **{qe_total} 次数据源查询失败**"
+            f"（{'、'.join(f'{k}×{v}' for k, v in qe.items() if v)}）。"
+            f"失败的依赖**未被判定为安全**，漏洞数量可能偏低，请检查网络后重新扫描。"
+        )
 
     # 检测覆盖度披露（原实现静默丢弃部分依赖，用户完全看不到，属于隐性漏检）
     if summary.get("skipped_count"):
@@ -718,8 +707,8 @@ if st.session_state.scan_done and st.session_state.result:
         st.divider()
 
     # ===== 标签页 =====
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 漏洞研判结果", "🔍 漏洞详情与证据", "🔧 修复方案", "📄 报告导出", "🤖 AI 辅助研判"
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 漏洞研判结果", "🔍 漏洞详情与证据", "🔧 修复方案", "📄 报告导出"
     ])
 
     # ===== Tab 1: 漏洞研判结果 =====
@@ -882,34 +871,6 @@ if st.session_state.scan_done and st.session_state.result:
                     if v.get("summary"):
                         st.caption(f"描述: {v['summary'][:250]}")
 
-                    # ===== AI 研判（AI 模块新增）=====
-                    st.divider()
-                    st.markdown("**🤖 AI 研判**（大模型基于本漏洞的多源数据生成，只解读不检测）")
-                    ai_prev = st.session_state.ai_judgements.get(v["cve_id"], "")
-                    if ai_prev:
-                        st.markdown(_safe_ai_markdown(ai_prev))
-                        if st.button("🔄 重新研判", key=f"rejudge_{v['cve_id']}"):
-                            st.session_state.ai_judgements.pop(v["cve_id"], None)
-                            st.rerun()
-                    elif st.button("🤖 AI 研判", key=f"judge_{v['cve_id']}"):
-                        from modules import ai as ai_mod
-
-                        gen, usage_box = ai_mod.judge_vulnerability(v)
-                        parts = []
-                        placeholder = st.empty()
-                        try:
-                            for chunk in gen:
-                                parts.append(chunk)
-                                placeholder.markdown("".join(parts))
-                        except ai_mod.AIError as e:
-                            placeholder.error(f"🤖 AI 研判失败：{e}")
-                        else:
-                            text = "".join(parts)
-                            if text:
-                                st.session_state.ai_judgements[v["cve_id"]] = text
-                            tokens_str, cost = ai_mod.usage_cost(usage_box["usage"])
-                            st.caption(f"⚡ 本次消耗 {tokens_str} tokens · 约 ¥{cost:.4f}")
-
         else:
             st.success("无漏洞记录")
 
@@ -1019,99 +980,6 @@ if st.session_state.scan_done and st.session_state.result:
                     except Exception as e:
                         st.error(f"PDF 生成失败：{e}")
 
-    # ===== Tab 5: AI 辅助研判（AI 模块新增）=====
-    with tab5:
-        from config import config
-
-        st.markdown("### 🤖 AI 辅助研判")
-        st.caption(
-            "大模型基于扫描结果生成中文研判：只解读数据、不编造漏洞。"
-            f"当前模型：`{config.DEEPSEEK_MODEL or '未配置'}`"
-            "（可在 .env 切换 deepseek-v4-flash / deepseek-v4-pro）"
-        )
-
-        if not config.DEEPSEEK_API_KEY:
-            st.warning("⚠️ 未配置 DeepSeek API key，AI 功能不可用。"
-                       "在 .env 中填写 DEEPSEEK_API_KEY 后重启即可。")
-
-        # ---- AI 一键安全报告 ----
-        st.markdown("#### 📑 AI 一键安全报告")
-        st.caption("基于全部扫描结果生成完整中文安全评估报告，可下载。")
-
-        if st.button("🤖 生成 AI 安全报告", type="primary", key="ai_report_btn"):
-            from modules import ai as ai_mod
-
-            gen, usage_box = ai_mod.generate_ai_report(result)
-            parts = []
-            placeholder = st.empty()
-            try:
-                for chunk in gen:
-                    parts.append(chunk)
-                    placeholder.markdown("".join(parts))
-            except ai_mod.AIError as e:
-                placeholder.error(f"🤖 生成失败：{e}")
-            else:
-                text = "".join(parts)
-                if text:
-                    st.session_state.ai_report_text = text
-                tokens_str, cost = ai_mod.usage_cost(usage_box["usage"])
-                st.session_state.ai_report_cost = f"⚡ 本次消耗 {tokens_str} tokens · 约 ¥{cost:.4f}"
-                st.rerun()
-
-        if st.session_state.ai_report_text:
-            st.markdown(_safe_ai_markdown(st.session_state.ai_report_text))
-            st.download_button(
-                "📥 下载 AI 安全报告（txt）",
-                st.session_state.ai_report_text.encode("utf-8"),
-                "AI安全报告.txt",
-                "text/plain",
-                use_container_width=True,
-            )
-            if st.session_state.ai_report_cost:
-                st.caption(st.session_state.ai_report_cost)
-
-        st.divider()
-
-        # ---- 交互问答 ----
-        st.markdown("#### 💬 交互问答")
-        st.caption("带着扫描数据提问，例如：这个项目能上线吗？最该先修的 5 个漏洞是什么？")
-
-        question = st.text_input(
-            "输入你的问题",
-            key="ai_question",
-            placeholder="例如：最严重的漏洞是什么？怎么修？",
-        )
-        if st.button("🤖 提问", key="ai_ask_btn", disabled=not question.strip()):
-            from modules import ai as ai_mod
-
-            gen, usage_box = ai_mod.ask_question(result, question.strip())
-            parts = []
-            placeholder = st.empty()
-            try:
-                for chunk in gen:
-                    parts.append(chunk)
-                    placeholder.markdown("".join(parts))
-            except ai_mod.AIError as e:
-                placeholder.error(f"🤖 回答失败：{e}")
-            else:
-                text = "".join(parts)
-                if text:
-                    tokens_str, cost = ai_mod.usage_cost(usage_box["usage"])
-                    st.session_state.ai_chat.append({
-                        "q": question.strip(),
-                        "a": text,
-                        "cost": f"⚡ {tokens_str} tokens · 约 ¥{cost:.4f}",
-                    })
-                st.rerun()
-
-        if st.session_state.ai_chat:
-            st.markdown("**历史问答**（最近 5 条）")
-            for item in list(st.session_state.ai_chat)[-5:]:
-                with st.container(border=True):
-                    st.markdown(f"**❓ 你问：**{item['q']}")
-                    st.markdown(f"**🤖 回答：**\n\n{item['a']}")
-                    st.caption(item["cost"])
-
 # ---- 初始状态 ----
 elif not st.session_state.scan_done:
     st.info("👈 请在左侧上传文件并点击「开始安全扫描」")
@@ -1166,10 +1034,8 @@ def _extract_skill_zip(zip_bytes: bytes, dest: str) -> str:
 
 def _run_skill_scan(zip_bytes: bytes | None = None, text: str | None = None,
                     demo: bool = False):
-    """双层检测：静态规则引擎 + AI 语义研判，结果写入 session_state 后刷新页面"""
+    """静态规则引擎检测，结果写入 session_state 后刷新页面"""
     from modules import skill_scanner as ss
-    from modules import ai as ai_mod
-    from config import config
 
     tmp_dir = tempfile.mkdtemp(prefix="skill_scan_")
     try:
@@ -1197,34 +1063,6 @@ def _run_skill_scan(zip_bytes: bytes | None = None, text: str | None = None,
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     st.session_state.skill_result = result
-    st.session_state.skill_ai_text = ""
-    st.session_state.skill_ai_cost = ""
-
-    # 第二层：AI 语义研判（未配置 key 时跳过）
-    if not skill_text.strip() or not config.DEEPSEEK_API_KEY:
-        st.rerun()
-        return
-
-    hints = "\n".join(
-        f"[{f['severity']}][{f['category']}] {f['rule']}：{f['evidence']}"
-        for f in result["findings"][:10]
-    )
-    gen, usage_box = ai_mod.review_skill(skill_text, hints)
-    parts = []
-    placeholder = st.empty()
-    try:
-        for chunk in gen:
-            parts.append(chunk)
-            placeholder.markdown("#### 🤖 AI 语义研判（第二层检测，流式生成中）\n\n" + _safe_ai_markdown("".join(parts)))
-    except ai_mod.AIError as e:
-        placeholder.error(f"🤖 语义研判失败：{e}")
-        st.rerun()
-        return
-    text_out = "".join(parts)
-    if text_out:
-        st.session_state.skill_ai_text = text_out
-        tokens_str, cost = ai_mod.usage_cost(usage_box["usage"])
-        st.session_state.skill_ai_cost = f"⚡ 本次消耗 {tokens_str} tokens · 约 ¥{cost:.4f}"
     st.rerun()
 
 
@@ -1233,10 +1071,6 @@ def _run_skill_scan(zip_bytes: bytes | None = None, text: str | None = None,
 # ==========================================
 if "skill_result" not in st.session_state:
     st.session_state.skill_result = None
-if "skill_ai_text" not in st.session_state:
-    st.session_state.skill_ai_text = ""
-if "skill_ai_cost" not in st.session_state:
-    st.session_state.skill_ai_cost = ""
 if "skill_benchmark" not in st.session_state:
     st.session_state.skill_benchmark = False
 
@@ -1246,7 +1080,7 @@ st.markdown('<div class="section-title">🛡️ Skill 安全检测（AI Agent �
 st.caption(
     "Agent Skills 已成为新型软件供应链攻击面——2026 年 ClawHavoc 事件中 1,184 个恶意技能"
     "造成 24.7 万次安装，Snyk 审计发现 36.82% 的技能含提示注入。"
-    "本功能对技能包做「静态规则引擎 + AI 语义研判」双层检测。"
+    "本功能基于静态规则引擎对技能包做确定性检测，命中即给出原文行号作为证据。"
 )
 
 skill_col1, skill_col2 = st.columns(2)
@@ -1399,13 +1233,6 @@ if st.session_state.skill_result:
     else:
         st.success("🎉 未发现风险，该技能通过静态规则引擎全部检测。")
 
-    # AI 语义研判结果（第二层）
-    if st.session_state.skill_ai_text:
-        with st.container(border=True):
-            st.markdown("#### 🤖 AI 语义研判（第二层检测）")
-            st.markdown(_safe_ai_markdown(st.session_state.skill_ai_text))
-            if st.session_state.skill_ai_cost:
-                st.caption(st.session_state.skill_ai_cost)
 
 
 # ==========================================

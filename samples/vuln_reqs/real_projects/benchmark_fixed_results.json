@@ -1,0 +1,275 @@
+{
+  "generated_at": "2026-10-05T07:02:45.736311",
+  "projects": [
+    {
+      "project": "ComfyUI",
+      "before": {
+        "deps": 35,
+        "scanned": 7,
+        "skipped": 28,
+        "vulns": 1,
+        "cves": 1,
+        "query_errors": {}
+      },
+      "after": {
+        "deps": 35,
+        "scanned": 18,
+        "skipped": 17,
+        "vulns": 57,
+        "cves": 57,
+        "query_errors": {}
+      }
+    },
+    {
+      "project": "Deep-Live-Cam",
+      "before": {
+        "deps": 18,
+        "scanned": 11,
+        "skipped": 7,
+        "vulns": 0,
+        "cves": 0,
+        "query_errors": {}
+      },
+      "after": {
+        "deps": 18,
+        "scanned": 17,
+        "skipped": 1,
+        "vulns": 18,
+        "cves": 18,
+        "query_errors": {
+          "github": 6,
+          "osv": 1
+        }
+      }
+    },
+    {
+      "project": "MediaCrawler",
+      "before": {
+        "deps": 31,
+        "scanned": 15,
+        "skipped": 16,
+        "vulns": 2,
+        "cves": 2,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      },
+      "after": {
+        "deps": 31,
+        "scanned": 30,
+        "skipped": 1,
+        "vulns": 26,
+        "cves": 26,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      }
+    },
+    {
+      "project": "MetaGPT",
+      "before": {
+        "deps": 71,
+        "scanned": 63,
+        "skipped": 8,
+        "vulns": 78,
+        "cves": 78,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      },
+      "after": {
+        "deps": 71,
+        "scanned": 67,
+        "skipped": 4,
+        "vulns": 81,
+        "cves": 81,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      }
+    },
+    {
+      "project": "MoneyPrinterTurbo",
+      "before": {
+        "deps": 21,
+        "scanned": 21,
+        "skipped": 0,
+        "vulns": 5,
+        "cves": 5,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      },
+      "after": {
+        "deps": 21,
+        "scanned": 21,
+        "skipped": 0,
+        "vulns": 5,
+        "cves": 5,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      }
+    },
+    {
+      "project": "OpenManus",
+      "before": {
+        "deps": 36,
+        "scanned": 30,
+        "skipped": 6,
+        "vulns": 22,
+        "cves": 22,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      },
+      "after": {
+        "deps": 36,
+        "scanned": 35,
+        "skipped": 1,
+        "vulns": 44,
+        "cves": 44,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      }
+    },
+    {
+      "project": "core",
+      "before": {
+        "deps": 58,
+        "scanned": 54,
+        "skipped": 4,
+        "vulns": 16,
+        "cves": 16,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      },
+      "after": {
+        "deps": 58,
+        "scanned": 58,
+        "skipped": 0,
+        "vulns": 29,
+        "cves": 29,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      }
+    },
+    {
+      "project": "crawl4ai",
+      "before": {
+        "deps": 33,
+        "scanned": 9,
+        "skipped": 24,
+        "vulns": 5,
+        "cves": 5,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      },
+      "after": {
+        "deps": 33,
+        "scanned": 33,
+        "skipped": 0,
+        "vulns": 152,
+        "cves": 152,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      }
+    },
+    {
+      "project": "gpt_academic",
+      "before": {
+        "deps": 44,
+        "scanned": 15,
+        "skipped": 29,
+        "vulns": 9,
+        "cves": 9,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      },
+      "after": {
+        "deps": 44,
+        "scanned": 22,
+        "skipped": 22,
+        "vulns": 43,
+        "cves": 43,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      }
+    },
+    {
+      "project": "home-assistant",
+      "before": {
+        "deps": 58,
+        "scanned": 54,
+        "skipped": 4,
+        "vulns": 16,
+        "cves": 16,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      },
+      "after": {
+        "deps": 58,
+        "scanned": 58,
+        "skipped": 0,
+        "vulns": 29,
+        "cves": 29,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      }
+    },
+    {
+      "project": "minimind",
+      "before": {
+        "deps": 29,
+        "scanned": 29,
+        "skipped": 0,
+        "vulns": 75,
+        "cves": 75,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      },
+      "after": {
+        "deps": 29,
+        "scanned": 29,
+        "skipped": 0,
+        "vulns": 75,
+        "cves": 75,
+        "query_errors": {
+          "github": 6,
+          "osv": 9
+        }
+      }
+    }
+  ],
+  "total_before": 229,
+  "total_after": 559,
+  "skipped_before": 126,
+  "skipped_after": 46
+}

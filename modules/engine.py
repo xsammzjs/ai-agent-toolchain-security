@@ -178,6 +178,9 @@ class ScanEngine:
             "skipped_count": len(skipped),
             "skipped_deps": skipped,
             "lower_bound_count": stats.get("lower_bound_count", 0),
+            # 查询失败次数：只有它为 0，"零漏洞"这个结论才可信
+            "query_errors": stats.get("query_errors", {}),
+            "query_error_total": sum(stats.get("query_errors", {}).values()),
             "total_vulnerabilities": total_vulns,
             "critical_count": critical,
             "high_confidence_count": high_confidence,

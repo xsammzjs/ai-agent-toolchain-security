@@ -21,7 +21,8 @@ class Config:
     # ========== API 密钥 ==========
     NVD_API_KEY = os.environ.get("NVD_API_KEY", "")
     GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
-    DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+    # DeepSeek 大模型配置已于本次改造中移除：系统不再调用大模型，
+    # 全部结论由确定性规则与权威漏洞库数据得出（详见 modules/NO_AI.md）
 
     # ========== GitHub 访问方式 ==========
     # 开着 Steam++/Watt Toolkit 等 GitHub 加速工具时，它们会在本机 127.0.0.1
@@ -35,7 +36,6 @@ class Config:
     EPSS_API = "https://api.first.org/data/v1/epss"
     GITHUB_ADVISORY_API = "https://api.github.com/advisories"
     PYPI_JSON_API = "https://pypi.org/pypi"
-    DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 
     # ========== 超时配置（秒）==========
     OSV_TIMEOUT = 15
@@ -43,7 +43,6 @@ class Config:
     GITHUB_TIMEOUT = 10
     EPSS_TIMEOUT = 8
     PYPI_TIMEOUT = 8
-    DEEPSEEK_TIMEOUT = 120  # AI 生成长报告可能较慢，放宽超时
 
     # ========== 间接依赖推断（v3.1 新增）==========
     MAX_TRANSITIVE_DEPS = 150     # 一层间接依赖收集上限，超出截断
@@ -57,16 +56,6 @@ class Config:
     # ========== 置信度评级阈值 ==========
     CONFIDENCE_HIGH = 3     # 需三方验证
     CONFIDENCE_MEDIUM = 2   # 需两方验证
-
-    # ========== AI 辅助研判（DeepSeek 大模型，2026-09-03 新增）==========
-    # 官方可用模型：deepseek-v4-flash（便宜快速，默认）/ deepseek-v4-pro（更强更贵）
-    # 答辩想换更强模型：改 .env 里的 DEEPSEEK_MODEL 后重启即可
-    DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash")
-    # V4 Flash 官方价格（元/百万 tokens）：缓存命中输入 / 缓存未命中输入 / 输出
-    # 用于界面显示每次调用的估算费用
-    DEEPSEEK_PRICE_INPUT_HIT = 0.02
-    DEEPSEEK_PRICE_INPUT_MISS = 1.0
-    DEEPSEEK_PRICE_OUTPUT = 2.0
 
     # ========== 临时目录 ==========
     TEMP_DIR = "temp_upload"
