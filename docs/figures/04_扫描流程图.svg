@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 480" width="1000" height="480" font-family="Microsoft YaHei, SimHei, sans-serif">
+  <defs>
+    <marker id="a4" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 Z" fill="#5a6f85"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="480" fill="#f8fafc"/>
+
+  <text x="500" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#1a3a5c">
+    扫描主流程（竖向）
+  </text>
+
+  <!-- 步骤 1 -->
+  <rect x="330" y="52" width="340" height="50" rx="8" fill="#fff" stroke="#cfd9e5" stroke-width="1.5"/>
+  <text x="350" y="74" font-size="12.5" font-weight="bold" fill="#1a3a5c">① 接收输入</text>
+  <text x="350" y="92" font-size="10" fill="#5a6f85">ZIP/RAR 解压 · requirements.txt · package.json</text>
+  <text x="660" y="82" text-anchor="middle" font-size="9.5" fill="#8a97a8">engine._prepare_files()</text>
+
+  <line x1="500" y1="104" x2="500" y2="124" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
+
+  <!-- 步骤 2 -->
+  <rect x="330" y="126" width="340" height="50" rx="8" fill="#fff" stroke="#cfd9e5" stroke-width="1.5"/>
+  <text x="350" y="148" font-size="12.5" font-weight="bold" fill="#1a3a5c">② 依赖解析与去重</text>
+  <text x="350" y="166" font-size="10" fill="#5a6f85">支持 7 种格式 · PEP503 名称归一化 · 可选一层间接依赖推断</text>
+  <text x="660" y="156" text-anchor="middle" font-size="9.5" fill="#8a97a8">parser.*</text>
+
+  <line x1="500" y1="178" x2="500" y2="198" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
+
+  <!-- 步骤 3 -->
+  <rect x="330" y="200" width="340" height="62" rx="8" fill="#fdf1f0" stroke="#c0392b" stroke-width="2"/>
+  <text x="350" y="222" font-size="12.5" font-weight="bold" fill="#a93226">③ 并发四源漏洞研判</text>
+  <text x="350" y="240" font-size="10" fill="#7d241a">OSV → NVD → GitHub → EPSS　线程池并发（实测 5.75×加速）</text>
+  <text x="350" y="255" font-size="10" fill="#7d241a">权威加权置信度评级 + 源间分歧降档 + 修复优先级</text>
+  <text x="660" y="234" text-anchor="middle" font-size="9.5" fill="#a93226">detect_vulnerabilities_concurrent()</text>
+
+  <line x1="500" y1="264" x2="500" y2="284" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
+
+  <!-- 步骤 4 -->
+  <rect x="330" y="286" width="340" height="62" rx="8" fill="#fdf1f0" stroke="#c0392b" stroke-width="2"/>
+  <text x="350" y="308" font-size="12.5" font-weight="bold" fill="#a93226">④ Skill 静态检测 + 攻击链分析</text>
+  <text x="350" y="326" font-size="10" fill="#7d241a">25 条规则 · 隐藏 Unicode · 跨行组合规则</text>
+  <text x="350" y="341" font-size="10" fill="#7d241a">能力图 → 6 类链路模板路径搜索（核心创新）</text>
+  <text x="660" y="320" text-anchor="middle" font-size="9.5" fill="#a93226">skill_scanner + attack_chain</text>
+
+  <line x1="500" y1="350" x2="500" y2="370" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
+
+  <!-- 步骤 5 -->
+  <rect x="330" y="372" width="340" height="50" rx="8" fill="#eaf4fb" stroke="#1a6fa8" stroke-width="1.5"/>
+  <text x="350" y="394" font-size="12.5" font-weight="bold" fill="#134b73">⑤ AI 研判（可选）</text>
+  <text x="350" y="412" font-size="10" fill="#1a6fa8">基于已判定证据做汇总与处置建议 · 未配置 MaaS 时降级本地模板</text>
+  <text x="660" y="402" text-anchor="middle" font-size="9.5" fill="#1a6fa8">adjudicator.*</text>
+
+  <line x1="500" y1="424" x2="500" y2="444" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
+
+  <!-- 步骤 6 -->
+  <rect x="330" y="446" width="340" height="50" rx="8" fill="#eaf7ef" stroke="#1e8449" stroke-width="1.5"/>
+  <text x="350" y="468" font-size="12.5" font-weight="bold" fill="#14663c">⑥ 产出</text>
+  <text x="350" y="486" font-size="10" fill="#1e8449">SBOM · 资产图谱落库 · 修复建议 · DOCX/PDF 报告</text>
+
+  <!-- 右侧旁注 -->
+  <rect x="700" y="200" width="260" height="148" rx="8" fill="#fff9e6" stroke="#f39c12"/>
+  <text x="716" y="224" font-size="11.5" font-weight="bold" fill="#8a6d1a">⚠️ 断网时的降级路径</text>
+  <text x="716" y="246" font-size="10.5" fill="#8a6d1a">① 查询失败 → 不缓存 + 重试 1 次</text>
+  <text x="716" y="264" font-size="10.5" fill="#8a6d1a">② 失败计数在界面顶部红字披露</text>
+  <text x="716" y="282" font-size="10.5" fill="#8a6d1a">③ 离线演示模式：4 个预置场景</text>
+  <text x="716" y="300" font-size="10.5" fill="#8a6d1a">④ 绝不显示「0 漏洞」（会误导）</text>
+  <text x="716" y="324" font-size="10" fill="#b7950b" font-weight="bold">
+    原则：宁可明确告知降级，</text>
+  <text x="716" y="340" font-size="10" fill="#b7950b" font-weight="bold">
+    也不伪装成正常结果</text>
+</svg>

@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="1000" height="520" font-family="Microsoft YaHei, SimHei, sans-serif">
+  <defs>
+    <marker id="a2" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#5a6f85"/>
+    </marker>
+    <marker id="aRed" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#c0392b"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="520" fill="#f8fafc"/>
+
+  <text x="500" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#1a3a5c">
+    跨技能攻击链检测原理 · 传统工具 vs 本项目
+  </text>
+
+  <!-- ========== 上半：传统单点检测 ========== -->
+  <rect x="40" y="52" width="920" height="176" rx="10" fill="#f1f3f5" stroke="#adb5bd" stroke-width="1.5"/>
+  <text x="60" y="78" font-size="14" font-weight="bold" fill="#5a6f85">① 传统单点检测 —— SkillLens / ClawGuard / ToxicSkills 等工具的做法</text>
+
+  <rect x="70" y="92" width="160" height="58" rx="7" fill="#fff" stroke="#adb5bd"/>
+  <text x="150" y="114" text-anchor="middle" font-size="12" font-weight="bold" fill="#495057">Skill A</text>
+  <text x="150" y="133" text-anchor="middle" font-size="10" fill="#868e96">判定：中危</text>
+
+  <rect x="250" y="92" width="160" height="58" rx="7" fill="#fff" stroke="#adb5bd"/>
+  <text x="330" y="114" text-anchor="middle" font-size="12" font-weight="bold" fill="#495057">Skill B</text>
+  <text x="330" y="133" text-anchor="middle" font-size="10" fill="#868e96">判定：高危</text>
+
+  <rect x="430" y="92" width="160" height="58" rx="7" fill="#fff" stroke="#adb5bd"/>
+  <text x="510" y="114" text-anchor="middle" font-size="12" font-weight="bold" fill="#495057">Skill C</text>
+  <text x="510" y="133" text-anchor="middle" font-size="10" fill="#868e96">判定：低危</text>
+
+  <rect x="620" y="92" width="320" height="58" rx="7" fill="#e9ecef" stroke="#adb5bd"/>
+  <text x="780" y="113" text-anchor="middle" font-size="12" font-weight="bold" fill="#495057">最严重结论：高危</text>
+  <text x="780" y="133" text-anchor="middle" font-size="10" fill="#868e96">「A 危险」 「B 危险」 到此为止</text>
+
+  <text x="500" y="176" text-anchor="middle" font-size="12" fill="#868e96">
+    能力：逐个打分、列表展示　　盲区：无法回答「这些技能凑在一起会造成什么后果」
+  </text>
+  <text x="500" y="200" text-anchor="middle" font-size="11" fill="#c0392b">
+    ✗ A 读 .env 凭据 + B 往 pastebin 发数据 = 密钥被送出国　→传统工具完全看不到这一层
+  </text>
+  <text x="500" y="218" text-anchor="middle" font-size="10" fill="#adb5bd">
+    （此示例对应 Snyk 官方样本 agents/skills/vercel 的真实手法：curl --data 上传 uname -a 到 paste.c-net.org）
+  </text>
+
+  <!-- 分隔 -->
+  <line x1="500" y1="236" x2="500" y2="256" stroke="#c0392b" stroke-width="2" marker-end="url(#aRed)"/>
+  <text x="516" y="252" font-size="11" fill="#c0392b" font-weight="bold">能力图路径搜索（本项目新增）</text>
+
+  <!-- ========== 下半：攻击链检测 ========== -->
+  <rect x="40" y="258" width="920" height="238" rx="10" fill="#fdf1f0" stroke="#c0392b" stroke-width="2"/>
+  <text x="60" y="284" font-size="14" font-weight="bold" fill="#a93226">② 跨技能攻击链分析 —— 本项目做法</text>
+
+  <!-- 步骤 1 -->
+  <rect x="70" y="300" width="245" height="76" rx="8" fill="#fff" stroke="#e8c4c0"/>
+  <text x="192" y="322" text-anchor="middle" font-size="12" font-weight="bold" fill="#c0392b">① 能力提取</text>
+  <text x="192" y="340" text-anchor="middle" font-size="10" fill="#7d241a">Skill A → 能力「读取敏感凭据」</text>
+  <text x="192" y="357" text-anchor="middle" font-size="10" fill="#7d241a">证据：SKILL.md:6</text>
+
+  <line x1="320" y1="338" x2="355" y2="338" stroke="#c0392b" stroke-width="2" marker-end="url(#aRed)"/>
+
+  <!-- 步骤 2 -->
+  <rect x="360" y="300" width="245" height="76" rx="8" fill="#fff" stroke="#e8c4c0"/>
+  <text x="482" y="322" text-anchor="middle" font-size="12" font-weight="bold" fill="#c0392b">② 建立能力索引</text>
+  <text x="482" y="340" text-anchor="middle" font-size="10" fill="#7d241a">Skill B → 能力「向外传输数据」</text>
+  <text x="482" y="357" text-anchor="middle" font-size="10" fill="#7d241a">证据：SKILL.md:6</text>
+
+  <line x1="610" y1="338" x2="645" y2="338" stroke="#c0392b" stroke-width="2" marker-end="url(#aRed)"/>
+
+  <!-- 步骤 3 -->
+  <rect x="650" y="300" width="290" height="76" rx="8" fill="url(#gRed)"/>
+  <defs><linearGradient id="gRed" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#e74c3c"/>
+  </linearGradient></defs>
+  <text x="795" y="322" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">③ 图上路径搜索</text>
+  <text x="795" y="341" text-anchor="middle" font-size="10.5" fill="#ffe0dc">按 6 类攻击链模板匹配</text>
+  <text x="795" y="359" text-anchor="middle" font-size="10.5" fill="#ffe0dc">READ_CRED → EXFIL　命中</text>
+
+  <!-- 结论 -->
+  <rect x="70" y="392" width="870" height="60" rx="8" fill="#c0392b"/>
+  <text x="505" y="416" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">
+    结论：严重级「凭据外泄链路」　风险分 14（跨技能加权 +5）
+  </text>
+  <text x="505" y="438" text-anchor="middle" font-size="11" fill="#ffe0dc">
+    跨技能协同 · 涉及 demo-env-collector 与 demo-telemetry-reporter　真实危害：密钥被外传至境外站点
+  </text>
+
+  <text x="500" y="476" text-anchor="middle" font-size="11" fill="#5a6f85">
+    差异化：单点检测回答「哪个技能危险」；攻击链分析回答「这些技能凑在一起会造成什么后果」
+  </text>
+  <text x="500" y="492" text-anchor="middle" font-size="10" fill="#8a97a8">
+    每一步均可追溯到原文行号与命中规则，评委可当场核验——这是确定性证据，不是模型推测
+  </text>
+</svg>

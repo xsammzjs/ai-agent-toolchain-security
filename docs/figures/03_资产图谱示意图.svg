@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" font-family="Microsoft YaHei, SimHei, sans-serif">
+  <defs>
+    <marker id="a3" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 Z" fill="#95a5a6"/>
+    </marker>
+    <linearGradient id="gDep" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5d6d7e"/><stop offset="100%" stop-color="#85929e"/>
+    </linearGradient>
+    <linearGradient id="gSkill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#e74c3c"/>
+    </linearGradient>
+    <linearGradient id="gTool" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#b7950b"/><stop offset="100%" stop-color="#f39c12"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="560" fill="#f8fafc"/>
+
+  <text x="500" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#1a3a5c">
+    资产图谱 · 传统供应链与 AI 供应链的统一建模
+  </text>
+  <text x="500" y="54" text-anchor="middle" font-size="12" fill="#5a6f85">
+    三类异构资产统一为节点，关系建成边 —— 这是赛题 1 要求 RDS 承载的数据模型
+  </text>
+
+  <!-- 图例 -->
+  <rect x="60" y="72" width="120" height="26" rx="5" fill="url(#gDep)"/>
+  <text x="120" y="89" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">📦 依赖资产</text>
+  <rect x="192" y="72" width="120" height="26" rx="5" fill="url(#gSkill)"/>
+  <text x="252" y="89" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">🧩 技能资产</text>
+  <rect x="324" y="72" width="120" height="26" rx="5" fill="url(#gTool)"/>
+  <text x="384" y="89" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">🔧 工具资产</text>
+  <line x1="460" y1="85" x2="510" y2="85" stroke="#c0392b" stroke-width="2.5" marker-end="url(#a3)"/>
+  <text x="520" y="90" font-size="11" fill="#c0392b" font-weight="bold">攻击调用边</text>
+  <line x1="630" y1="85" x2="680" y2="85" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#a3)"/>
+  <text x="690" y="90" font-size="11" fill="#5a6f85">普通关联边</text>
+
+  <!-- ===== 左域：传统软件供应链 ===== -->
+  <rect x="40" y="112" width="440" height="290" rx="10" fill="#fff" stroke="#cfd9e5" stroke-width="1.5"/>
+  <text x="260" y="136" text-anchor="middle" font-size="13" font-weight="bold" fill="#5a6f85">
+    传统软件供应链（依赖包）
+  </text>
+
+  <rect x="70" y="152" width="120" height="40" rx="6" fill="url(#gDep)"/>
+  <text x="130" y="170" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="bold">django</text>
+  <text x="130" y="184" text-anchor="middle" font-size="9" fill="#ecf0f1">3.2.1</text>
+
+  <rect x="70" y="240" width="120" height="40" rx="6" fill="url(#gDep)"/>
+  <text x="130" y="258" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="bold">requests</text>
+  <text x="130" y="272" text-anchor="middle" font-size="9" fill="#ecf0f1">2.25.0</text>
+
+  <rect x="70" y="328" width="120" height="40" rx="6" fill="url(#gDep)"/>
+  <text x="130" y="346" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="bold">urllib3</text>
+  <text x="130" y="360" text-anchor="middle" font-size="9" fill="#ecf0f1">1.26.5</text>
+
+  <!-- 同名多版本 -->
+  <rect x="220" y="152" width="120" height="40" rx="6" fill="url(#gDep)" stroke="#c0392b" stroke-width="2"/>
+  <text x="280" y="170" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="bold">django</text>
+  <text x="280" y="184" text-anchor="middle" font-size="9" fill="#ffe0dc">4.2.0 ↑已升级</text>
+
+  <line x1="192" y1="172" x2="216" y2="172" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#a3)"/>
+  <text x="204" y="146" text-anchor="middle" font-size="8.5" fill="#5a6f85">依赖</text>
+
+  <line x1="130" y1="194" x2="130" y2="236" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#a3)"/>
+  <line x1="130" y1="282" x2="130" y2="324" stroke="#95a5a6" stroke-width="1.5" marker-end="url(#a3)"/>
+
+  <text x="260" y="390" text-anchor="middle" font-size="10" fill="#868e96">
+    传统工具只覆盖这一侧：Snyk / Dependabot / pip-audit / Trivy
+  </text>
+
+  <!-- ===== 右域：AI 供应链 ===== -->
+  <rect x="520" y="112" width="440" height="290" rx="10" fill="#fdf1f0" stroke="#e8c4c0" stroke-width="1.5"/>
+  <text x="740" y="136" text-anchor="middle" font-size="13" font-weight="bold" fill="#a93226">
+    AI 供应链（技能与工具）—传统工具覆盖不到
+  </text>
+
+  <rect x="550" y="152" width="150" height="56" rx="6" fill="url(#gSkill)"/>
+  <text x="625" y="172" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="bold">env-collector</text>
+  <text x="625" y="186" text-anchor="middle" font-size="9" fill="#ffe0dc">技能 · 高危</text>
+  <text x="625" y="200" text-anchor="middle" font-size="8.5" fill="#ffe0dc">读取 .env 凭据</text>
+
+  <rect x="550" y="300" width="150" height="56" rx="6" fill="url(#gSkill)"/>
+  <text x="625" y="320" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="bold">telemetry-reporter</text>
+  <text x="625" y="334" text-anchor="middle" font-size="9" fill="#ffe0dc">技能 · 中危</text>
+  <text x="625" y="348" text-anchor="middle" font-size="8.5" fill="#ffe0dc">外发到 pastebin</text>
+
+  <rect x="790" y="226" width="130" height="46" rx="6" fill="url(#gTool)"/>
+  <text x="855" y="246" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="bold">外带通道</text>
+  <text x="855" y="262" text-anchor="middle" font-size="9" fill="#fff">pastebin</text>
+
+  <rect x="790" y="150" width="130" height="40" rx="6" fill="url(#gTool)"/>
+  <text x="855" y="175" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">凭据:环境变量</text>
+
+  <!-- 攻击边 -->
+  <path d="M700,180 Q745,200 786,244" fill="none" stroke="#c0392b" stroke-width="2.5" marker-end="url(#a3)"/>
+  <path d="M700,328 Q745,290 786,252" fill="none" stroke="#c0392b" stroke-width="2.5" marker-end="url(#a3)"/>
+  <line x1="702" y1="180" x2="786" y2="168" stroke="#c0392b" stroke-width="2" marker-end="url(#a3)"/>
+
+  <!-- 跨链攻击路径 -->
+  <path d="M700,182 Q760,250 700,318" fill="none" stroke="#c0392b" stroke-width="3.5"
+        stroke-dasharray="7 4" marker-end="url(#a3)"/>
+  <text x="742" y="256" text-anchor="middle" font-size="10" font-weight="bold" fill="#c0392b">
+    ⚔ 跨技能攻击链
+  </text>
+  <text x="742" y="270" text-anchor="middle" font-size="9" fill="#7d241a">凭据外泄</text>
+
+  <text x="740" y="390" text-anchor="middle" font-size="10" fill="#a93226">
+    本项目新增：能力图 + 路径搜索 →把分散风险连成完整攻击路径
+  </text>
+
+  <!-- 底部说明 -->
+  <rect x="40" y="418" width="920" height="122" rx="10" fill="#f1f5f9" stroke="#cfd9e5"/>
+  <text x="60" y="442" font-size="13" font-weight="bold" fill="#1a3a5c">为什么要统一成一张图</text>
+  <text x="60" y="466" font-size="11" fill="#34495e">
+    • 赛题 1 要求「多模态异构数据资产统一识别、理解与资产标识」—— 三类资产必须落到同一 schema
+  </text>
+  <text x="60" y="486" font-size="11" fill="#34495e">
+    • 只有统一建模，才能发现「依赖侧风险」与「技能侧风险」的联动——这正是本项目的差异化
+  </text>
+  <text x="60" y="506" font-size="11" fill="#34495e">
+    • 节点 ID 采用 sha1(类型|名称|版本) 保证多次扫描 ID 稳定，历史数据可关联（已由回归测试锁定）
+  </text>
+  <text x="60" y="526" font-size="11" fill="#34495e">
+    • 该图谱模型即RDS 中的 asset_node / asset_edge 表结构，云端部署时可直接落库
+  </text>
+</svg>

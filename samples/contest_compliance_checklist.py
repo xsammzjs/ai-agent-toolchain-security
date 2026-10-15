@@ -63,8 +63,10 @@ HARD_REQUIREMENTS: List[Requirement] = [
                       "华为云服务的快速开通创建」",
         why="这是「关联开通创建」环节。要求有实际创建动作，不能只在文档里写"
             "「本系统使用 RDS」。",
-        status="未开始",
-        acceptance="① 系统中真实存在RDS 实例并存放资产数据"
+        status="进行中",
+        acceptance="① 存储抽象层已完成（modules/store.py），LocalStore 可用；"
+                   "RDS 实例待账号开通后联调"
+                   "② 表结构已设计：scan_record / asset_node / asset_edge"
                    "② 能演示通过智能体/Skills 触发 RDS 资源开通或配置的过程"
                    "③ 界面或文档能展示 RDS 中的实际数据",
         evidence="待补：RDS 实例截图 + 数据表截图",
@@ -74,8 +76,9 @@ HARD_REQUIREMENTS: List[Requirement] = [
         title="智能体 + Skills 关联 Redis 开通创建",
         official_text="同上（「RDS、REDIS 等华为云服务」）",
         why="与②同一句要求，Redis 被单独点名。",
-        status="未开始",
-        acceptance="① 系统中真实存在 Redis 实例并承担实际职责"
+        status="进行中",
+        acceptance="① 存储抽象层已完成，Redis 用于查询缓存与并发任务队列"
+                   "② 云端实例待账号开通后联调"
                    "② Redis 用于真实的缓存/队列用途（非摆设）"
                    "③ 能说明为什么需要 Redis（建议：扫描结果缓存 + 并发任务队列，"
                    "对应当前四源查询串行、1035 秒的性能瓶颈）",
@@ -105,7 +108,7 @@ HARD_REQUIREMENTS: List[Requirement] = [
         why="🔴 这是最容易被忽略的一条。2026-10-05 曾主动移除全部 AI 能力"
             "（commit b84ff1b），若不补回，直接撞上「人工智能（必选）」这一条。"
             "赛题名本身也含「AI 创新应用」。",
-        status="未开始",
+        status="进行中",
         acceptance="① 使用华为云 MaaS 调用大模型（不用外部 API，赛题要求华为技术）"
                    "② AI 职责边界清晰：检测结论由确定性规则给出，"
                    "AI 只做基于证据的研判汇总、风险解释、处置建议"

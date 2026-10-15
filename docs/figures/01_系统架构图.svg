@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" width="1000" height="640" font-family="Microsoft YaHei, SimHei, sans-serif">
+  <defs>
+    <linearGradient id="gLayer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a3a5c"/><stop offset="100%" stop-color="#2a5784"/>
+    </linearGradient>
+    <linearGradient id="gRule" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#e74c3c"/>
+    </linearGradient>
+    <linearGradient id="gAI" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a6fa8"/><stop offset="100%" stop-color="#2a90c8"/>
+    </linearGradient>
+    <linearGradient id="gStore" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e8449"/><stop offset="100%" stop-color="#27ae60"/>
+    </linearGradient>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#5a6f85"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="640" fill="#f8fafc"/>
+
+  <!-- 标题 -->
+  <text x="500" y="34" text-anchor="middle" font-size="21" font-weight="bold" fill="#1a3a5c">
+    AI Agent 工具链安全检测平台 · 系统架构
+  </text>
+  <text x="500" y="56" text-anchor="middle" font-size="12" fill="#5a6f85">
+    检测判定由规则引擎给出（可核验）｜ AI 只做基于证据的研判汇总
+  </text>
+
+  <!-- ========== 接入层 ========== -->
+  <rect x="50" y="76" width="900" height="62" rx="10" fill="url(#gLayer)"/>
+  <text x="66" y="98" font-size="13" font-weight="bold" fill="#ffd966">① 接入层</text>
+  <text x="66" y="116" font-size="11" fill="#ffffff">上传 Skill 包 / 依赖清单（ZIP·RAR·requirements.txt·package.json）</text>
+  <text x="66" y="132" font-size="11" fill="#c8dcf0">点击上传即解析，全程本地文件处理，不落盘明文</text>
+
+  <!-- 箭头 -->
+  <line x1="500" y1="138" x2="500" y2="160" stroke="#5a6f85" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- ========== 检测层（确定性） ========== -->
+  <rect x="50" y="162" width="900" height="150" rx="10" fill="#fdf1f0" stroke="#c0392b" stroke-width="2"/>
+  <text x="66" y="186" font-size="13" font-weight="bold" fill="#a93226">② 检测层 · 确定性规则引擎（判定唯一来源）</text>
+
+  <rect x="70" y="198" width="200" height="52" rx="7" fill="url(#gRule)"/>
+  <text x="170" y="219" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">Skill 静态规则检测</text>
+  <text x="170" y="237" text-anchor="middle" font-size="10" fill="#ffe0dc">25 条规则 / 7 类威胁</text>
+
+  <rect x="290" y="198" width="200" height="52" rx="7" fill="url(#gRule)"/>
+  <text x="390" y="219" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">四源交叉验证</text>
+  <text x="390" y="237" text-anchor="middle" font-size="10" fill="#ffe0dc">OSV / NVD / GitHub / EPSS</text>
+
+  <rect x="510" y="198" width="200" height="52" rx="7" fill="url(#gRule)"/>
+  <text x="610" y="219" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">攻击链关联分析</text>
+  <text x="610" y="237" text-anchor="middle" font-size="10" fill="#ffe0dc">能力图 · 6 类链路模板（原创）</text>
+
+  <rect x="730" y="198" width="200" height="52" rx="7" fill="url(#gRule)"/>
+  <text x="830" y="219" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">资产图谱构建</text>
+  <text x="830" y="237" text-anchor="middle" font-size="10" fill="#ffe0dc">依赖 / Skill / 工具统一建模</text>
+
+  <rect x="70" y="260" width="860" height="42" rx="6" fill="#fff" stroke="#e8c4c0"/>
+  <text x="86" y="278" font-size="11" font-weight="bold" fill="#c0392b">输出契约：每条结论必须携带（原文行号 + 命中规则名 + 严重度）→ 可当场核验，可复现</text>
+  <text x="86" y="294" font-size="10" fill="#7d241a">权威置信度评级：NVD=3 分 · GitHub=2 分 · OSV=1 分，合计 ≥4 判为高置信度；源间分差 ≥2 降一档</text>
+
+  <line x1="500" y1="312" x2="500" y2="336" stroke="#5a6f85" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- ========== 研判层（AI） ========== -->
+  <rect x="50" y="338" width="900" height="104" rx="10" fill="#eaf4fb" stroke="#1a6fa8" stroke-width="2"/>
+  <text x="66" y="362" font-size="13" font-weight="bold" fill="#134b73">③ 研判层 · AI（华为云 MaaS）— 只汇总，不判定</text>
+
+  <rect x="70" y="374" width="410" height="54" rx="7" fill="url(#gAI)"/>
+  <text x="275" y="394" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">AI 职责范围（硬约束）</text>
+  <text x="275" y="412" text-anchor="middle" font-size="10" fill="#dceeff">风险态势 · 跨条汇总 · 威胁解释 · 处置建议 · 报告撰写</text>
+
+  <rect x="500" y="374" width="430" height="54" rx="7" fill="#fff" stroke="#1a6fa8" stroke-dasharray="5 3"/>
+  <text x="715" y="394" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a6fa8">AI 禁止行为（代码层面强制）</text>
+  <text x="715" y="412" text-anchor="middle" font-size="10" fill="#134b73">不得改写判定 · 不得凭空新增风险 · 每条输出须引用规则名与行号</text>
+
+  <!-- ========== 存储层 ========== -->
+  <line x1="500" y1="442" x2="500" y2="464" stroke="#5a6f85" stroke-width="2" marker-end="url(#arr)"/>
+
+  <rect x="50" y="466" width="900" height="96" rx="10" fill="#eaf7ef" stroke="#1e8449" stroke-width="2"/>
+  <text x="66" y="490" font-size="13" font-weight="bold" fill="#14663c">④ 存储抽象层（StorageBackend 接口 · 上层不感知底层）</text>
+
+  <rect x="70" y="502" width="265" height="46" rx="7" fill="url(#gStore)"/>
+  <text x="202" y="521" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">LocalStore（默认 · 零依赖离线）</text>
+  <text x="202" y="538" text-anchor="middle" font-size="9.5" fill="#d4f4e2">JSON 文件 · scan_record / asset_node / asset_edge</text>
+
+  <rect x="355" y="502" width="275" height="46" rx="7" fill="url(#gStore)"/>
+  <text x="492" y="521" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">华为云 RDS（赛题1 要求项②）</text>
+  <text x="492" y="538" text-anchor="middle" font-size="9.5" fill="#d4f4e2">资产节点 / 关系边 / 扫描历史</text>
+
+  <rect x="650" y="502" width="280" height="46" rx="7" fill="url(#gStore)"/>
+  <text x="790" y="521" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">华为云 Redis（赛题1 要求项③）</text>
+  <text x="790" y="538" text-anchor="middle" font-size="9.5" fill="#d4f4e2">查询缓存 · 并发任务队列</text>
+
+  <!-- 底部说明 -->
+  <text x="500" y="590" text-anchor="middle" font-size="11" fill="#5a6f85">
+    分层依据：AI 只处理规则已判定的证据，输入结构受 assert_ai_not_judging() 约束；未配置 MaaS 或云资源时自动降级为本地方案
+  </text>
+  <text x="500" y="610" text-anchor="middle" font-size="11" fill="#5a6f85">
+    降级原则同离线演示模式：宁可明确告知降级，也不伪装成正常结果
+  </text>
+</svg>
