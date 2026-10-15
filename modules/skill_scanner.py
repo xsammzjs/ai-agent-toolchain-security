@@ -155,6 +155,24 @@ RULE_TABLE = [
      r"oast\.(fun|live|me|pro)|burpcollaborator|dnslog|ceye\.io)",
      "命中知名数据转发/外带通道服务，常用于接收窃取的数据",
      "删除该通道地址；排查是否有数据外发行为"),
+    # 2026-10-15 新增：治"穷举域名必然漏"的问题。
+    # 真实样本（snyk-labs/toxicskills-goof 的 agents/skills/vercel）用的是
+    # paste.c-net.org —— 不在关键词表内，导致整个样本漏检。
+    # 攻击者可以随意注册一次性外带站点，穷举无法覆盖。
+    # 因此改为识别「paste*/临时粘贴站 + curl/--data 外发」的组合语义。
+    ("数据外发", "高危", "临时粘贴站外发",
+     r"(paste\.[a-z0-9\-]+\.[a-z]{2,}|hastebin\.com|dpaste\.|ix\.io|"
+     r"rentry\.co|0x0\.st|foggy\.xyz|termbin\.com)",
+     "命中可匿名上传的临时粘贴/外带站点，常被用于外传窃取的数据。"
+     "此类站点无需注册、无法追溯，是攻击者常用的数据外带通道",
+     "删除该站点地址；若有真实数据外发行为，需立即评估泄露范围"),
+    ("数据外发", "高危", "curl/wget 携带主机信息外发",
+     r"(curl|wget|httpie|http)\s+[^\n]{0,80}?(--data|-d\s|--data-binary|-F\b|--upload-file)"
+     r"[^\n]{0,120}?(uname|hostname|whoami|ip\s+addr|ifconfig|env|printenv|"
+     r"cat\s+~|\.env|credentials|\.ssh|token|secret)",
+     "命令行工具将主机敏感信息（主机名/用户/凭据）通过 HTTP 外发，"
+     "属于典型的数据外带行为",
+     "立即终止该命令；核查主机信息与凭据是否已泄露，必要时轮换密钥"),
     ("数据外发", "中危", "IP直连URL",
      r"https?://\d{1,3}(\.\d{1,3}){3}(:\d{1,5})?(/|$|\s)",
      "直接使用IP地址通信，规避域名审查，是可疑的外联方式",
