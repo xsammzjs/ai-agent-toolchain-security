@@ -19,9 +19,9 @@ Skill 安全检测模块（2026-09-09 新增）
 审计发现 36.82% 含提示注入、13.4% 彻底恶意。
 
 设计原则（答辩口径）：
-- 规则引擎给「确定性证据」（命中即展示原文行号），AI 只给「语义研判
-  证据」（引用原文+疑似标注），两者分层呈现，不混为一谈
-- 本模块独立运行：不依赖扫描结果，也不影响核心扫描流程
+- 全部结论来自确定性规则：命中即给出原文行号，可直接核验
+- 本模块独立运行：不依赖扫描结果，也不影响核心扫描流程，也不联网
+- 单点检测的局限由 modules/attack_chain.py 补足——把多个技能的危险动作连成攻击链
 """
 import os
 import re
@@ -108,9 +108,10 @@ RULE_TABLE = [
      "审查该段指令意图；技能指令与系统约束冲突时应以系统为准"),
     # ---- 凭证窃取 ----
     ("凭证窃取", "中危", "敏感凭据路径读取",
-     r"(cat|read|open|type|Get-Content|fs\.read)\s+.{0,120}"
-     r"(\.env|\.aws|credentials|id_rsa|\.ssh|\.npmrc|\.pypirc|\.gitconfig|kubeconfig|authorized_keys|"
-     r"API_KEY|SECRET_KEY|TOKEN|PASSWORD|shadow)",
+     r"(cat|read|open|type|Get-Content|fs\.read|读取|查看|获取|打开|加载|导出|上传|抓取)"
+     r"\s*.{0,120}"
+     r"(\.env|\.aws|credentials|id_rsa|\.ssh|\.npmrc|\.pypirc|\.gitconfig|kubeconfig|"
+     r"authorized_keys|API_KEY|SECRET_KEY|TOKEN|PASSWORD|shadow)",
      "指令中包含读取凭证类敏感文件的动作",
      "正常技能不应读取主机凭证文件；如无明确业务需求，删除该指令"),
     ("凭证窃取", "中危", "环境变量枚举",

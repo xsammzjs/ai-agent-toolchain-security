@@ -15,14 +15,14 @@ class Config:
     """应用配置"""
 
     # ========== 项目信息 ==========
-    APP_NAME = "双链软件供应链安全检测系统"
-    APP_VERSION = "3.0.0"
+    APP_NAME = "AI Agent 工具链安全检测平台"
+    APP_VERSION = "4.0.0"
 
     # ========== API 密钥 ==========
     NVD_API_KEY = os.environ.get("NVD_API_KEY", "")
     GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
-    # DeepSeek 大模型配置已于本次改造中移除：系统不再调用大模型，
-    # 全部结论由确定性规则与权威漏洞库数据得出（详见 modules/NO_AI.md）
+    # DeepSeek 大模型配置已于2026-10-05 移除（commit b84ff1b），之后未重新引入。
+    # AI 能力如需恢复，应使用华为云 MaaS 而非外部大模型 API（华为ICT大赛赛题1 要求）。
 
     # ========== GitHub 访问方式 ==========
     # 开着 Steam++/Watt Toolkit 等 GitHub 加速工具时，它们会在本机 127.0.0.1

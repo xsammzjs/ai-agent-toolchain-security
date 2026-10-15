@@ -19,6 +19,7 @@ import inspect
 import os
 import sys
 import tempfile
+import shutil
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -147,7 +148,9 @@ _demo_root = ss.make_demo_package(tempfile.mkdtemp())
 _demo = ss.scan_skill_package(_demo_root)
 check(G, "演示样例判定", _demo["verdict"], "严重")
 check(G, "演示样例文件数", _demo["files"], 2)
-check(G, "演示样例命中数", len(_demo["findings"]), 13)
+# 说明：2026-10-15 凭证窃取规则补入中文动词（读取/打开/获取/加载 等）后，
+#       演示样例多命中 1 处「读取 ~/.aws/credentials」，属检出增强而非回归。
+check(G, "演示样例命中数", len(_demo["findings"]), 14)
 
 _clean = ss.scan_skill_text("json-helper", CLEAN_SKILL)
 check(G, "正常技能判安全", _clean["verdict"], "安全")
@@ -194,6 +197,62 @@ check(G, "BUG-2 django2.2.0 应修到 2.2.4", _got, "2.2.4")
 check(G, "BUG-3版本号应清洁", _sbom["components"][0]["version"], "2.2.0")
 check(G, "BUG-3 purl 应合规", _sbom["components"][0]["purl"],
       "pkg:pypi/django@2.2.0")
+
+
+# ==========================================
+# 第 6 组：攻击链关联分析（2026-10-15 新增）
+# ==========================================
+G = "6-Chain"
+
+from modules import attack_chain as ac
+
+# 场景：三个技能单看都不严重，但串起来构成凭据外泄链路
+_chain_dir = tempfile.mkdtemp(prefix="chain_test_")
+_chain_roots = ac.make_attack_chain_demo(_chain_dir)
+_chain_results = [ss.scan_skill_package(r) for r in _chain_roots]
+_chain = ac.analyze_attack_chains(_chain_results)
+
+check(G, "关联技能数为3", _chain["total_skills"], 3)
+check(G, "应命中至少1 条攻击链", _chain["summary"]["chain_count"] >= 1, True)
+
+# 核心断言：跨技能凭据外泄链路必须被识别
+_cred_chains = [c for c in _chain["chains"] if c["chain_id"] == "CRED_EXFIL"]
+check(G, "应识别凭据外泄链路", len(_cred_chains) >= 1, True)
+
+if _cred_chains:
+    _c = _cred_chains[0]
+    check(G, "凭据链路为严重级", _c["severity"], "严重")
+    check(G, "凭据链路跨2 个技能", len(set(_c["path"])) == 2, True)
+    check(G, "链路步骤含READ_CRED",
+          any(s["cap"] == "READ_CRED" for s in _c["steps"]), True)
+    check(G, "链路步骤含 EXFIL",
+          any(s["cap"] == "EXFIL" for s in _c["steps"]), True)
+    # 可核验性：每一步都必须能追溯到具体行号
+    check(G, "每步均有证据行号",
+          all(s["line"] > 0 for s in _c["steps"]), True)
+    check(G, "每步均有命中规则名",
+          all(bool(s["rule"]) for s in _c["steps"]), True)
+
+# 阴性对照：单个无害技能不应产生任何攻击链
+_clean_chain = ac.analyze_attack_chains([ss.scan_skill_text("safe", "#格式化工具\n使用 black 格式化代码")])
+check(G, "无害技能零攻击链", _clean_chain["summary"]["chain_count"], 0)
+
+# 链路排序：风险分应降序
+_scores = [c["risk_score"] for c in _chain["chains"]]
+check(G, "链路按风险分降序", _scores, sorted(_scores, reverse=True))
+
+# 离线演示模式
+from modules import demo_mode as dm
+
+check(G, "预置演示场景数为4", len(dm.DEMO_SCENARIOS), 4)
+_off = dm.get_offline_vulns("scenario_1_vuln")
+check(G, "离线数据标记 offline", _off["offline"], True)
+check(G, "离线漏洞数大于0", len(_off["vulns"]) > 0, True)
+check(G, "漏洞字段结构完整",
+      all(k in _off["vulns"][0] for k in ("cve_id", "confidence", "fix_priority")), True)
+check(G, "场景清单可枚举", len(dm.list_demo_scenarios()), 4)
+
+shutil.rmtree(_chain_dir, ignore_errors=True)
 
 
 # ==========================================

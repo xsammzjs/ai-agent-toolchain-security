@@ -1,10 +1,10 @@
 @echo off
-title Dependency Vulnerability Scanner - Quick Start
+title AI Agent Toolchain Security Platform - Quick Start
 cd /d "%~dp0"
 
 echo ============================================
-echo   Dependency Vulnerability Scanner
-echo   One-click start, first run installs deps
+echo   AI Agent Toolchain Security Platform
+echo   Skill static rules + cross-skill attack chains
 echo ============================================
 echo.
 
@@ -57,8 +57,9 @@ if not exist ".env" (
   echo.
   echo [WARN] .env not found. App will still run, but:
   echo   - NVD queries will be slow, anonymous limit about 6s each
-  echo   - AI features will be disabled
-  echo   - See 运行说明.md to fill API keys if needed
+  echo   - Cross-source confidence rating will fall back to single-source
+  echo   - Use the offline demo mode if network is unavailable
+  echo   - See 运行说明.md for details
 )
 
 echo.

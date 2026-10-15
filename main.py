@@ -280,8 +280,8 @@ st.markdown("""
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand">
-        <div class="sidebar-brand-title">🔍 漏洞智能研判系统</div>
-        <div class="sidebar-brand-sub">精准检测 · 证据溯源 · 一键修复</div>
+        <div class="sidebar-brand-title">🛡️ AI Agent 工具链安全检测</div>
+        <div class="sidebar-brand-sub">规则检测 · 攻击链关联 · 证据溯源</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -339,14 +339,14 @@ if "scan_error" not in st.session_state:
 # ==========================================
 st.markdown("""
 <div id="top" class="hero-banner">
-    <div class="hero-title">🔍 双链——软件供应链安全检测系统</div>
-    <div class="hero-sub">四源交叉验证 · 权威置信度评级 · EPSS 利用预测 · 修复优先级排序 · 证据溯源 · 一键修复 · Skill 安全检测</div>
+    <div class="hero-title">🛡️ AI Agent 工具链安全检测平台</div>
+    <div class="hero-sub">Skill 静态规则检测 · <b>跨技能攻击链关联</b> · 依赖供应链风险 · 置信度评级 · 证据溯源 · 一键修复</div>
     <div class="hero-badges">
-        <span class="hero-chip">OSV</span>
-        <span class="hero-chip">NVD</span>
-        <span class="hero-chip">GitHub Advisory</span>
-        <span class="hero-chip">FIRST EPSS</span>
-        <span class="hero-chip">Skill 安全检测</span>
+        <span class="hero-chip">23 条检测规则</span>
+        <span class="hero-chip">6 类攻击链模板</span>
+        <span class="hero-chip">OWASP Agentic Skills Top10</span>
+        <span class="hero-chip">Snyk ToxicSkills</span>
+        <span class="hero-chip">OSV / NVD / GitHub / EPSS</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -355,7 +355,9 @@ st.markdown("""
 st.markdown("""
 <div class="nav-strip">
     <a href="#top">🔍 返回顶部</a>
-    <a href="#skill-section">🛡️ 跳转到 Skill 安全检测</a>
+    <a href="#skill-section">🛡️ Skill 安全检测</a>
+    <a href="#chain-section">🔗 攻击链关联分析</a>
+    <a href="#demo-section">🎬 离线演示</a>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1232,6 +1234,244 @@ if st.session_state.skill_result:
                      })
     else:
         st.success("🎉 未发现风险，该技能通过静态规则引擎全部检测。")
+
+
+# ==========================================
+# 攻击链关联分析区（2026-10-15 新增 · 项目核心创新）
+# ==========================================
+st.divider()
+st.markdown('<div id="chain-section"></div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">🔗 跨技能攻击链关联分析</div>',
+            unsafe_allow_html=True)
+st.caption(
+    "传统工具只能逐个判定单点风险等级。本功能建立「能力图」，"
+    "把分散在不同技能中的危险动作连成完整攻击链——"
+    "例如「读取 .env 凭据」单看只是中危，"
+    "但若另一技能同时具备「向外传输数据」能力，即构成凭据外泄链路。"
+)
+
+if "chain_result" not in st.session_state:
+    st.session_state.chain_result = None
+
+
+def _run_chain_demo():
+    """运行跨技能攻击链演示（完全离线）"""
+    from modules import attack_chain as ac
+    from modules import skill_scanner as ss
+
+    tmp_dir = tempfile.mkdtemp(prefix="chain_demo_")
+    try:
+        roots = ac.make_attack_chain_demo(tmp_dir)
+        results = [ss.scan_skill_package(r) for r in roots]
+        chain = ac.analyze_attack_chains(results)
+        chain["skill_results"] = results
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+    st.session_state.chain_result = chain
+    st.rerun()
+
+
+def _run_chain_from_zip(zip_list: list):
+    """对用户上传的多个技能包做攻击链关联分析"""
+    from modules import attack_chain as ac
+    from modules import skill_scanner as ss
+
+    tmp_dir = tempfile.mkdtemp(prefix="chain_multi_")
+    try:
+        results = []
+        for idx, zb in enumerate(zip_list):
+            sub = os.path.join(tmp_dir, f"skill_{idx}")
+            os.makedirs(sub, exist_ok=True)
+            try:
+                root = _extract_skill_zip(zb, sub)
+                results.append(ss.scan_skill_package(root))
+            except Exception:
+                continue
+        if not results:
+            st.error("未能读取任何技能包，请确认 zip 内含 SKILL.md")
+            return
+        chain = ac.analyze_attack_chains(results)
+        chain["skill_results"] = results
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+    st.session_state.chain_result = chain
+    st.rerun()
+
+
+chain_col1, chain_col2 = st.columns(2)
+
+with chain_col1:
+    with st.container(border=True):
+        st.markdown("**🎬 演示：三个「无害」技能如何组成攻击链**")
+        st.caption("三个技能单看判定分别为低危 / 中危 / 高危，"
+                   "传统工具到此为止；关联后识别出完整的凭据外泄链路。")
+        if st.button("🔗 运行跨技能攻击链演示", type="primary",
+                     key="chain_demo_btn", use_container_width=True):
+            _run_chain_demo()
+
+with chain_col2:
+    with st.container(border=True):
+        st.markdown("**📦 方式二：上传多个技能包做真实关联**")
+        chain_zips = st.file_uploader(
+            "选择技能包（可多选）", type=["zip"], key="chain_zips",
+            accept_multiple_files=True, label_visibility="collapsed")
+        if st.button("🔗 分析技能间攻击链", key="chain_zip_btn",
+                     disabled=not chain_zips, use_container_width=True):
+            _run_chain_from_zip([z.getvalue() for z in chain_zips])
+
+# ---- 攻击链结果展示 ----
+if st.session_state.chain_result:
+    from modules import attack_chain as ac_mod
+
+    cr = st.session_state.chain_result
+    chains = cr["chains"]
+    skill_results = cr.get("skill_results", [])
+
+    st.divider()
+    st.markdown("### 🔗 攻击链分析结果")
+
+    # 单点视角 vs 链路视角对比
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">🧩</div>
+            <div class="metric-value">{cr['total_skills']}</div>
+            <div class="metric-label">关联技能数</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"""
+        <div class="metric-card metric-card-orange">
+            <div class="metric-icon">⚡</div>
+            <div class="metric-value">{cr['total_caps']}</div>
+            <div class="metric-label">识别出的危险能力</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c3:
+        chain_color = "metric-card-red" if chains else "metric-card-green"
+        st.markdown(f"""
+        <div class="metric-card {chain_color}">
+            <div class="metric-icon">🔗</div>
+            <div class="metric-value">{len(chains)}</div>
+            <div class="metric-label">命中攻击链（跨技能 {cr['summary']['cross_skill_count']}）</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # 单点视角（传统工具的结论）
+    if skill_results:
+        with st.container(border=True):
+            st.markdown("**① 单点检测视角 —— 传统工具的结论**")
+            rows = []
+            for r in skill_results:
+                rows.append({
+                    "技能": r["skill_name"],
+                    "判定": r["verdict"],
+                    "风险点数": len(r["findings"]),
+                })
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, height=None,
+                         column_config={
+                             "判定": st.column_config.TextColumn(width="small"),
+                             "风险点数": st.column_config.NumberColumn(width="small"),
+                         })
+            st.caption("⚠️ 注意：单看每个技能，最严重的也只是「高危」，"
+                       "传统工具到此为止。")
+
+    if chains:
+        st.markdown("**② 攻击链视角 —— 本项目的结论**")
+        for ch in chains:
+            sev = ch["severity"]
+            vcolor = ac_mod.SEV_COLOR.get(sev, "#95a5a6")
+            scope_tag = "🔴 跨技能" if ch["scope"] == "跨技能" else "🟠 单技能内"
+            with st.container(border=True):
+                st.markdown(
+                    f"**{vcolor and ''}【{sev}】{ch['chain_name']}** {scope_tag}"
+                    f" · 风险分 **{ch['risk_score']}**"
+                )
+                # 路径可视化
+                path_names = " → ".join(ch["path"])
+                st.markdown(f"`{path_names}`")
+                # 步骤详情
+                srows = []
+                for s in ch["steps"]:
+                    srows.append({
+                        "步骤": s["cap_label"],
+                        "来源技能": s.get("skill", ch["path"][0]),
+                        "位置": f"{s['file']}:{s['line']}",
+                        "命中规则": s["rule"],
+                        "严重度": s["severity"],
+                        "原文证据": s["evidence"][:80],
+                    })
+                st.dataframe(pd.DataFrame(srows), use_container_width=True, height=None,
+                             column_config={
+                                 "严重度": st.column_config.TextColumn(width="small"),
+                                 "位置": st.column_config.TextColumn(width="small"),
+                             })
+                st.markdown(f"**真实危害**：{ch['impact']}")
+                st.markdown(f"**处置建议**：{ch['advice']}")
+        st.info(
+            "💡 这就是与传统工具的差异：单点检测回答「哪个技能危险」，"
+            "攻击链分析回答「**这些技能凑在一起会造成什么后果**」。"
+        )
+    else:
+        st.success("🎉 未发现攻击链：各技能的危险能力未形成完整链路。")
+
+
+# ==========================================
+# 离线演示模式区（2026-10-15 新增 · 答辩保命）
+# ==========================================
+st.divider()
+st.markdown('<div id="demo-section"></div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">🎬 离线演示模式（答辩保障）</div>',
+            unsafe_allow_html=True)
+st.caption(
+    "现场断网或外网被限流时，四源查询会失败。传统做法是显示零漏洞——"
+    "这会让评委误以为系统坏了。本模式预置4 个演示场景，"
+    "**宁可明确告知降级，也不伪装成正常结果**。"
+)
+
+with st.container(border=True):
+    net_col1, net_col2, net_col3 = st.columns([1, 1, 3])
+    with net_col1:
+        if st.button("🌐 检测网络连通性", key="net_probe_btn", use_container_width=True):
+            from modules import demo_mode as dm
+            st.session_state.net_status = dm.probe_network()
+            st.rerun()
+    with net_col2:
+        if st.button("🎬 加载演示数据集", key="demo_load_btn",
+                     type="primary", use_container_width=True):
+            from modules import demo_mode as dm
+            st.session_state.demo_data = dm.get_offline_vulns()
+            st.rerun()
+    with net_col3:
+        if "net_status" in st.session_state:
+            ok = st.session_state.net_status
+            if ok:
+                st.success("✅ 网络正常，可使用在线模式（检出量更完整）")
+            else:
+                st.warning(
+                    "⚠️ **外网不可达** —— 建议切换到离线演示模式。"
+                    "答辩现场若断网，这个提示会提前出现，避免演示失败。"
+                )
+
+if st.session_state.get("demo_data"):
+    dd = st.session_state.demo_data
+    with st.container(border=True):
+        st.warning("⚠️ 当前为**离线演示数据**，非实时查询结果")
+        st.markdown(f"**{dd.get('scenario', '')}**")
+        st.caption(dd.get("narration", ""))
+        st.dataframe(pd.DataFrame([
+            {
+                "漏洞": v["cve_id"],
+                "依赖": f"{v['package']}=={v['version']}",
+                "严重度": v["severity"],
+                "CVSS": v["cvss_score"],
+                "置信度": f"{v['confidence']['level']}（{v['confidence']['detail'][:20]}）",
+                "修复优先级": v["fix_priority"]["label"],
+                "修复版本": v["fixed_version"],
+            }
+            for v in dd["vulns"]
+        ]), use_container_width=True, height=None)
 
 
 
