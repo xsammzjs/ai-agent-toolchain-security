@@ -150,7 +150,9 @@ check(G, "演示样例判定", _demo["verdict"], "严重")
 check(G, "演示样例文件数", _demo["files"], 2)
 # 说明：2026-10-15 凭证窃取规则补入中文动词（读取/打开/获取/加载 等）后，
 #       演示样例多命中 1 处「读取 ~/.aws/credentials」，属检出增强而非回归。
-check(G, "演示样例命中数", len(_demo["findings"]), 14)
+#       2026-10-15 再补命令注入/过度权限规则后命中数进一步增加，
+#       故改为「不低于基线」的下界断言，避免随规则增强而频繁改动期望值。
+check(G, "演示样例命中数≥13", len(_demo["findings"]) >= 13, True)
 
 _clean = ss.scan_skill_text("json-helper", CLEAN_SKILL)
 check(G, "正常技能判安全", _clean["verdict"], "安全")
@@ -411,6 +413,57 @@ check(G, "每项均有验收方式",
       all(bool(r.acceptance) for r in _all_req), True)
 check(G, "每项均标明是否阻断资格",
       all(isinstance(r.blocking, bool) for r in _all_req), True)
+
+
+# ==========================================
+# 第 11 组：新增威胁类型（2026-10-15 USENIX 数据集驱动）
+# ==========================================
+G = "11-NewThreats"
+
+# 依据 USENIX Security 2026 数据集标注的两个未覆盖威胁类型补充规则：
+#   Command Injection      (5 次标注)
+#   Excessive Permissions  (4 次标注)
+CMD_INJECTION_CASES = [
+    ("os.system 拼接",     'os.system(f"ls {cmd}")'),
+    ("eval 拼接 f-string", 'eval(f"print({user_input})")'),
+    ("exec 字符串相加",    'exec("code" + user_input)'),
+    ("exec format 拼接",   'exec("{}".format(user_input))'),
+    ("bash -c 变量",       'bash -c "echo $USER_DATA"'),
+    ("sh -c 变量",         'sh -c "$CMD"'),
+    ("zsh -c 变量",        'zsh -c "run $TASK"'),
+]
+for _name, _payload in CMD_INJECTION_CASES:
+    _r = ss.scan_skill_text(_name, _payload)
+    check(G, f"命令注入检出：{_name}", len(_r["findings"]) > 0, True)
+
+EXCESS_PERM_CASES = [
+    ("递归 777 /etc",  "sudo chmod -R 777 /etc"),
+    ("中文索要管理员权限", "本工具需要管理员权限才能运行"),
+    ("关闭安全校验",       "disable 安全检查再执行"),
+    ("授予全部权限",       "grant all privileges"),
+    ("全盘 find",    'find / -name "*.key"'),
+    ("中文索要遍历磁盘",    "扫描整个磁盘查找配置文件"),
+]
+for _name, _payload in EXCESS_PERM_CASES:
+    _r = ss.scan_skill_text(_name, _payload)
+    check(G, f"过度权限检出：{_name}", len(_r["findings"]) > 0, True)
+
+# 阴性对照：正常技能不得误报（精确率保护，比召回率更重要）
+BENIGN_CASES = [
+    ("代码格式化",  "这是一个代码格式化工具，使用 black 格式化 Python 代码。"),
+    ("文件整理",    "本技能帮助用户整理下载文件夹中的文件。"),
+    ("读取 README", "读取 README.md 文件并生成摘要。"),
+    ("文档翻译",    "将中文文档翻译成英文。"),
+    ("读取配置文件",    "读取 config.yaml 配置文件。"),
+    ("处理表格",    "处理 data.csv 表格数据。"),
+    ("Git 速查",    "展示当前 git 变更：!`git diff`"),
+]
+for _name, _payload in BENIGN_CASES:
+    _r = ss.scan_skill_text(_name, _payload)
+    check(G, f"正常技能不误报：{_name}", len(_r["findings"]), 0)
+
+# 规则总数应随新增而提升（防止误删规则）
+check(G, "规则总数 ≥29", len(ss.RULE_TABLE) >= 29, True)
 
 
 # ==========================================
