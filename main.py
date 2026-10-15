@@ -1359,6 +1359,7 @@ if st.session_state.skill_benchmark:
 # ---- 检测结果展示 ----
 if st.session_state.skill_result:
     from modules import skill_scanner as ss_mod
+    from modules import adjudicator as adj_mod
 
     sr = st.session_state.skill_result
     findings = sr["findings"]
@@ -1401,6 +1402,47 @@ if st.session_state.skill_result:
             <div class="metric-label">检测规则数</div>
         </div>
         """, unsafe_allow_html=True)
+
+    # ===== AI 研判（赛题1 要求的「人工智能（必选）」能力入口）=====
+    with st.container(border=True):
+        st.markdown("**🤖 AI 研判 · 风险态势与处置建议**")
+        st.caption(
+            "检测结论由上方的确定性规则给出（可核验）；"
+            "AI 只负责把分散的检测结果综合起来回答「最该先处理什么、为什么、怎么做」，"
+            "每条引用都可追溯到规则名与行号。"
+        )
+        ai_c1, ai_c2 = st.columns([1, 3])
+        with ai_c1:
+            if st.button("生成 AI 研判", key="adj_skill_btn",
+                         type="primary", use_container_width=True):
+                st.session_state.skill_adj = adj_mod.adjudicate_skill(sr)
+                st.rerun()
+        with ai_c2:
+            src = st.session_state.get("skill_adj")
+            if not src:
+                if adj_mod.is_available():
+                    st.info(f"✅ 华为云 MaaS 已配置（模型：{adj_mod.MAAS_MODEL}），"
+                            "点击左侧按钮生成研判")
+                else:
+                    st.info("ℹ️未配置华为云 MaaS，点击后将使用**本地模板**生成研判"
+                            "（功能完整，界面会明确标注非AI 输出）")
+
+        adj = st.session_state.get("skill_adj")
+        if adj:
+            tag = ("🌐 华为云 MaaS" if not adj.degraded
+                   else "📋 本地模板（未调用大模型）")
+            color = "#1a6fa8" if not adj.degraded else "#8a6d1a"
+            st.markdown(
+                f'<div style="display:inline-block;background:{"#eaf4fb" if not adj.degraded else "#fdf6e3"};'
+                f'color:{color};border-radius:999px;padding:3px 12px;'
+                f'font-size:0.8rem;margin-bottom:8px;">研判来源：{esc(tag)}'
+                + (f' ｜ 模型 {esc(adj.model)}' if adj.model else "")
+                + f'</div>', unsafe_allow_html=True)
+            st.markdown(esc(adj.content).replace("\n", "  \n"))
+            if adj.evidence_refs:
+                st.caption(f"引用证据 {len(adj.evidence_refs)} 条："
+                           + "；".join(esc(r) for r in adj.evidence_refs[:5])
+                           + ("…" if len(adj.evidence_refs) > 5 else ""))
 
     if findings:
         sev_icon = {"严重": "🔴", "高危": "🟠", "中危": "🟡", "低危": "🟢"}
@@ -1631,11 +1673,130 @@ if st.session_state.chain_result:
             这是「<b>确定性证据</b>」而非模型推测。
         </div>
         """, unsafe_allow_html=True)
+
+        # ===== AI 研判（跨技能视角）=====
+        from modules import adjudicator as adj_c
+
+        with st.container(border=True):
+            st.markdown("**🤖 AI 研判 · 威胁评估与应急处置**")
+            st.caption("基于已确认的攻击链路生成。AI 不参与链路判定，"
+                       "只做跨步骤汇总与处置建议，每步都点明来源技能与行号。")
+            worst = chains[0]
+            a1, a2 = st.columns([1, 3])
+            with a1:
+                if st.button("生成 AI 研判", key="adj_chain_btn",
+                             type="primary", use_container_width=True):
+                    st.session_state.chain_adj = adj_c.adjudicate_chain(worst)
+                    st.rerun()
+            with a2:
+                cadj = st.session_state.get("chain_adj")
+                if not cadj:
+                    st.info("将针对最严重的一条链路生成研判"
+                            + ("（MaaS 已配置）" if adj_c.is_available()
+                               else "（未配置 MaaS，使用本地模板）"))
+            cadj = st.session_state.get("chain_adj")
+            if cadj:
+                tag = "🌐 华为云 MaaS" if not cadj.degraded else "📋 本地模板（未调用大模型）"
+                st.markdown(
+                    f'<div style="display:inline-block;background:{"#eaf4fb" if not cadj.degraded else "#fdf6e3"};'
+                    f'color:{"#1a6fa8" if not cadj.degraded else "#8a6d1a"};'
+                    f'border-radius:999px;padding:3px 12px;font-size:0.8rem;'
+                    f'margin-bottom:8px;">研判来源：{esc(tag)}'
+                    + (f' ｜ 模型 {esc(cadj.model)}' if cadj.model else "")
+                    + f'</div>', unsafe_allow_html=True)
+                st.markdown(esc(cadj.content).replace("\n", "  \n"))
     else:
         st.success(
             "🎉 未发现攻击链：各技能虽有危险能力，但未形成完整链路。"
             "（若各技能都只有 1 类能力，属正常情况）"
         )
+
+    # ===== 资产图谱可视化 =====
+    if skill_results:
+        from modules import asset_graph as ag
+
+        with st.container(border=True):
+            st.markdown("**🕸️ 资产图谱 · 统一资产视图**")
+            st.caption("把传统依赖包、AI Agent 技能、MCP 工具统一建模为资产节点，"
+                       "关系建成边。这是赛题 1 要求 RDS 承载的数据模型，"
+                       "也是「双链」（传统供应链 + AI 供应链）的数据基础。")
+            if st.button("生成资产图谱", key="graph_btn",
+                         use_container_width=True):
+                st.session_state.asset_graph = ag.build_graph(
+                    dep_list=st.session_state.get("dep_list") or [],
+                    skill_results=skill_results,
+                    chain_result=cr,
+                )
+                st.rerun()
+
+            g = st.session_state.get("asset_graph")
+            if g:
+                gs = g["stats"]
+                gc1, gc2, gc3 = st.columns(3)
+                with gc1:
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-icon">🔷</div>
+                        <div class="metric-value">{gs['total_nodes']}</div>
+                        <div class="metric-label">资产节点</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with gc2:
+                    st.markdown(f"""
+                    <div class="metric-card metric-card-orange">
+                        <div class="metric-icon">🔗</div>
+                        <div class="metric-value">{gs['total_edges']}</div>
+                        <div class="metric-label">关系边</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with gc3:
+                    st.markdown(f"""
+                    <div class="metric-card metric-card-red">
+                        <div class="metric-icon">⚠️</div>
+                        <div class="metric-value">{len(gs['high_risk_nodes'])}</div>
+                        <div class="metric-label">高风险资产</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                type_desc = "｜".join(
+                    f"{ag.NODE_TYPES[k]['icon']}{k} {v}"
+                    for k, v in gs["by_type"].items())
+                st.caption(f"资产构成：{esc(type_desc)}")
+
+                st.markdown("**资产节点清单**")
+                node_rows = [{
+                    "类型": ag.NODE_TYPES[n["node_type"]]["icon"] + " " + n["node_type"],
+                    "名称": n["name"],
+                    "版本": n["version"] or "—",
+                    "判定": n["severity"],
+                    "风险点": n["risk_count"],
+                } for n in g["nodes"]]
+                st.dataframe(pd.DataFrame(node_rows),
+                             use_container_width=True, height=None,
+                             column_config={
+                                 "类型": st.column_config.TextColumn(width="small"),
+                                 "判定": st.column_config.TextColumn(width="small"),
+                                 "版本": st.column_config.TextColumn(width="small"),
+                                 "风险点": st.column_config.NumberColumn(width="small"),
+                             })
+
+                chain_edges = [e for e in g["edges"]
+                               if e["meta"].get("chain_id")]
+                if chain_edges:
+                    name_of = {n["node_id"]: n["name"] for n in g["nodes"]}
+                    st.markdown("**⚔️ 跨资产攻击路径（资产级视角）**")
+                    for e in chain_edges:
+                        st.markdown(
+                            f'<div class="chain-impact">'
+                            f'🔗 <b>{esc(name_of.get(e["src"], "?"))}</b> '
+                            f'──{esc(e["relation"])}──▶ '
+                            f'<b>{esc(name_of.get(e["dst"], "?"))}</b>'
+                            f'<br><span style="font-size:0.84rem;">'
+                            f'经由「{esc(e["meta"].get("via", ""))}」，'
+                            f'构成「{esc(e["meta"].get("chain_name"))}」'
+                            f'（{esc(e["meta"].get("severity"))}）</span></div>',
+                            unsafe_allow_html=True,
+                        )
 
 
 # ==========================================

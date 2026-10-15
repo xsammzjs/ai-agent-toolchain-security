@@ -256,6 +256,164 @@ shutil.rmtree(_chain_dir, ignore_errors=True)
 
 
 # ==========================================
+# 第 7 组：AI 研判层（2026-10-15 新增）
+# ==========================================
+G = "7-AI"
+
+from modules import adjudicator as adj
+
+# 未配置 MaaS 时应自动降级，且明确标注降级（不伪装成 AI 输出）
+check(G, "MaaS 未配置时不可用", adj.is_available(), False)
+
+_adj_skill = adj.adjudicate_skill(_chain_results[0])
+check(G, "Skill 研判降级标记", _adj_skill.degraded, True)
+check(G, "Skill 研判来源标注", _adj_skill.source, "本地模板")
+check(G, "Skill 研判内容非空", len(_adj_skill.content) > 50, True)
+check(G, "Skill 研判引用证据", len(_adj_skill.evidence_refs) > 0, True)
+check(G, "降级文本明示未调模型", "未调用大模型" in _adj_skill.content, True)
+
+if _cred_chains:
+    _adj_chain = adj.adjudicate_chain(_cred_chains[0])
+    check(G, "攻击链研判降级标记", _adj_chain.degraded, True)
+    check(G, "攻击链研判内容含应急处置",
+          "应急处置" in _adj_chain.content or "处置" in _adj_chain.content, True)
+    check(G, "攻击链研判引用每个步骤",
+          len(_adj_chain.evidence_refs) == len(_cred_chains[0]["steps"]), True)
+
+# 职责边界守卫：AI 不得接收未判定的原始内容
+try:
+    adj.assert_ai_not_judging({"raw_text": "恶意内容", "verdict": "严重"})
+    _guard_ok = True
+except ValueError:
+    _guard_ok = False
+check(G, "守卫拦截缺 verdict 的输入", _guard_ok, False)
+
+try:
+    adj.assert_ai_not_judging({"verdict": "严重", "findings": [], "source": "x"})
+    _guard_ok2 = True
+except ValueError:
+    _guard_ok2 = False
+check(G, "守卫放行完整证据输入", _guard_ok2, True)
+
+# AI 不得越权：模块不应暴露任何"检测/判定"函数
+_ai_forbidden = [f for f in ("detect_vulnerability", "judge_risk", "give_verdict")
+                 if hasattr(adj, f)]
+check(G, "AI 层不含检测函数", _ai_forbidden, [])
+
+
+# ==========================================
+# 第 8 组：资产图谱（2026-10-15 新增）
+# ==========================================
+G = "8-Graph"
+
+from modules import asset_graph as ag
+
+_deps = [
+    {"package": "django", "version": "3.2.1", "ecosystem": "PyPI"},
+    {"package": "requests", "version": "2.25.0", "ecosystem": "PyPI"},
+    {"package": "django", "version": "4.2.0", "ecosystem": "PyPI"},
+]
+_g = ag.build_graph(_deps, _chain_results, _chain)
+
+check(G, "图谱含节点", len(_g["nodes"]) > 0, True)
+check(G, "图谱含边", len(_g["edges"]) > 0, True)
+
+# 统一建模：依赖与技能必须都是节点类型
+_types = set(_g["stats"]["by_type"].keys())
+check(G, "依赖被建为节点", "依赖" in _types, True)
+check(G, "Skill 被建为节点", "技能" in _types, True)
+
+# 同名不同版本 → 应建立依赖边
+_dep_edges = [e for e in _g["edges"] if e["relation"] == "依赖"]
+check(G, "同名多版本建边", len(_dep_edges) > 0, True)
+
+# 节点 ID 稳定性：同样输入两次必须得到同样的 ID（否则历史数据无法关联）
+_g2 = ag.build_graph(_deps, _chain_results, _chain)
+_ids1 = sorted(n["node_id"] for n in _g["nodes"])
+_ids2 = sorted(n["node_id"] for n in _g2["nodes"])
+check(G, "节点ID 稳定可复现", _ids1, _ids2)
+
+# 攻击链应转为跨资产边
+_chain_edges = [e for e in _g["edges"] if e["meta"].get("chain_id")]
+check(G, "攻击链转为跨资产边", len(_chain_edges) >= 1, True)
+
+# 关键节点统计
+check(G, "关键节点非空", len(_g["stats"]["key_nodes"]) > 0, True)
+
+
+# ==========================================
+# 第 9 组：存储抽象层（2026-10-15 新增）
+# ==========================================
+G = "9-Store"
+
+from modules import store as st_mod
+
+_s = st_mod.build_store()
+_health = _s.health_check()
+check(G, "默认构建本地后端", _health["backend"], "local")
+check(G, "本地后端健康", _health["ok"], True)
+
+check(G, "保存扫描结果", _s.save_scan_result("t1", {"project_name": "T",
+                                              "dep_list": [], "vulns": []}), True)
+check(G, "读取扫描结果", _s.load_scan_result("t1")["project_name"], "T")
+
+_hist = _s.list_scan_history()
+check(G, "历史记录含刚写入项", any(h["scan_id"] == "t1" for h in _hist), True)
+
+check(G, "缓存写入", _s.cache_set("k1", {"v": 1}), True)
+check(G, "缓存读取", _s.cache_get("k1"), {"v": 1})
+check(G, "缓存未命中返回None", _s.cache_get("不存在的key"), None)
+
+check(G, "图谱保存", _s.save_asset_graph("t1", {"nodes": [], "edges": []}), True)
+
+# 云端未配置时必须回落本地（赛题1 要求接云，但未配置不能导致功能不可用）
+_s2 = st_mod.build_store(use_cloud=True)
+check(G, "云端未配置时回落本地", _s2.health_check()["backend"], "local")
+
+# 接口完整性：云端实现必须实现全部抽象方法
+from modules.storage.huawei import _UnavailableStore
+_ua = _UnavailableStore("测试")
+for _m in ("health_check", "save_scan_result", "load_scan_result",
+           "list_scan_history", "cache_get", "cache_set",
+           "save_asset_graph", "load_asset_graph"):
+    check(G, f"云端占位实现 {_m}", hasattr(_ua, _m), True)
+
+
+# ==========================================
+# 第 10 组：赛题合规清单（2026-10-15 新增）
+# ==========================================
+G = "10-Compliance"
+
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location(
+    "ccc", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "samples", "contest_compliance_checklist.py"))
+_ccc = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_ccc)
+
+_all_req = (_ccc.HARD_REQUIREMENTS + _ccc.INITIAL_SUBMISSION
+            + _ccc.FINAL_SUBMISSION)
+check(G, "核对项总数", len(_all_req) > 0, True)
+
+# 必须覆盖这5 个硬门槛（漏掉任何一个都会导致无法参赛）
+_titles = " ".join(r.title for r in _ccc.HARD_REQUIREMENTS)
+for _kw, _desc in [("CodeArts", "码道代码智能体"),
+                   ("RDS", "RDS"),
+                   ("Redis", "Redis"),
+                   ("部署", "云上部署"),
+                   ("AI", "AI 能力")]:
+    check(G, f"硬门槛含「{_kw}」", _kw in _titles, True)
+
+# 每项都必须有验收方式与原文（不能只写要求不给判据）
+check(G, "每项均有官方原文",
+      all(bool(r.official_text) for r in _all_req), True)
+check(G, "每项均有验收方式",
+      all(bool(r.acceptance) for r in _all_req), True)
+check(G, "每项均标明是否阻断资格",
+      all(isinstance(r.blocking, bool) for r in _all_req), True)
+
+
+# ==========================================
 # 汇总
 # ==========================================
 groups = {}
