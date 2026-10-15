@@ -29,3 +29,6 @@ download.txt
 
 # ===== 残留的旧对比日志（已废弃）=====
 run_compare_log.txt
+
+# ===== 存储抽象层运行时数据 =====
+data_store/
