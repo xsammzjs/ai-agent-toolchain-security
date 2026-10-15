@@ -23,6 +23,13 @@ from modules.engine import ScanEngine
 # ==========================================
 # 辅助函数（定义在使用之前，避免 NameError）
 # ==========================================
+def esc(text) -> str:
+    """HTML 转义，防止技能包中的恶意内容破坏界面结构或注入脚本"""
+    s = "" if text is None else str(text)
+    return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+             .replace('"', "&quot;").replace("'", "&#39;"))
+
+
 def _build_fixed_requirements(req_path: str | None, fix_map: dict, dep_list: list[dict]) -> str:
     """
     根据修复方案生成修改后的 requirements.txt 内容（v3.1 新增）。
@@ -271,6 +278,188 @@ st.markdown("""
     [data-testid="stProgress"] p {
         color: #5a6f85; font-size: 0.9rem;
     }
+
+    /* ==========================================
+       攻击链关联分析专属样式（2026-10-15 新增）
+       ========================================== */
+
+    /* 链路卡片：左侧色条标示严重度 */
+    .chain-card {
+        background: #ffffff;
+        border: 1px solid #e3e8ef;
+        border-radius: 12px;
+        padding: 0;
+        margin: 10px 0;
+        box-shadow: 0 2px 8px rgba(26, 58, 92, 0.06);
+        overflow: hidden;
+        transition: box-shadow .2s ease, transform .2s ease;
+    }
+    .chain-card:hover {
+        box-shadow: 0 6px 18px rgba(26, 58, 92, 0.14);
+        transform: translateY(-2px);
+    }
+    .chain-card-head {
+        padding: 14px 18px;
+        font-weight: bold;
+        font-size: 1.02rem;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .chain-card-head.sev-严重 { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); }
+    .chain-card-head.sev-高危 { background: linear-gradient(135deg, #d35400 0%, #e67e22 100%); }
+    .chain-card-head.sev-中危 { background: linear-gradient(135deg, #b7950b 0%, #f39c12 100%); }
+    .chain-card-head.sev-低危 { background: linear-gradient(135deg, #1e8449 0%, #27ae60 100%); }
+    .chain-card-body { padding: 16px 18px; }
+
+    /* 能力标签：胶囊样式 */
+    .cap-tag {
+        display: inline-block;
+        background: #eef2f7;
+        color: #1a3a5c;
+        border: 1px solid #cfd9e5;
+        border-radius: 999px;
+        padding: 2px 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
+
+    /* 步骤流程条：横向节点 + 连接箭头 */
+    .chain-steps {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        margin: 14px 0 10px;
+        flex-wrap: wrap;
+    }
+    .chain-step {
+        flex: 1 1 180px;
+        min-width: 160px;
+        background: #f8fafc;
+        border: 1px solid #dde5ee;
+        border-radius: 10px;
+        padding: 12px 14px;
+        position: relative;
+    }
+    .chain-step-cap {
+        font-weight: bold;
+        color: #1a3a5c;
+        font-size: 0.92rem;
+        margin-bottom: 4px;
+    }
+    .chain-step-src {
+        font-size: 0.8rem;
+        color: #5a6f85;
+        word-break: break-all;
+        line-height: 1.45;
+    }
+    .chain-step-loc {
+        font-size: 0.78rem;
+        color: #8a97a8;
+        margin-top: 4px;
+        font-family: "Cascadia Code", Consolas, monospace;
+    }
+    .chain-step-rule {
+        display: inline-block;
+        margin-top: 6px;
+        background: #fdf6e3;
+        color: #8a6d1a;
+        border: 1px solid #f0e0ac;
+        border-radius: 4px;
+        padding: 1px 7px;
+        font-size: 0.74rem;
+    }
+    .chain-arrow {
+        display: flex;
+        align-items: center;
+        padding: 0 8px;
+        color: #c0392b;
+        font-size: 1.4rem;
+        font-weight: bold;
+        flex: 0 0 auto;
+    }
+
+    /* 影响 / 建议条 */
+    .chain-impact, .chain-advice {
+        border-radius: 8px;
+        padding: 11px 14px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+    .chain-impact {
+        background: #fdecea;
+        border-left: 4px solid #c0392b;
+        color: #7d241a;
+    }
+    .chain-advice {
+        background: #eaf4fb;
+        border-left: 4px solid #1a6fa8;
+        color: #134b73;
+    }
+    .chain-impact b, .chain-advice b { color: inherit; }
+
+    /* 单点 vs 链路 对比双栏 */
+    .compare-row {
+        display: flex;
+        gap: 14px;
+        margin: 12px 0;
+        flex-wrap: wrap;
+    }
+    .compare-col {
+        flex: 1 1 300px;
+        border-radius: 10px;
+        padding: 14px 16px;
+        border: 1px solid #e3e8ef;
+    }
+    .compare-col.traditional {
+        background: #f8f9fa;
+        border-left: 4px solid #95a5a6;
+    }
+    .compare-col.advanced {
+        background: #fdf1f0;
+        border-left: 4px solid #c0392b;
+    }
+    .compare-col h4 {
+        margin: 0 0 8px 0;
+        font-size: 0.98rem;
+        color: #1a3a5c;
+    }
+    .compare-col.traditional h4 { color: #5a6f85; }
+    .compare-col.advanced h4 { color: #a93226; }
+
+    /* 能力分布小标签 */
+    .cap-cloud {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 8px 0;
+    }
+    .cap-cloud-item {
+        background: #ffffff;
+        border: 1px solid #cfd9e5;
+        border-radius: 999px;
+        padding: 4px 13px;
+        font-size: 0.82rem;
+        color: #1a3a5c;
+    }
+    .cap-cloud-item b { color: #c0392b; }
+
+    /* 演示引导条 */
+    .demo-hint {
+        background: linear-gradient(135deg, #1a3a5c 0%, #2a5784 100%);
+        color: #ffffff;
+        border-radius: 10px;
+        padding: 13px 18px;
+        font-size: 0.9rem;
+        line-height: 1.65;
+        margin: 8px 0;
+    }
+    .demo-hint b { color: #ffd966; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1232,6 +1421,13 @@ if st.session_state.skill_result:
                          "类别": st.column_config.TextColumn(width="small"),
                          "位置": st.column_config.TextColumn(width="small"),
                      })
+        st.markdown("""
+        <div class="demo-hint">
+            <b>📌 可核验性说明</b>：每条结论都附带<b>原文行号 + 命中规则名</b>，
+            可直接在技能包源文件中定位核对。全程离线运行，不调用任何大模型，
+            因此结论<b>可重复、可审计、不随模型版本变化</b>。
+        </div>
+        """, unsafe_allow_html=True)
     else:
         st.success("🎉 未发现风险，该技能通过静态规则引擎全部检测。")
 
@@ -1308,6 +1504,8 @@ with chain_col1:
         if st.button("🔗 运行跨技能攻击链演示", type="primary",
                      key="chain_demo_btn", use_container_width=True):
             _run_chain_demo()
+        st.caption("💡 答辩建议：先点左边的演示，再指出页面下方的"
+                   "「① 单点视角 vs ② 攻击链视角」对比——这是差异化的直观证据。")
 
 with chain_col2:
     with st.container(border=True):
@@ -1330,91 +1528,114 @@ if st.session_state.chain_result:
     st.divider()
     st.markdown("### 🔗 攻击链分析结果")
 
-    # 单点视角 vs 链路视角对比
-    c1, c2, c3 = st.columns(3)
-    with c1:
+    # ---- 能力分布（先看这几个技能各自会什么） ----
+    if cr["capability_map"]:
+        cap_items = "".join(
+            f'<span class="cap-cloud-item">{esc(cap)} <b>{len(sks)}</b></span>'
+            for cap, sks in cr["capability_map"].items()
+        )
+        st.markdown(
+            f'<div style="font-size:0.82rem;color:#5a6f85;margin-top:4px;">'
+            f'识别到的危险能力分布：</div><div class="cap-cloud">{cap_items}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # 单点视角 vs 链路视角 对比双栏（答辩最有说服力的部分）
+    if chains and skill_results:
+        rows_html = "".join(
+            f'<tr><td>{esc(r["skill_name"])}</td>'
+            f'<td><b>{esc(r["verdict"])}</b></td>'
+            f'<td>{len(r["findings"])}</td></tr>'
+            for r in skill_results
+        )
+        chain_names = "、".join(f'<b>{esc(c["chain_name"])}</b>' for c in chains[:3])
         st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-icon">🧩</div>
-            <div class="metric-value">{cr['total_skills']}</div>
-            <div class="metric-label">关联技能数</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""
-        <div class="metric-card metric-card-orange">
-            <div class="metric-icon">⚡</div>
-            <div class="metric-value">{cr['total_caps']}</div>
-            <div class="metric-label">识别出的危险能力</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c3:
-        chain_color = "metric-card-red" if chains else "metric-card-green"
-        st.markdown(f"""
-        <div class="metric-card {chain_color}">
-            <div class="metric-icon">🔗</div>
-            <div class="metric-value">{len(chains)}</div>
-            <div class="metric-label">命中攻击链（跨技能 {cr['summary']['cross_skill_count']}）</div>
+        <div class="compare-row">
+            <div class="compare-col traditional">
+                <h4>① 单点检测视角（传统工具的结论）</h4>
+                <table style="width:100%;border-collapse:collapse;font-size:0.86rem;">
+                  <tr style="color:#5a6f85;border-bottom:1px solid #dde3ec;">
+                    <th style="text-align:left;padding:5px 4px;">技能</th>
+                    <th style="text-align:left;padding:5px 4px;">判定</th>
+                    <th style="text-align:left;padding:5px 4px;">风险点</th>
+                  </tr>
+                  {rows_html}
+                </table>
+                <div style="margin-top:10px;font-size:0.84rem;color:#5a6f85;line-height:1.6;">
+                  最严重的也只是「高危」。<b>传统工具到此为止</b>——
+                  它只能告诉你哪个技能危险，无法回答「这些技能凑在一起会怎样」。
+                </div>
+            </div>
+            <div class="compare-col advanced">
+                <h4>② 攻击链视角（本项目的结论）</h4>
+                <div style="font-size:1.5rem;font-weight:bold;color:#c0392b;margin:6px 0;">
+                  🔗 命中 {len(chains)} 条攻击链路
+                </div>
+                <div style="font-size:0.9rem;color:#7d241a;line-height:1.7;">
+                  识别出：{chain_names}
+                </div>
+                <div style="margin-top:10px;font-size:0.84rem;color:#7d241a;line-height:1.6;">
+                  把分散在<b>不同技能</b>里的危险动作连成完整路径，
+                  给出<b>可核验的真实危害</b>与处置建议。
+                </div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # 单点视角（传统工具的结论）
-    if skill_results:
-        with st.container(border=True):
-            st.markdown("**① 单点检测视角 —— 传统工具的结论**")
-            rows = []
-            for r in skill_results:
-                rows.append({
-                    "技能": r["skill_name"],
-                    "判定": r["verdict"],
-                    "风险点数": len(r["findings"]),
-                })
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, height=None,
-                         column_config={
-                             "判定": st.column_config.TextColumn(width="small"),
-                             "风险点数": st.column_config.NumberColumn(width="small"),
-                         })
-            st.caption("⚠️ 注意：单看每个技能，最严重的也只是「高危」，"
-                       "传统工具到此为止。")
+    # ---- 攻击链卡片（可视化路径） ----
+    for ch in chains:
+        sev = ch["severity"]
+        scope_tag = ("跨技能协同" if ch["scope"] == "跨技能" else "单技能内组合")
+
+        # 拼接步骤节点
+        steps_html = []
+        for i, s in enumerate(ch["steps"]):
+            if i > 0:
+                steps_html.append('<div class="chain-arrow">➜</div>')
+            src = esc(s.get("skill", ch["path"][0] if ch["path"] else ""))
+            steps_html.append(f"""
+            <div class="chain-step">
+              <div class="chain-step-cap">{esc(s['cap_label'])}</div>
+              <div class="chain-step-src">📦 {src}</div>
+              <div class="chain-step-loc">📄 {esc(s['file'])}:{s['line']}</div>
+              <span class="chain-step-rule">{esc(s['rule'])}</span>
+            </div>""")
+
+        st.markdown(f"""
+        <div class="chain-card">
+          <div class="chain-card-head sev-{sev}">
+            <span>🔗 {esc(ch['chain_name'])}</span>
+            <span style="font-size:0.82rem;font-weight:500;opacity:0.95;">
+              {esc(sev)} · {esc(scope_tag)} · 风险分 {ch['risk_score']}
+            </span>
+          </div>
+          <div class="chain-card-body">
+            <div class="chain-steps">{"".join(steps_html)}</div>
+            <div class="chain-impact">
+              <b>真实危害</b>：{esc(ch['impact'])}
+            </div>
+            <div class="chain-advice">
+              <b>处置建议</b>：{esc(ch['advice'])}
+            </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     if chains:
-        st.markdown("**② 攻击链视角 —— 本项目的结论**")
-        for ch in chains:
-            sev = ch["severity"]
-            vcolor = ac_mod.SEV_COLOR.get(sev, "#95a5a6")
-            scope_tag = "🔴 跨技能" if ch["scope"] == "跨技能" else "🟠 单技能内"
-            with st.container(border=True):
-                st.markdown(
-                    f"**{vcolor and ''}【{sev}】{ch['chain_name']}** {scope_tag}"
-                    f" · 风险分 **{ch['risk_score']}**"
-                )
-                # 路径可视化
-                path_names = " → ".join(ch["path"])
-                st.markdown(f"`{path_names}`")
-                # 步骤详情
-                srows = []
-                for s in ch["steps"]:
-                    srows.append({
-                        "步骤": s["cap_label"],
-                        "来源技能": s.get("skill", ch["path"][0]),
-                        "位置": f"{s['file']}:{s['line']}",
-                        "命中规则": s["rule"],
-                        "严重度": s["severity"],
-                        "原文证据": s["evidence"][:80],
-                    })
-                st.dataframe(pd.DataFrame(srows), use_container_width=True, height=None,
-                             column_config={
-                                 "严重度": st.column_config.TextColumn(width="small"),
-                                 "位置": st.column_config.TextColumn(width="small"),
-                             })
-                st.markdown(f"**真实危害**：{ch['impact']}")
-                st.markdown(f"**处置建议**：{ch['advice']}")
-        st.info(
-            "💡 这就是与传统工具的差异：单点检测回答「哪个技能危险」，"
-            "攻击链分析回答「**这些技能凑在一起会造成什么后果**」。"
-        )
+        st.markdown("""
+        <div class="demo-hint">
+            <b>💡 一句话讲清差异化</b><br>
+            单点检测回答「<b>哪个技能危险</b>」；
+            攻击链分析回答「<b>这些技能凑在一起会造成什么后果</b>」。<br>
+            每条链路都能追溯到原文行号与命中规则，评委可当场核验——
+            这是「<b>确定性证据</b>」而非模型推测。
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.success("🎉 未发现攻击链：各技能的危险能力未形成完整链路。")
+        st.success(
+            "🎉 未发现攻击链：各技能虽有危险能力，但未形成完整链路。"
+            "（若各技能都只有 1 类能力，属正常情况）"
+        )
 
 
 # ==========================================
