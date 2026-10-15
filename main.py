@@ -91,375 +91,412 @@ st.set_page_config(
 # ==========================================
 st.markdown("""
 <style>
-    /* ---- 整体背景：浅灰蓝 + 极淡几何点阵（设计稿质感）---- */
-    .stApp {
-        background-color: #f6f8fb;
-        background-image:
-            radial-gradient(circle, #dbe3ee 1px, transparent 1.6px),
-            linear-gradient(180deg, #edf1f7 0%, #f6f8fb 32%);
-        background-size: 26px 26px, 100% 100%;
-    }
+/* ==========================================================
+   SkillGuard · 深色玻璃拟态主题（2026-10-15 重制）
+   设计基调：深空蓝底 + 青蓝渐变 + 玻璃卡片 + 霓虹描边
+   ========================================================== */
 
-    /* ---- 顶部横幅：深藏青渐变 + 几何圆环装饰 ---- */
-    .hero-banner {
-        background: linear-gradient(135deg, #16293f 0%, #1a3a5c 55%, #2a5784 100%);
-        border-radius: 16px;
-        padding: 28px 32px 26px;
-        color: #ffffff;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 4px 16px rgba(26, 58, 92, 0.20);
-        margin-bottom: 10px;
-    }
-    .hero-banner::before {
-        content: "";
-        position: absolute; right: -40px; top: -70px;
-        width: 240px; height: 240px;
-        border: 2px solid rgba(255, 255, 255, 0.10);
-        border-radius: 50%;
-    }
-    .hero-banner::after {
-        content: "";
-        position: absolute; right: 36px; top: -24px;
-        width: 140px; height: 140px;
-        border: 2px solid rgba(255, 255, 255, 0.16);
-        border-radius: 50%;
-    }
-    .hero-title {
-        font-size: 1.85rem; font-weight: bold; color: #ffffff;
-        letter-spacing: 2px; line-height: 1.25;
-    }
-    .hero-sub {
-        color: rgba(255, 255, 255, 0.78);
-        font-size: 0.92rem; margin-top: 8px; letter-spacing: 0.5px;
-    }
-    .hero-badges { margin-top: 14px; }
-    .hero-chip {
-        display: inline-block;
-        background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.28);
-        border-radius: 999px; padding: 3px 14px;
-        font-size: 12px; color: rgba(255, 255, 255, 0.92);
-        margin-right: 8px; letter-spacing: 0.5px;
-    }
+:root {
+    --bg-deep:      #070b14;
+    --bg-main:      #0d1420;
+    --glass:        rgba(255,255,255,0.045);
+    --glass-strong: rgba(255,255,255,0.075);
+    --border:       rgba(120,160,220,0.16);
+    --border-glow:  rgba(56,189,248,0.45);
+    --text:         #e8eef7;
+    --text-dim:     #94a3b8;
+    --text-faint:   #64748b;
+    --cyan:         #38bdf8;
+    --cyan-deep:    #0ea5e9;
+    --violet:       #a78bfa;
+    --green:        #34d399;
+    --amber:        #fbbf24;
+    --red:          #f87171;
+    --rose:         #fb7185;
+}
 
-    /* ---- 分区标题：左色条 ---- */
-    .section-title {
-        font-size: 1.15rem; font-weight: bold; color: #1a3a5c;
-        border-left: 4px solid #1a3a5c; border-radius: 2px;
-        padding-left: 10px; margin: 8px 0 12px 0;
-    }
+/* ---------- 全局背景：深空渐变 + 双色光晕 + 网格 ---------- */
+.stApp {
+    background:
+        radial-gradient(1200px 700px at 12% -8%, rgba(56,189,248,0.13), transparent 60%),
+        radial-gradient(1000px 620px at 92% 4%, rgba(167,139,250,0.11), transparent 62%),
+        radial-gradient(900px 700px at 50% 108%, rgba(52,211,153,0.07), transparent 60%),
+        linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-main) 45%, #090e18 100%);
+    background-attachment: fixed;
+    color: var(--text);
+}
+.stApp::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+        linear-gradient(rgba(120,160,220,0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(120,160,220,0.045) 1px, transparent 1px);
+    background-size: 46px 46px;
+    pointer-events: none; z-index: 0;
+}
+.stMain, .stApp > div { position: relative; z-index: 1; }
 
-    /* ---- 指标卡：白底 + 顶部色条 + hover 浮起 ---- */
-    .metric-card {
-        background: #ffffff;
-        border: 1px solid #e3e8ef;
-        border-top: none;
-        border-radius: 12px;
-        padding: 14px 12px 16px;
-        text-align: center;
-        box-shadow: 0 2px 6px rgba(26, 58, 92, 0.05);
-        position: relative;
-        overflow: hidden;
-        transition: box-shadow .2s ease, transform .2s ease;
-    }
-    .metric-card:hover {
-        box-shadow: 0 6px 16px rgba(26, 58, 92, 0.13);
-        transform: translateY(-2px);
-    }
-    .metric-card::before {
-        content: "";
-        position: absolute; top: 0; left: 0; right: 0;
-        height: 4px; background: #1a3a5c;
-    }
-    .metric-card-red::before    { background: #e74c3c; }
-    .metric-card-green::before  { background: #2e9e6b; }
-    .metric-card-orange::before { background: #f39c12; }
-    .metric-card-gray::before   { background: #95a5a6; }
-    .metric-icon { font-size: 15px; margin-bottom: 2px; }
-    .metric-value { font-size: 30px; font-weight: bold; color: #1a3a5c; line-height: 1.15; }
-    .metric-label { font-size: 11px; color: #8a97a8; margin-top: 5px; letter-spacing: 1px; }
+html, body, [class*="css"] { color: var(--text); }
 
-    /* ---- 徽章：圆角精致化 ---- */
-    .badge-high {
-        background: #e8f6ee; color: #1d7a4f;
-        padding: 3px 10px; border-radius: 999px;
-        font-size: 12px; font-weight: 500; border: 1px solid #bfe6d0;
-    }
-    .badge-medium {
-        background: #fdf6e3; color: #8a6d1a;
-        padding: 3px 10px; border-radius: 999px;
-        font-size: 12px; font-weight: 500; border: 1px solid #f0e0ac;
-    }
-    .badge-low {
-        background: #fdecea; color: #b03a2e;
-        padding: 3px 10px; border-radius: 999px;
-        font-size: 12px; font-weight: 500; border: 1px solid #f2c4bd;
-    }
+/* ---------- 主横幅 ---------- */
+.hero-banner {
+    position: relative; overflow: hidden;
+    background:
+        linear-gradient(135deg, rgba(14,165,233,0.22) 0%, rgba(167,139,250,0.18) 50%, rgba(56,189,248,0.14) 100%),
+        rgba(13,20,32,0.82);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 34px 38px 30px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.09);
+    backdrop-filter: blur(20px);
+    margin-bottom: 8px;
+}
+.hero-banner::before {
+    content: ""; position: absolute; right: -80px; top: -110px;
+    width: 340px; height: 340px; border-radius: 50%;
+    border: 1.5px solid rgba(56,189,248,0.20);
+}
+.hero-banner::after {
+    content: ""; position: absolute; right: 46px; top: -36px;
+    width: 190px; height: 190px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(56,189,248,0.20), transparent 70%);
+    border: 1.5px solid rgba(167,139,250,0.20);
+}
+.hero-title {
+    font-size: 2.15rem; font-weight: 800; letter-spacing: 0.5px;
+    background: linear-gradient(92deg, #ffffff 0%, #7dd3fc 48%, #c4b5fd 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.22;
+}
+.hero-sub {
+    color: #a9bdd4; font-size: 0.95rem; margin-top: 10px; line-height: 1.7;
+    letter-spacing: 0.3px;
+}
+.hero-sub b { color: var(--cyan); font-weight: 700; }
+.hero-badges { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 7px; }
+.hero-chip {
+    display: inline-block;
+    background: rgba(56,189,248,0.10);
+    border: 1px solid rgba(56,189,248,0.30);
+    color: #9adcff; border-radius: 999px;
+    padding: 4px 13px; font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.3px; backdrop-filter: blur(8px);
+}
 
-    /* ---- 侧边栏：浅灰底 + 品牌卡 ---- */
-    section[data-testid="stSidebar"] {
-        background: #eef1f6;
-        border-right: 1px solid #dde3ec;
-    }
-    .sidebar-brand {
-        background: #ffffff; border: 1px solid #e3e8ef;
-        border-radius: 12px; padding: 12px 14px; margin-bottom: 4px;
-        box-shadow: 0 1px 4px rgba(26, 58, 92, 0.05);
-    }
-    .sidebar-brand-title { font-weight: bold; color: #1a3a5c; font-size: 1.05rem; }
-    .sidebar-brand-sub { font-size: 0.75rem; color: #8a97a8; margin-top: 2px; }
+/* ---------- 侧边栏 ---------- */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, rgba(13,20,32,0.96) 0%, rgba(7,11,20,0.99) 100%);
+    border-right: 1px solid var(--border);
+    backdrop-filter: blur(18px);
+}
+section[data-testid="stSidebar"] .block-container { padding-top: 1.4rem; }
+.sidebar-brand {
+    background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(167,139,250,0.09));
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 6px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
+}
+.sidebar-brand-title {
+    font-weight: 700; font-size: 1.02rem; letter-spacing: 0.3px;
+    background: linear-gradient(92deg, #e8eef7, #7dd3fc);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.sidebar-brand-sub { font-size: 0.72rem; color: var(--text-faint); margin-top: 3px; }
 
-    /* ---- 上传区：虚线框随主题 ---- */
-    [data-testid="stFileUploaderDropzone"] {
-        border: 2px dashed #c7d4e0; border-radius: 10px;
-        background: #fbfcfe;
-    }
-    [data-testid="stFileUploaderDropzone"]:hover { border-color: #1a3a5c; }
+/* ---------- 分区标题 ---------- */
+.section-title {
+    font-size: 1.16rem; font-weight: 700; color: var(--text);
+    padding-left: 13px; margin: 14px 0 14px 0;
+    position: relative; letter-spacing: 0.3px;
+    display: flex; align-items: center;
+}
+.section-title::before {
+    content: ""; position: absolute; left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 4px; height: 19px; border-radius: 3px;
+    background: linear-gradient(180deg, var(--cyan), var(--violet));
+    box-shadow: 0 0 12px var(--border-glow);
+}
 
-    /* ---- 按钮：主按钮深藏青、次按钮白底描边 ---- */
-    .stButton > button[kind="primary"] {
-        background: #1a3a5c; color: #ffffff;
-        border: none; border-radius: 8px;
-        font-weight: 600; letter-spacing: 2px;
-        transition: background .15s ease;
-    }
-    .stButton > button[kind="primary"]:hover { background: #244b75; }
-    .stButton > button:not([kind="primary"]) {
-        background: #ffffff; color: #1a3a5c;
-        border: 1px solid #c7d4e0; border-radius: 8px;
-    }
-    .stButton > button:not([kind="primary"]):hover { border-color: #1a3a5c; }
+/* ---------- 指标卡 ---------- */
+.metric-card {
+    position: relative; overflow: hidden;
+    background: linear-gradient(160deg, var(--glass-strong), var(--glass));
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 16px 14px 18px;
+    text-align: center; backdrop-filter: blur(14px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: transform .22s cubic-bezier(.2,.8,.3,1), box-shadow .22s ease, border-color .22s ease;
+}
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.46), 0 0 0 1px var(--border-glow);
+    border-color: rgba(56,189,248,0.34);
+}
+.metric-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+}
+.metric-card-red::before   { background: linear-gradient(90deg, #ef4444, #fb7185); }
+.metric-card-green::before { background: linear-gradient(90deg, #10b981, #34d399); }
+.metric-card-orange::before{ background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.metric-icon { font-size: 17px; margin-bottom: 5px; opacity: 0.95; }
+.metric-value {
+    font-size: 1.95rem; font-weight: 800; line-height: 1.12;
+    background: linear-gradient(92deg, #ffffff, #7dd3fc);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.metric-label {
+    font-size: 10.5px; color: var(--text-faint);
+    margin-top: 6px; letter-spacing: 1.3px; text-transform: uppercase;
+}
 
-    /* ---- 图表卡片内标题 ---- */
-    .viz-title { font-weight: bold; color: #1a3a5c; font-size: 0.98rem; margin-bottom: 4px; }
+/* ---------- 导航条 ---------- */
+.nav-strip { display: flex; gap: 9px; flex-wrap: wrap; margin: 12px 0 18px; }
+.nav-strip a {
+    display: inline-block; padding: 8px 17px;
+    background: var(--glass); color: #b8cce4;
+    border: 1px solid var(--border); border-radius: 999px;
+    text-decoration: none; font-size: 0.82rem; font-weight: 600;
+    letter-spacing: 0.3px; transition: all .18s ease; backdrop-filter: blur(10px);
+}
+.nav-strip a:hover {
+    background: linear-gradient(135deg, rgba(56,189,248,0.20), rgba(167,139,250,0.16));
+    color: #ffffff; border-color: var(--border-glow);
+    box-shadow: 0 0 18px rgba(56,189,248,0.20); transform: translateY(-2px);
+}
 
-    /* ---- 顶部导航条（2026-09-09 新增） ---- */
-    .nav-strip {
-        display: flex; gap: 10px; flex-wrap: wrap;
-        margin: 6px 0 14px;
-    }
-    .nav-strip a {
-        display: inline-block; padding: 7px 16px;
-        background: #ffffff; color: #1a3a5c;
-        border: 1px solid #c7d4e0; border-radius: 20px;
-        text-decoration: none; font-size: 0.85rem; font-weight: 600;
-        transition: all .15s ease;
-    }
-    .nav-strip a:hover {
-        background: #1a3a5c; color: #ffffff; border-color: #1a3a5c;
-    }
+/* ---------- 按钮 ---------- */
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, var(--cyan-deep), #7c3aed);
+    color: #ffffff; border: none; border-radius: 11px;
+    font-weight: 700; letter-spacing: 0.8px; padding-top: 0.5rem; padding-bottom: 0.5rem;
+    box-shadow: 0 6px 20px rgba(14,165,233,0.30);
+    transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+.stButton > button[kind="primary"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(14,165,233,0.44);
+    filter: brightness(1.1);
+}
+.stButton > button:not([kind="primary"]) {
+    background: var(--glass); color: #b8cce4;
+    border: 1px solid var(--border); border-radius: 11px;
+    font-weight: 600; transition: all .16s ease;
+}
+.stButton > button:not([kind="primary"]):hover {
+    background: var(--glass-strong); color: #ffffff;
+    border-color: var(--border-glow); transform: translateY(-2px);
+}
 
-    /* ---- 扫描进度提示（2026-09-09 新增） ---- */
-    .scan-progress {
-        display: flex; align-items: center; gap: 12px;
-        background: #ffffff; border: 1px solid #c7d4e0;
-        border-left: 4px solid #1a3a5c;
-        border-radius: 10px; padding: 14px 18px;
-        margin: 8px 0; font-size: 0.95rem; color: #1a3a5c;
-        box-shadow: 0 1px 4px rgba(26, 58, 92, 0.06);
-    }
-    .scan-progress-spin {
-        display: inline-block; animation: scan-spin 1.2s linear infinite;
-    }
-    @keyframes scan-spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    .scan-progress-stage { color: #5a6f85; font-size: 0.88rem; }
+/* ---------- 输入控件 ---------- */
+[data-testid="stFileUploaderDropzone"] {
+    background: rgba(56,189,248,0.045);
+    border: 1.5px dashed rgba(120,160,220,0.32);
+    border-radius: 14px; transition: all .18s ease;
+}
+[data-testid="stFileUploaderDropzone"]:hover {
+    border-color: var(--cyan); background: rgba(56,189,248,0.09);
+}
+div[data-baseweb="input"] > div,
+div[data-baseweb="textarea"] > div,
+div[data-baseweb="select"] > div {
+    background: rgba(255,255,255,0.05) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+    border-radius: 10px !important;
+}
+div[data-baseweb="input"] input,
+div[data-baseweb="textarea"] textarea {
+    color: var(--text) !important;
+}
+[data-testid="stWidgetLabel"] p, label { color: #b8cce4 !important; font-weight: 600; }
+.stCaption, [data-testid="stCaptionContainer"] { color: var(--text-faint) !important; }
 
-    /* ---- 扫描进度条配色（st.progress 原生元素套深藏青主题） ---- */
-    [data-testid="stProgress"] > div > div > div {
-        background-color: #1a3a5c;
-    }
-    [data-testid="stProgress"] > div > div > div > div {
-        background-color: #7fa8cf;
-    }
-    [data-testid="stProgress"] p {
-        color: #5a6f85; font-size: 0.9rem;
-    }
+/* ---------- 容器/卡片 ---------- */
+div[data-testid="stVerticalBlockBorderWrapper"] > div,
+div[data-testid="stExpander"] {
+    background: linear-gradient(165deg, var(--glass-strong), var(--glass));
+    border: 1px solid var(--border);
+    border-radius: 16px; backdrop-filter: blur(14px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.26);
+}
+div[data-testid="stExpander"] { padding: 10px 14px; }
 
-    /* ==========================================
-       攻击链关联分析专属样式（2026-10-15 新增）
-       ========================================== */
+/* ---------- 攻击链卡片 ---------- */
+.chain-card {
+    background: linear-gradient(165deg, var(--glass-strong), var(--glass));
+    border: 1px solid var(--border); border-radius: 18px;
+    margin: 14px 0; overflow: hidden;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.40);
+    backdrop-filter: blur(16px);
+    transition: transform .22s ease, box-shadow .22s ease;
+}
+.chain-card:hover { transform: translateY(-3px); box-shadow: 0 20px 48px rgba(0,0,0,0.52); }
+.chain-card-head {
+    padding: 16px 22px; font-weight: 700; font-size: 1.05rem; color: #ffffff;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 9px;
+}
+.chain-card-head.sev-严重 { background: linear-gradient(135deg, #dc2626, #f43f5e); }
+.chain-card-head.sev-高危 { background: linear-gradient(135deg, #ea580c, #f59e0b); }
+.chain-card-head.sev-中危 { background: linear-gradient(135deg, #d97706, #fbbf24); }
+.chain-card-head.sev-低危 { background: linear-gradient(135deg, #059669, #34d399); }
+.chain-card-body { padding: 18px 22px; }
 
-    /* 链路卡片：左侧色条标示严重度 */
-    .chain-card {
-        background: #ffffff;
-        border: 1px solid #e3e8ef;
-        border-radius: 12px;
-        padding: 0;
-        margin: 10px 0;
-        box-shadow: 0 2px 8px rgba(26, 58, 92, 0.06);
-        overflow: hidden;
-        transition: box-shadow .2s ease, transform .2s ease;
-    }
-    .chain-card:hover {
-        box-shadow: 0 6px 18px rgba(26, 58, 92, 0.14);
-        transform: translateY(-2px);
-    }
-    .chain-card-head {
-        padding: 14px 18px;
-        font-weight: bold;
-        font-size: 1.02rem;
-        color: #ffffff;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    .chain-card-head.sev-严重 { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); }
-    .chain-card-head.sev-高危 { background: linear-gradient(135deg, #d35400 0%, #e67e22 100%); }
-    .chain-card-head.sev-中危 { background: linear-gradient(135deg, #b7950b 0%, #f39c12 100%); }
-    .chain-card-head.sev-低危 { background: linear-gradient(135deg, #1e8449 0%, #27ae60 100%); }
-    .chain-card-body { padding: 16px 18px; }
+.chain-steps { display: flex; align-items: stretch; gap: 0; margin: 16px 0 12px; flex-wrap: wrap; }
+.chain-step {
+    flex: 1 1 180px; min-width: 158px;
+    background: rgba(7,11,20,0.55);
+    border: 1px solid var(--border); border-radius: 13px;
+    padding: 13px 15px; position: relative;
+    transition: border-color .18s ease, transform .18s ease;
+}
+.chain-step:hover { border-color: var(--border-glow); transform: translateY(-2px); }
+.chain-step-cap { font-weight: 700; color: #7dd3fc; font-size: 0.92rem; margin-bottom: 5px; }
+.chain-step-src { font-size: 0.79rem; color: #a9bdd4; word-break: break-all; line-height: 1.5; }
+.chain-step-loc {
+    font-size: 0.75rem; color: var(--text-faint); margin-top: 5px;
+    font-family: "Cascadia Code", Consolas, monospace;
+}
+.chain-step-rule {
+    display: inline-block; margin-top: 7px;
+    background: rgba(251,191,36,0.10); color: #fcd34d;
+    border: 1px solid rgba(251,191,36,0.28); border-radius: 6px;
+    padding: 2px 8px; font-size: 0.72rem; font-weight: 600;
+}
+.chain-arrow {
+    display: flex; align-items: center; padding: 0 9px;
+    color: var(--rose); font-size: 1.5rem; font-weight: 800;
+    filter: drop-shadow(0 0 8px rgba(251,113,133,0.6));
+}
 
-    /* 能力标签：胶囊样式 */
-    .cap-tag {
-        display: inline-block;
-        background: #eef2f7;
-        color: #1a3a5c;
-        border: 1px solid #cfd9e5;
-        border-radius: 999px;
-        padding: 2px 12px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        letter-spacing: 0.3px;
-    }
+.chain-impact, .chain-advice {
+    border-radius: 11px; padding: 13px 16px; margin-top: 11px;
+    font-size: 0.89rem; line-height: 1.72;
+}
+.chain-impact {
+    background: rgba(239,68,68,0.09);
+    border-left: 3px solid #ef4444; color: #fecaca;
+}
+.chain-advice {
+    background: rgba(56,189,248,0.07);
+    border-left: 3px solid var(--cyan); color: #bae6fd;
+}
+.chain-impact b, .chain-advice b { color: inherit; }
 
-    /* 步骤流程条：横向节点 + 连接箭头 */
-    .chain-steps {
-        display: flex;
-        align-items: stretch;
-        gap: 0;
-        margin: 14px 0 10px;
-        flex-wrap: wrap;
-    }
-    .chain-step {
-        flex: 1 1 180px;
-        min-width: 160px;
-        background: #f8fafc;
-        border: 1px solid #dde5ee;
-        border-radius: 10px;
-        padding: 12px 14px;
-        position: relative;
-    }
-    .chain-step-cap {
-        font-weight: bold;
-        color: #1a3a5c;
-        font-size: 0.92rem;
-        margin-bottom: 4px;
-    }
-    .chain-step-src {
-        font-size: 0.8rem;
-        color: #5a6f85;
-        word-break: break-all;
-        line-height: 1.45;
-    }
-    .chain-step-loc {
-        font-size: 0.78rem;
-        color: #8a97a8;
-        margin-top: 4px;
-        font-family: "Cascadia Code", Consolas, monospace;
-    }
-    .chain-step-rule {
-        display: inline-block;
-        margin-top: 6px;
-        background: #fdf6e3;
-        color: #8a6d1a;
-        border: 1px solid #f0e0ac;
-        border-radius: 4px;
-        padding: 1px 7px;
-        font-size: 0.74rem;
-    }
-    .chain-arrow {
-        display: flex;
-        align-items: center;
-        padding: 0 8px;
-        color: #c0392b;
-        font-size: 1.4rem;
-        font-weight: bold;
-        flex: 0 0 auto;
-    }
+/* ---------- 对比双栏 ---------- */
+.compare-row { display: flex; gap: 16px; margin: 14px 0; flex-wrap: wrap; }
+.compare-col {
+    flex: 1 1 300px; border-radius: 15px; padding: 16px 19px;
+    border: 1px solid var(--border); backdrop-filter: blur(12px);
+}
+.compare-col.traditional {
+    background: rgba(148,163,184,0.06); border-left: 3px solid #64748b;
+}
+.compare-col.advanced {
+    background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444;
+    box-shadow: 0 8px 28px rgba(239,68,68,0.14);
+}
+.compare-col h4 { margin: 0 0 10px 0; font-size: 1rem; color: #e8eef7; }
+.compare-col.traditional h4 { color: #94a3b8; }
+.compare-col.advanced h4 { color: #fca5a5; }
+.compare-col table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.compare-col table th { color: #94a3b8; border-bottom: 1px solid var(--border); padding: 6px 5px; text-align: left; }
+.compare-col table td { color: #cbd5e1; padding: 5px; border-bottom: 1px solid rgba(120,160,220,0.08); }
 
-    /* 影响 / 建议条 */
-    .chain-impact, .chain-advice {
-        border-radius: 8px;
-        padding: 11px 14px;
-        margin-top: 10px;
-        font-size: 0.9rem;
-        line-height: 1.6;
-    }
-    .chain-impact {
-        background: #fdecea;
-        border-left: 4px solid #c0392b;
-        color: #7d241a;
-    }
-    .chain-advice {
-        background: #eaf4fb;
-        border-left: 4px solid #1a6fa8;
-        color: #134b73;
-    }
-    .chain-impact b, .chain-advice b { color: inherit; }
+/* ---------- 能力云 ---------- */
+.cap-cloud { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.cap-cloud-item {
+    background: rgba(56,189,248,0.07);
+    border: 1px solid rgba(56,189,248,0.24);
+    border-radius: 999px; padding: 5px 14px;
+    font-size: 0.81rem; color: #bae6fd; font-weight: 600;
+}
+.cap-cloud-item b { color: var(--cyan); font-weight: 800; }
 
-    /* 单点 vs 链路 对比双栏 */
-    .compare-row {
-        display: flex;
-        gap: 14px;
-        margin: 12px 0;
-        flex-wrap: wrap;
-    }
-    .compare-col {
-        flex: 1 1 300px;
-        border-radius: 10px;
-        padding: 14px 16px;
-        border: 1px solid #e3e8ef;
-    }
-    .compare-col.traditional {
-        background: #f8f9fa;
-        border-left: 4px solid #95a5a6;
-    }
-    .compare-col.advanced {
-        background: #fdf1f0;
-        border-left: 4px solid #c0392b;
-    }
-    .compare-col h4 {
-        margin: 0 0 8px 0;
-        font-size: 0.98rem;
-        color: #1a3a5c;
-    }
-    .compare-col.traditional h4 { color: #5a6f85; }
-    .compare-col.advanced h4 { color: #a93226; }
+/* ---------- 提示条 ---------- */
+.demo-hint {
+    background: linear-gradient(135deg, rgba(14,165,233,0.14), rgba(124,58,237,0.10));
+    border: 1px solid var(--border-glow);
+    color: #cbd5e1; border-radius: 14px;
+    padding: 15px 20px; font-size: 0.89rem;
+    line-height: 1.78; margin: 10px 0;
+    backdrop-filter: blur(12px);
+}
+.demo-hint b { color: #7dd3fc; font-weight: 700; }
 
-    /* 能力分布小标签 */
-    .cap-cloud {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin: 8px 0;
-    }
-    .cap-cloud-item {
-        background: #ffffff;
-        border: 1px solid #cfd9e5;
-        border-radius: 999px;
-        padding: 4px 13px;
-        font-size: 0.82rem;
-        color: #1a3a5c;
-    }
-    .cap-cloud-item b { color: #c0392b; }
+/* ---------- 徽章 ---------- */
+.badge-high {
+    background: rgba(52,211,153,0.12); color: #6ee7b7;
+    padding: 3px 11px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; border: 1px solid rgba(52,211,153,0.30);
+}
+.badge-medium {
+    background: rgba(251,191,36,0.12); color: #fcd34d;
+    padding: 3px 11px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; border: 1px solid rgba(251,191,36,0.30);
+}
+.badge-low {
+    background: rgba(248,113,113,0.12); color: #fca5a5;
+    padding: 3px 11px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; border: 1px solid rgba(248,113,113,0.30);
+}
 
-    /* 演示引导条 */
-    .demo-hint {
-        background: linear-gradient(135deg, #1a3a5c 0%, #2a5784 100%);
-        color: #ffffff;
-        border-radius: 10px;
-        padding: 13px 18px;
-        font-size: 0.9rem;
-        line-height: 1.65;
-        margin: 8px 0;
-    }
-    .demo-hint b { color: #ffd966; }
+/* ---------- 表格 ---------- */
+[data-testid="stDataFrame"] {
+    border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+}
+[data-testid="stDataFrame"] * { font-size: 0.84rem; }
+
+/* ---------- 进度 ---------- */
+.scan-progress {
+    display: flex; align-items: center; gap: 13px;
+    background: linear-gradient(135deg, rgba(56,189,248,0.09), rgba(167,139,250,0.06));
+    border: 1px solid var(--border); border-left: 3px solid var(--cyan);
+    border-radius: 13px; padding: 15px 19px; margin: 9px 0;
+    font-size: 0.94rem; color: #cbd5e1;
+    backdrop-filter: blur(12px);
+}
+.scan-progress-stage { color: var(--text-faint); font-size: 0.86rem; }
+.scan-progress-spin { display: inline-block; animation: scan-spin 1.2s linear infinite; }
+@keyframes scan-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+[data-testid="stProgress"] > div > div > div { background-color: var(--cyan-deep); }
+[data-testid="stProgress"] > div > div > div > div { background-color: var(--violet); }
+[data-testid="stProgress"] p { color: var(--text-dim); font-size: 0.89rem; }
+
+/* ---------- 分隔线 ---------- */
+hr, [data-testid="stDivider"] { border-color: var(--border) !important; }
+
+/* ---------- 标签页 ---------- */
+[data-baseweb="tab-list"] {
+    background: var(--glass); border: 1px solid var(--border);
+    border-radius: 13px; padding: 5px; gap: 4px;
+}
+[data-baseweb="tab"] {
+    background: transparent; color: var(--text-dim);
+    border-radius: 9px; font-weight: 600; padding: 9px 17px;
+}
+[data-baseweb="tab"]:hover { background: var(--glass-strong); color: var(--text); }
+[data-baseweb="tab"][aria-selected="true"] {
+    background: linear-gradient(135deg, rgba(14,165,233,0.24), rgba(124,58,237,0.18));
+    color: #ffffff;
+}
+[data-baseweb="tab-highlight"] { background-color: var(--cyan); }
+[data-baseweb="tab-border"] { background-color: var(--border); }
+
+/* ---------- 消息 ---------- */
+.stAlert {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 13px !important;
+    backdrop-filter: blur(10px);
+}
+div[data-testid="stAlertContainer"] p { color: var(--text) !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -500,7 +537,7 @@ with st.sidebar:
 
     st.divider()
 
-    start_scan = st.button("🚀 开始安全扫描", type="primary", use_container_width=True)
+    start_scan = st.button("🚀 开始安全扫描", type="primary", width="stretch")
 
     st.divider()
     st.caption("💡 每个漏洞结论都有 NVD/GitHub 官方链接可验证")
@@ -697,7 +734,7 @@ if st.session_state.scan_done and st.session_state.result:
                     {"包名": d["package"], "声明版本": d["version"], "未检测原因": d["reason"]}
                     for d in summary.get("skipped_deps", [])
                 ]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -798,7 +835,7 @@ if st.session_state.scan_done and st.session_state.result:
                     "低危": [sev_counts["低危"]],
                     "未知": [sev_counts["未知"]],
                 })
-                st.bar_chart(sev_df, use_container_width=True,
+                st.bar_chart(sev_df, width="stretch",
                              color=["#c0392b", "#e74c3c", "#f39c12", "#27ae60", "#95a5a6"])
 
         with viz_col2:
@@ -814,7 +851,7 @@ if st.session_state.scan_done and st.session_state.result:
                     "中": [conf_counts["中"]],
                     "低": [conf_counts["低"]],
                 })
-                st.bar_chart(conf_df, use_container_width=True,
+                st.bar_chart(conf_df, width="stretch",
                              color=["#27ae60", "#f39c12", "#e74c3c"])
 
         # ---- 第二行：CVSS vs EPSS 散点图（关键图）----
@@ -851,7 +888,7 @@ if st.session_state.scan_done and st.session_state.result:
                     y_label="EPSS 利用概率 %（越高越容易被攻击）",
                     size="置信权重",
                     color="颜色",
-                    use_container_width=True,
+                    width="stretch",
                 )
 
         # ---- 第三行：Top 依赖漏洞数 + 修复优先级分布 ----
@@ -868,7 +905,7 @@ if st.session_state.scan_done and st.session_state.result:
                 # 转置为单行多列
                 pkg_data = {p[0]: [p[1]] for p in top_pkgs}
                 pkg_df = pd.DataFrame(pkg_data)
-                st.bar_chart(pkg_df, use_container_width=True)
+                st.bar_chart(pkg_df, width="stretch")
 
         with viz_col4:
             with st.container(border=True):
@@ -892,7 +929,7 @@ if st.session_state.scan_done and st.session_state.result:
                     "关注即可": [pri_counts["关注即可"]],
                     "低优先": [pri_counts["低优先"]],
                 })
-                st.bar_chart(pri_df, use_container_width=True,
+                st.bar_chart(pri_df, width="stretch",
                              color=["#c0392b", "#e74c3c", "#f39c12", "#27ae60", "#95a5a6"])
 
         st.divider()
@@ -967,7 +1004,7 @@ if st.session_state.scan_done and st.session_state.result:
 
             st.dataframe(
                 pd.DataFrame(df_data),
-                use_container_width=True,
+                width="stretch",
                 height=450,
                 column_config={
                     "优先级": st.column_config.TextColumn(width="small"),
@@ -1091,7 +1128,7 @@ if st.session_state.scan_done and st.session_state.result:
                     }
                     for pkg, info in fix_map.items()
                 ])
-                st.dataframe(plan_df, use_container_width=True, height=min(420, 36 + 35 * len(plan_df)))
+                st.dataframe(plan_df, width="stretch", height=min(420, 36 + 35 * len(plan_df)))
 
                 # 生成修改后的 requirements.txt
                 req_path = st.session_state.get("req_file_path")
@@ -1104,7 +1141,7 @@ if st.session_state.scan_done and st.session_state.result:
                     fixed_content.encode("utf-8"),
                     "requirements_fixed.txt",
                     "text/plain",
-                    use_container_width=True,
+                    width="stretch",
                 )
 
                 with st.expander("👀 预览修改后的 requirements.txt"):
@@ -1125,7 +1162,7 @@ if st.session_state.scan_done and st.session_state.result:
                     }
                     for v in unfixable
                 ])
-                st.dataframe(unfixable_df, use_container_width=True)
+                st.dataframe(unfixable_df, width="stretch")
 
     # ===== Tab 4: 报告导出 =====
     with tab4:
@@ -1152,7 +1189,7 @@ if st.session_state.scan_done and st.session_state.result:
                         with open(path, "rb") as f:
                             st.download_button(
                                 "📥 下载 DOCX 审计报告", f.read(),
-                                os.path.basename(path), mime, use_container_width=True
+                                os.path.basename(path), mime, width="stretch"
                             )
                         st.success(f"✅ 报告已生成：`{path}`")
                     except Exception as e:
@@ -1165,7 +1202,7 @@ if st.session_state.scan_done and st.session_state.result:
                         with open(path, "rb") as f:
                             st.download_button(
                                 "📥 下载 PDF 报告", f.read(),
-                                os.path.basename(path), mime, use_container_width=True
+                                os.path.basename(path), mime, width="stretch"
                             )
                         st.success(f"✅ 报告已生成：`{path}`")
                     except Exception as e:
@@ -1284,10 +1321,10 @@ with skill_col1:
         sc1, sc2 = st.columns([1, 1])
         with sc1:
             if st.button("🛡️ 检测技能包", type="primary", key="skill_zip_btn",
-                         disabled=not skill_zip, use_container_width=True):
+                         disabled=not skill_zip, width="stretch"):
                 _run_skill_scan(zip_bytes=skill_zip.getvalue())
         with sc2:
-            if st.button("🎬 演示样例", key="skill_demo_btn", use_container_width=True):
+            if st.button("🎬 演示样例", key="skill_demo_btn", width="stretch"):
                 _run_skill_scan(demo=True)
         st.caption("支持从 GitHub 下载的技能包 zip，自动定位 SKILL.md；"
                    "「演示样例」为故意构造的恶意技能，仅用于功能演示。")
@@ -1299,7 +1336,7 @@ with skill_col2:
                                   label_visibility="collapsed",
                                   placeholder="粘贴 SKILL.md 的完整内容……")
         if st.button("🛡️ 检测文本", key="skill_text_btn",
-                     disabled=not skill_text.strip(), use_container_width=True):
+                     disabled=not skill_text.strip(), width="stretch"):
             _run_skill_scan(text=skill_text)
 
 # ---- 恶意样本检测率演示（内置样本库，回应"与grep有何区别"的质疑） ----
@@ -1307,7 +1344,7 @@ with st.container(border=True):
     bench_col1, bench_col2 = st.columns([1, 3])
     with bench_col1:
         if st.button("📊 运行样本检测率测试", key="skill_bench_btn",
-                     use_container_width=True):
+                     width="stretch"):
             st.session_state.skill_benchmark = True
     with bench_col2:
         st.caption("内置样本库：30 个恶意技能（基于 ClawHavoc/Snyk/ToxicSkills 等公开披露的"
@@ -1414,7 +1451,7 @@ if st.session_state.skill_result:
         ai_c1, ai_c2 = st.columns([1, 3])
         with ai_c1:
             if st.button("生成 AI 研判", key="adj_skill_btn",
-                         type="primary", use_container_width=True):
+                         type="primary", width="stretch"):
                 st.session_state.skill_adj = adj_mod.adjudicate_skill(sr)
                 st.rerun()
         with ai_c2:
@@ -1457,7 +1494,7 @@ if st.session_state.skill_result:
                 "说明": f["description"],
                 "处置建议": f["suggestion"],
             })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, height=380,
+        st.dataframe(pd.DataFrame(rows), width="stretch", height=380,
                      column_config={
                          "等级": st.column_config.TextColumn(width="small"),
                          "类别": st.column_config.TextColumn(width="small"),
@@ -1544,7 +1581,7 @@ with chain_col1:
         st.caption("三个技能单看判定分别为低危 / 中危 / 高危，"
                    "传统工具到此为止；关联后识别出完整的凭据外泄链路。")
         if st.button("🔗 运行跨技能攻击链演示", type="primary",
-                     key="chain_demo_btn", use_container_width=True):
+                     key="chain_demo_btn", width="stretch"):
             _run_chain_demo()
         st.caption("💡 答辩建议：先点左边的演示，再指出页面下方的"
                    "「① 单点视角 vs ② 攻击链视角」对比——这是差异化的直观证据。")
@@ -1556,7 +1593,7 @@ with chain_col2:
             "选择技能包（可多选）", type=["zip"], key="chain_zips",
             accept_multiple_files=True, label_visibility="collapsed")
         if st.button("🔗 分析技能间攻击链", key="chain_zip_btn",
-                     disabled=not chain_zips, use_container_width=True):
+                     disabled=not chain_zips, width="stretch"):
             _run_chain_from_zip([z.getvalue() for z in chain_zips])
 
 # ---- 攻击链结果展示 ----
@@ -1685,7 +1722,7 @@ if st.session_state.chain_result:
             a1, a2 = st.columns([1, 3])
             with a1:
                 if st.button("生成 AI 研判", key="adj_chain_btn",
-                             type="primary", use_container_width=True):
+                             type="primary", width="stretch"):
                     st.session_state.chain_adj = adj_c.adjudicate_chain(worst)
                     st.rerun()
             with a2:
@@ -1721,7 +1758,7 @@ if st.session_state.chain_result:
                        "关系建成边。这是赛题 1 要求 RDS 承载的数据模型，"
                        "也是「双链」（传统供应链 + AI 供应链）的数据基础。")
             if st.button("生成资产图谱", key="graph_btn",
-                         use_container_width=True):
+                         width="stretch"):
                 st.session_state.asset_graph = ag.build_graph(
                     dep_list=st.session_state.get("dep_list") or [],
                     skill_results=skill_results,
@@ -1772,7 +1809,7 @@ if st.session_state.chain_result:
                     "风险点": n["risk_count"],
                 } for n in g["nodes"]]
                 st.dataframe(pd.DataFrame(node_rows),
-                             use_container_width=True, height=None,
+                             width="stretch", height=260,
                              column_config={
                                  "类型": st.column_config.TextColumn(width="small"),
                                  "判定": st.column_config.TextColumn(width="small"),
@@ -1815,13 +1852,13 @@ st.caption(
 with st.container(border=True):
     net_col1, net_col2, net_col3 = st.columns([1, 1, 3])
     with net_col1:
-        if st.button("🌐 检测网络连通性", key="net_probe_btn", use_container_width=True):
+        if st.button("🌐 检测网络连通性", key="net_probe_btn", width="stretch"):
             from modules import demo_mode as dm
             st.session_state.net_status = dm.probe_network()
             st.rerun()
     with net_col2:
         if st.button("🎬 加载演示数据集", key="demo_load_btn",
-                     type="primary", use_container_width=True):
+                     type="primary", width="stretch"):
             from modules import demo_mode as dm
             st.session_state.demo_data = dm.get_offline_vulns()
             st.rerun()
@@ -1853,7 +1890,7 @@ if st.session_state.get("demo_data"):
                 "修复版本": v["fixed_version"],
             }
             for v in dd["vulns"]
-        ]), use_container_width=True, height=None)
+        ]), width="stretch", height=260)
 
 
 

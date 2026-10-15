@@ -1,9 +1,21 @@
 # ==========================================
-# 界面主题（v3.1：白底 · 深藏青 · 卡片化）
+# 界面主题（v4.0：深空蓝 · 玻璃拟态 · 深色优先）
+# 与 main.py 内嵌 CSS 的 :root 变量保持一致
 # ==========================================
 [theme]
-primaryColor = "#1a3a5c"
-backgroundColor = "#f5f7fb"
-secondaryBackgroundColor = "#f0f3f7"
-textColor = "#23272f"
+# 主色：青蓝（按钮、进度条、链接）
+primaryColor = "#38bdf8"
+# 背景：深空蓝
+backgroundColor = "#0d1420"
+# 次级背景（侧边栏）
+secondaryBackgroundColor = "#070b14"
+# 文字色
+textColor = "#e8eef7"
 font = "sans serif"
+
+[server]
+# 关闭使用统计上报（离线/ 内网环境友好）
+fileWatcherType = "auto"
+# 部署云端 Demo 时需要关闭跨源保护才能被外部 iframe 访问
+enableCORS = false
+enableXsrfProtection = false
