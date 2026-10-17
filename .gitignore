@@ -32,3 +32,6 @@ run_compare_log.txt
 
 # ===== 存储抽象层运行时数据 =====
 data_store/
+
+# ===== 真实语料（体积大，需用 fetch_real_samples.py 重新下载）=====
+samples/real_corpus/

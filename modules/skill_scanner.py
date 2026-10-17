@@ -108,16 +108,26 @@ RULE_TABLE = [
      "审查该段指令意图；技能指令与系统约束冲突时应以系统为准"),
     # ---- 凭证窃取 ----
     ("凭证窃取", "中危", "敏感凭据路径读取",
+     # 2026-10-17 收紧：原规则把「读 API_KEY 变量名」也当窃取，
+     # 但科研/办公类技能文档里写明读取自己的 API key 属正常业务。
+     # 现在要求「读取动作」与「凭据路径」在同一动作链上，
+     # 且排除「文档说明 / 环境变量名声明」这类正当用法。
      r"(cat|read|open|type|Get-Content|fs\.read|读取|查看|获取|打开|加载|导出|上传|抓取)"
-     r"\s*.{0,120}"
-     r"(\.env|\.aws|credentials|id_rsa|\.ssh|\.npmrc|\.pypirc|\.gitconfig|kubeconfig|"
-     r"authorized_keys|API_KEY|SECRET_KEY|TOKEN|PASSWORD|shadow)",
-     "指令中包含读取凭证类敏感文件的动作",
-     "正常技能不应读取主机凭证文件；如无明确业务需求，删除该指令"),
+     r"\s*.{0,80}"
+     r"(~/\.aws|~/\.ssh|id_rsa|\.npmrc|\.pypirc|\.gitconfig|kubeconfig|authorized_keys|"
+     r"\.env\b)",
+     "指令中包含读取主机凭证文件的动作",
+     "正常技能不应读取主机凭证文件；如无明确业务需求，删除该指令。"
+     "若确需使用 API 凭据，请说明用途并限定只读所需变量"),
     ("凭证窃取", "中危", "环境变量枚举",
-     r"(printenv|env\s*$|os\.environ|process\.env|$_ENV|export\s+-p|Get-ChildItem\s+Env:)",
-     "批量枚举环境变量，常与数据外发组合形成凭证窃取链路",
-     "审查技能是否确有读取环境变量的业务需求；限制其只读取明确声明的变量名"),
+     # 2026-10-17 收紧：读取自身进程的环境变量（os.environ 索引）是常规做法，
+     # 只有「批量枚举 + 外发」组合才值得告警。
+     r"(printenv|export\s+-p|set\s*(\||\s*$)[\s\S]{0,40}(print|echo)|"
+     r"env\s*\|\s*(curl|wget|nc|base64)|"
+     r"(os\.environ|process\.env|\$_ENV)\s*\)?\s*(->|\.|,).{0,30}(print|log|dump|json\.dumps))",
+     "批量枚举并输出全部环境变量，常与数据外发组合形成凭证窃取链路。"
+     "注意：读取自身进程的环境变量（os.environ['KEY']）属正常用法，不在本规则范围",
+     "限制环境变量访问范围为明确声明的变量名，禁止整体导出"),
     # ---- 命令注入（2026-10-15 新增）----
     # 依据：USENIX Security 2026 数据集标注的 Command Injection 类威胁（5 次）。
     # 特征：把外部可控输入直接拼进 shell 命令，未做转义 → 可注入任意命令。
@@ -141,6 +151,8 @@ RULE_TABLE = [
     # 依据：USENIX Security 2026 数据集标注的 Excessive Permissions 类威胁（4 次）。
     # 特征：技能索取远超其功能所需的权限，如格式化工具要 root / 全盘读写。
     ("供应链风险", "高危", "索取过高系统权限",
+     # 排除注释行里的 sudo（文档示例「# sudo xxx」不是真在索取权限）
+     r"^(?!\s*[#/*-])(.{0,200}?)"
      r"(chmod\s+(-R\s+)?777\s+/(etc|usr|bin|sbin|var|root)|"
      r"chown\s+-R\s+(root|0)\s|"
      r"sudo\s+(?!-h\b)(?!-\w+\s*$).{0,60}|"
@@ -217,9 +229,14 @@ RULE_TABLE = [
      r"https?://\d{1,3}(\.\d{1,3}){3}(:\d{1,5})?(/|$|\s)",
      "直接使用IP地址通信，规避域名审查，是可疑的外联方式",
      "审查该连接的目的与数据内容；正常服务应使用可审计的域名"),
+    # 2026-10-17 误报测试后收紧：原规则「动词 + to/server/url」过于宽泛，
+    # 科研/办公类正常技能（如"提交实验到服务器"）大量误报。
+    # 现在要求动词与「明确的接收方」相邻，或动词本身指向外部传输。
     ("数据外发", "中危", "外发动词模式",
-     r"(上传|发送|提交|转发|upload|send|submit|post|forward).{0,60}"
-     r"(到|给|至|to|server|endpoint|url|远程|remote)",
+     r"(上传|发送|提交|转发|upload|send|submit|forward)\s*(到|给|至)\s*"
+     r"(远程|外部|第三方|远端|服务器\s*\d|server\s*\d|external|remote|third[- ]party)|"
+     r"(upload|send|submit|forward)\s+to\s+(https?://|ftp://|s3://|external|remote)|"
+     r"(外发|传出|发送到)\s*(外部|远程|第三方|境外)",
      "发现数据外发的语义模式，需结合目标地址判断意图",
      "审查数据流向：发送了什么数据、发往哪里、是否告知用户"),
     # ---- 混淆载荷 ----
@@ -276,32 +293,55 @@ def _finding(category, severity, file_name, line_no, evidence, rule_name,
 # ==========================================
 # 三、跨行组合规则：凭证窃取链路（读取敏感文件 + 外发通道同时出现）
 # ==========================================
+# 2026-10-17 真实良性语料误报测试后调整：
+#   原实现只要「同文件内同时出现读凭据动作 + 外发通道」就判严重。
+#   真实科研类技能（如 API 集成类）在文档里会同时提到
+#   「读取自己的 API key」与「不使用某个 webhook」，导致大量误报。
+#   现在增加三个必要条件：
+#     1. 读凭据必须是「读取凭据文件路径」，而非「提及 API key 变量名」
+#     2. 外发通道要求**真实存在的具体站点**，不含泛化的 webhook 一词
+#     3. 排除否定语境（文档说「不要暴露/不使用某通道」不算实际外发）
 _CRED_READ = re.compile(
-    r"(cat|read|open|type|Get-Content|读取|查看|获取|打开)\s+.{0,120}"
-    r"(\.env|\.aws|credentials|id_rsa|\.ssh|\.npmrc|\.pypirc|API_KEY|SECRET|TOKEN)",
+    r"(cat|read|open|type|Get-Content|fs\.read|读取|查看|获取|打开|加载|导出|抓取)"
+    r"\s*.{0,80}"
+    r"(~/\.aws|~/\.ssh|id_rsa|\.npmrc|\.pypirc|\.gitconfig|kubeconfig|authorized_keys|"
+    r"\.env\b)",
     re.IGNORECASE)
 _EXFIL = re.compile(
-    r"(discord|webhook|hooks\.slack|oapi\.dingtalk|qyapi\.weixin|feishu|telegram|"
-    r"ngrok|pastebin|transfer\.sh|requestbin|interact\.sh|oast\.|ceye\.io|"
-    r"https?://\d{1,3}(\.\d{1,3}){3})",
+    r"(discord(\.com)?/api/webhooks|hooks\.slack\.com|oapi\.dingtalk\.com|"
+    r"qyapi\.weixin\.qq\.com|ngrok\.(io|app)|pastebin\.com|transfer\.sh|"
+    r"0bin\.com|requestbin\.(com|net)|webhook\.site|interact\.sh|"
+    r"oast\.(fun|live|me|pro)|burpcollaborator\.net|dnslog\.cn|ceye\.io|"
+    r"rentry\.co|hastebin\.com|0x0\.st)",
+    re.IGNORECASE)
+# 否定语境：「不使用/不暴露某通道」属于文档声明，不是实际外发行为
+_EXFIL_NEG = re.compile(
+    r"(不(要|应|会|得|需)?\s*(用|使用|调用|开启|启用|暴露|涉及|包含)|"
+    r"never\s+(use|expose|call|include)|don'?t\s+(use|expose|call)|"
+    r"no[t]?\s+(use|expose)|without\s+(using|calling))[^。\n]{0,40}$",
+    re.IGNORECASE)
+# 「提及凭据变量名」的正当用法：文档声明变量名而非读取凭据文件
+_CRED_MENTION = re.compile(
+    r"(API_KEY|TOKEN|SECRET)\s*(变量|variable|environment|环境变量)|"
+    r"(Read|读取)\s+credentials\s+from\s+`?[A-Z_]+`?",
     re.IGNORECASE)
 
 
 def _check_combo(file_text: str, file_name: str) -> list:
-    """同文件内同时命中「读取敏感凭据」与「外发通道」→ 严重：凭证窃取链路"""
+    """同文件内同时命中「读取敏感凭据文件」与「实际外发通道」→ 严重：凭证窃取链路"""
     read_lines = []
     exfil_lines = []
     for idx, line in enumerate(file_text.splitlines(), 1):
-        if _CRED_READ.search(line):
+        if _CRED_READ.search(line) and not _CRED_MENTION.search(line):
             read_lines.append(idx)
-        if _EXFIL.search(line):
+        if _EXFIL.search(line) and not _EXFIL_NEG.search(line):
             exfil_lines.append(idx)
     if read_lines and exfil_lines:
         return [_finding(
             "凭证窃取", "严重", file_name, read_lines[0],
             "敏感凭据读取：第%d行；外发通道：第%d行" % (read_lines[0], exfil_lines[0]),
             "凭证窃取完整链路",
-            "同一文件内同时出现「读取敏感凭据文件/变量」与「数据外发通道」两个动作，"
+            "同一文件内同时出现「读取敏感凭据文件」与「实际外发通道」两个动作，"
             "构成「读取→外发」的凭证窃取完整链路",
             "这是最高危信号：删除该技能，检查是否已有凭证被外发并立即轮换相关密钥")]
     return []
