@@ -148,11 +148,18 @@ _demo_root = ss.make_demo_package(tempfile.mkdtemp())
 _demo = ss.scan_skill_package(_demo_root)
 check(G, "演示样例判定", _demo["verdict"], "严重")
 check(G, "演示样例文件数", _demo["files"], 2)
-# 说明：2026-10-15 凭证窃取规则补入中文动词（读取/打开/获取/加载 等）后，
-#       演示样例多命中 1 处「读取 ~/.aws/credentials」，属检出增强而非回归。
-#       2026-10-15 再补命令注入/过度权限规则后命中数进一步增加，
-#       故改为「不低于基线」的下界断言，避免随规则增强而频繁改动期望值。
-check(G, "演示样例命中数≥13", len(_demo["findings"]) >= 13, True)
+# 说明（2026-10-17 更新）：真实良性语料测试后收紧了 5 条规则以降低误报，
+#   演示样例中两处原本依赖宽松匹配的命中消失（14 → 12）。
+#   关键判定「严重」与核心规则命中均未变，攻击链检测仍正常——
+#   因此改为「≥12」下界断言：既守住底线，又允许规则继续优化。
+check(G, "演示样例命中数≥12", len(_demo["findings"]) >= 12, True)
+# 核心能力必须保留：这些规则是本项目的立身之本，不能因降误报而丢失
+check(G, "演示样例仍检出管道执行",
+      any(f["rule"] == "管道执行下载内容" for f in _demo["findings"]), True)
+check(G, "演示样例仍检出凭证窃取链路",
+      any(f["rule"] == "凭证窃取完整链路" for f in _demo["findings"]), True)
+check(G, "演示样例仍检出提示注入",
+      any(f["category"] == "提示注入" for f in _demo["findings"]), True)
 
 _clean = ss.scan_skill_text("json-helper", CLEAN_SKILL)
 check(G, "正常技能判安全", _clean["verdict"], "安全")
@@ -267,7 +274,10 @@ from modules import adjudicator as adj
 # 未配置 MaaS 时应自动降级，且明确标注降级（不伪装成 AI 输出）
 check(G, "MaaS 未配置时不可用", adj.is_available(), False)
 
-_adj_skill = adj.adjudicate_skill(_chain_results[0])
+# 说明：原用 results[0]（demo-helper-formatter）做研判测试，
+#   但 2026-10-17 收紧规则后该样本已是 0 命中（它本就良性），
+#   改用确定含风险点的 results[1]（demo-env-collector，读凭据 + 外发）。
+_adj_skill = adj.adjudicate_skill(_chain_results[1])
 check(G, "Skill 研判降级标记", _adj_skill.degraded, True)
 check(G, "Skill 研判来源标注", _adj_skill.source, "本地模板")
 check(G, "Skill 研判内容非空", len(_adj_skill.content) > 50, True)

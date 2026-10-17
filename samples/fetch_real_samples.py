@@ -1,50 +1,53 @@
 """
-真实样本下载器（2026-10-15新增）
-==================================
-从公开学术/产业研究仓库拉取**含完整正文的**真实 Skill 样本，
-用于实测本项目的检出率与误报率。
+真实 Skill 语料下载器（codeload/gh-proxy 通道版）
+==================================================
+从公开仓库拉取**含完整正文的**真实 Skill 样本，用于实测检出率与误报率。
 
-【为什么需要这个】
-手工构造的样例只能证明「功能能跑」，无法回答评委最可能问的问题：
+【为什么需要】
+手工构造的样例只能证明「功能能跑」，无法回答评委最可能问的：
 「你的规则在真实数据上有效吗？会不会大量误报？」
+2026-10-17 实测发现：在真实良性语料上误报率一度高达 58.6%，
+这个数字只有靠真实语料才能测出来。
 
-之前已接入的两类数据各有局限：
-- snyk-labs/toxicskills-goof：8 个样本含正文 —— 样本量太小
-- protectskills/MaliciousAgentSkillsBench：157 个恶意 —— **只有元数据，
-  原始仓库已被论文方封禁删库**（实测 smp_170/smp_4712/smp_9692 均404）
+【通道选择与踩坑记录】
+本机环境实测（2026-10-17，加速器已开启）：
 
-因此需要补充**大规模、含正文、含明确良性标签**的语料。
+  通道                  结果
+  ────────────────────────────────────────────────
+  api.github.com ✅  但未认证时限额 60 次/小时，177 个文件必然触发限流
+                     （登录后有 token 可提额到 5000/小时，但本脚本不依赖 token）
+  raw.githubusercontent  ❌ 被加速器阻断（读超时）
+  codeload.github.com   ⚠️ 可连但限速极��（实测 4 分钟仅 255KB，约 1KB/s）
+  gh-proxy.com      ✅✅ 0.8 秒 / 15KB，最快且最稳→ 本脚本采用
 
-【本脚本下载的三类语料】
+因此本脚本优先走 gh-proxy，失败时回退 codeload（仅在文件数很少时可用）。
+这样无需 GitHub token，也不受 API 限额影响。
+
+【语料说明】
 1. benign_scientific（K-Dense-AI/scientific-agent-skills）
-   177 个真实科研类技能，含完整 SKILL.md 正文。
-   论文 T-Zevin/SkillGuardrail 的评测语料来源，可视为**明确的良性样本**
-   （科学计算工作流，无恶意载荷）。
-   用途：测**误报率（FPR）** —— 这是目前最缺的数据。
+   真实科研类技能（科学计算 / 生物信息 / 临床研究工作流），无恶意载荷。
+   该语料是论文 T-Zevin/SkillGuardrail 的评测来源，可视为明确良性样本。
+   用途：测**误报率（FPR）**。
 
 2. toxic_skills（snyk-labs/toxicskills-goof）
-   Snyk ToxicSkills 论文配套样本库，含真实恶意正文。
+   Snyk ToxicSkills 论文配套恶意样本库，含真实恶意正文。
    用途：测**检出率（TPR）**。
 
-3. benign_misc（手工挑选的公开真实技能）
-   补充多样化的良性样本，避免只在科研类单一领域测误报。
-
 【数据合规】
-- 所有样本来自公开仓库，仅用于防御性安全研究
--恶意样本仅下载不执行（静态分析，不需要运行）
-- 每个样本目录都记录来源 URL 与 commit，便于溯源与复现
+- 样本来自公开仓库，仅用于防御性安全研究
+- 恶意样本只做静态分析，不执行
+- 每个语料目录生成 _manifest.json，记录来源 URL 便于溯源复现
 """
-import base64
 import json
 import os
 import ssl
 import sys
 import time
-import urllib.parse
+import urllib.error
 import urllib.request
 
-# 加速器使用自签证书转发，本机环境下关闭校验
-# 连接目标仍为本机加速器，不影响数据来源的真实性
+# 加速器用自签证书转发，本机环境关闭校验
+# 连接目标仍为 gh-proxy 转发服务，不影响数据来源真实性
 _CTX = ssl.create_default_context()
 _CTX.check_hostname = False
 _CTX.verify_mode = ssl.CERT_NONE
@@ -52,52 +55,114 @@ _CTX.verify_mode = ssl.CERT_NONE
 BASE = os.path.dirname(os.path.abspath(__file__))
 
 # ==========================================================
-# 语料定义：每条 = (仓库, 子目录, 输出目录名, 期望标签, 说明)
+# 语料定义
 # ==========================================================
 CORPORA = [
     {
         "repo": "K-Dense-AI/scientific-agent-skills",
-        "subdir": "skills",
+        "branch": "main",
         "out": "benign_scientific",
         "label": "benign",
-        "desc": "真实科研类技能（科学计算/生物信息/临床研究工作流），"
-                "无恶意载荷，用作误报率测试集",
-        "limit": None,          # 全部下载
+        "desc": "真实科研类技能，无恶意载荷，用作误报率测试集",
     },
     {
         "repo": "snyk-labs/toxicskills-goof",
-        "subdir": None,
+        "branch": "HEAD",
         "out": "toxic_skills",
         "label": "malicious",
         "desc": "Snyk ToxicSkills 论文配套恶意样本库，含真实恶意正文",
-        "limit": None,
     },
 ]
 
+# ==========================================================
+# 取文件清单
+# ===========================================���==============
+def list_via_api(repo: str, branch: str = "HEAD") -> list:
+    """通道 A：GitHub API（未认证时限额 60/小时，容易 403）"""
+    url = f"https://api.github.com/repos/{repo}/git/trees/{branch}?recursive=1"
+    req = urllib.request.Request(url, headers={"User-Agent": "skillguard-research"})
+    d = json.load(urllib.request.urlopen(req, timeout=60, context=_CTX))
+    if "tree" not in d:
+        raise RuntimeError(f"无法读取仓库树：{str(d)[:120]}")
+    return [t["path"] for t in d["tree"] if t["path"].endswith("SKILL.md")]
 
-def _get(url: str, retries: int = 3) -> dict:
-    """带重试的 GitHub API 请求"""
-    last = None
-    for i in range(retries):
+
+def list_via_web(repo: str, branch: str = "main") -> list:
+    """
+    通道 B：抓 GitHub 网页目录页（经 gh-proxy 转发，不受 API 限额）
+    适用于「所有 SKILL.md 都在同一个父目录下」的情况——
+    网页会平铺列出该目录下的全部子目录名，拼成 <dir>/SKILL.md 即可。
+    """
+    import re as _re
+    out = []
+    page_url = f"https://github.com/{repo}/tree/{branch}/skills"
+    for proxy in (f"https://gh-proxy.com/{page_url}",
+                  page_url):
         try:
-            req = urllib.request.Request(
-                url, headers={"User-Agent": "skillguard-research"})
-            return json.load(urllib.request.urlopen(req, timeout=60, context=_CTX))
-        except Exception as e:
-            last = e
-            time.sleep(1.2 * (i + 1))
-    raise last
+            req = urllib.request.Request(proxy, headers={"User-Agent": "Mozilla/5.0"})
+            html = urllib.request.urlopen(req, timeout=45, context=_CTX).read().decode(
+                "utf-8", "replace")
+        except Exception:
+            continue
+        # 目录页里每个子目录对应 /tree/<branch>/skills/<name>
+        names = set(_re.findall(
+            r"/tree/" + _re.escape(branch) + r"/skills/([A-Za-z0-9_.\-]+)", html))
+        if names:
+            out = [f"skills/{n}/SKILL.md" for n in sorted(names)]
+            return out
+    return out
 
 
-def _slug(path: str, repo: str) -> str:
-    """把仓库内路径转成合法文件名（Windows 不允许以点开头）"""
-    s = path.replace(repo.split("/")[0], "").replace(repo.split("/")[1], "")
-    s = s.replace("/", "__").replace(".md", "")
-    return s.lstrip(".")
+def list_skill_paths(repo: str, branch: str = "HEAD") -> list:
+    """先试 API，失败回退网页目录页"""
+    for fn, b in ((list_via_api, branch), (list_via_web, "main")):
+        try:
+            paths = fn(repo, b)
+            if paths:
+                return paths
+        except Exception:
+            continue
+    raise RuntimeError("所有通道均无法获取文件清单")
+
+
+# ==========================================================
+# 取单个文件正文（多通道依次尝试）
+# ==========================================================
+def fetch_content(repo: str, branch: str, path: str, timeout: int = 30):
+    """
+    按优先级尝试多个通道下载一个文件。
+    返回正文字符串；全部失败返回 None。
+    """
+    # 通道 1：gh-proxy 转发 raw（实测最快最稳）
+    raw_url = (f"https://raw.githubusercontent.com/{repo}/{branch}/{path}")
+    proxies = [
+        f"https://gh-proxy.com/{raw_url}",
+        f"https://ghproxy.net/{raw_url}",
+    ]
+    for p in proxies:
+        try:
+            req = urllib.request.Request(p, headers={"User-Agent": "Mozilla/5.0"})
+            data = urllib.request.urlopen(req, timeout=timeout, context=_CTX).read()
+            if data:
+                return data.decode("utf-8", "replace")
+        except (urllib.error.URLError, OSError, TimeoutError):
+            continue
+
+    # 通道 2：GitHub API（未认证时限额，用完会 403）
+    try:
+        import base64
+        import urllib.parse as _up
+        u = ("https://api.github.com/repos/" + repo + "/contents/"
+             + _up.quote(path) + (f"?ref={branch}" if branch != "HEAD" else ""))
+        req = urllib.request.Request(u, headers={"User-Agent": "skillguard-research"})
+        d = json.load(urllib.request.urlopen(req, timeout=timeout, context=_CTX))
+        return base64.b64decode(d["content"]).decode("utf-8", "replace")
+    except Exception:
+        return None
 
 
 def fetch_corpus(c: dict) -> dict:
-    repo = c["repo"]
+    repo, branch = c["repo"], c["branch"]
     out_dir = os.path.join(BASE, "real_corpus", c["out"])
     os.makedirs(out_dir, exist_ok=True)
 
@@ -107,72 +172,90 @@ def fetch_corpus(c: dict) -> dict:
     print(f"说明：{c['desc']}")
     print("=" * 72)
 
-    tree = _get(f"https://api.github.com/repos/{repo}/git/trees/HEAD?recursive=1")
-    if "tree" not in tree:
-        print(f"  [失败] 无法读取仓库树：{str(tree)[:150]}")
-        return {"repo": repo, "ok": 0, "fail": 0, "out": c["out"]}
+    try:
+        paths = list_skill_paths(repo, branch)
+    except Exception as e:
+        print(f"  [失败] 读取文件清单出错：{type(e).__name__} {e}")
+        return {"out": c["out"], "ok": 0, "fail": 0}
 
-    all_paths = [t["path"] for t in tree["tree"] if t["path"].endswith("SKILL.md")]
-    if c["subdir"]:
-        all_paths = [p for p in all_paths if p.startswith(c["subdir"] + "/")]
-    if c["limit"]:
-        all_paths = all_paths[: c["limit"]]
+    # 跳过已存在的（支持断点续传）
+    existing = {fn for fn in os.listdir(out_dir) if fn.endswith(".md")}
+    print(f"  共{len(paths)} 个 SKILL.md，已存在 {len(existing)} 个，需下载 {len(paths) - len(existing)} 个")
 
-    print(f"  找到 {len(all_paths)} 个 SKILL.md")
-    ok = fail = 0
+    ok = fail = skip = 0
     manifest = []
+    t0 = time.time()
 
-    for p in all_paths:
-        url = ("https://api.github.com/repos/" + repo
-               + "/contents/" + urllib.parse.quote(p))
-        try:
-            d = _get(url)
-            content = base64.b64decode(d["content"]).decode("utf-8", "replace")
-            fn = _slug(p, repo) + ".md"
-            # 头部写入 front matter 之外的元信息（放在独立 manifest 里，不污染正文）
+    for i, p in enumerate(paths, 1):
+        owner = repo.split("/")[0]
+        slug = p.replace(owner, "", 1).replace("/", "__")
+        slug = slug.replace(".md", "").lstrip(".")
+        fn = slug + ".md"
+
+        # 溯源信息
+        item = {
+            "file": fn, "source_path": p,
+            "url": f"https://github.com/{repo}/blob/{branch}/{p}",
+            "label": c["label"], "corpus": c["out"],
+        }
+
+        if fn in existing:
+            size = os.path.getsize(os.path.join(out_dir, fn))
+            item["chars"] = size
+            manifest.append(item)
+            skip += 1
+            continue
+
+        text = fetch_content(repo, branch, p)
+        if text:
             with open(os.path.join(out_dir, fn), "w", encoding="utf-8") as f:
-                f.write(content)
-            manifest.append({
-                "file": fn, "source_path": p,
-                "url": f"https://github.com/{repo}/blob/HEAD/{p}",
-                "label": c["label"], "corpus": c["out"], "chars": len(content),
-            })
+                f.write(text)
+            item["chars"] = len(text)
             ok += 1
-        except Exception:
+        else:
             fail += 1
-        time.sleep(0.25)   # 避免触发限流
+            continue
 
-    # 写 manifest，便于溯源与复现
-    mf = os.path.join(out_dir, "_manifest.json")
-    with open(mf, "w", encoding="utf-8") as f:
-        json.dump({"repo": repo, "label": c["label"],
-                   "desc": c["desc"], "count": ok, "items": manifest},
+        manifest.append(item)
+
+        # 进度提示
+        if i % 20 == 0 or i == len(paths):
+            el = time.time() - t0
+            rate = ok / el if el > 0 else 0
+            eta = (len(paths) - i) / rate if rate > 0 else 0
+            print(f"    {i}/{len(paths)}  成功 {ok}  失败 {fail}"
+                  f"  {rate:.1f} 文件/秒  预计剩余 {eta:.0f}s")
+
+    with open(os.path.join(out_dir, "_manifest.json"), "w", encoding="utf-8") as f:
+        json.dump({"repo": repo, "branch": branch, "label": c["label"],
+                   "desc": c["desc"], "count": len(manifest), "items": manifest},
                   f, ensure_ascii=False, indent=2)
 
-    print(f"  下载成功 {ok}个，失败 {fail} 个")
-    print(f"  清单：{os.path.relpath(mf, os.path.dirname(os.path.dirname(BASE)))}")
-    return {"repo": repo, "ok": ok, "fail": fail, "out": c["out"],
-            "label": c["label"]}
+    print(f"  完成：新下载 {ok}，跳过 {skip}，失败 {fail}，共 {len(manifest)}")
+    return {"out": c["out"], "ok": ok, "skip": skip, "fail": fail,
+            "total": len(manifest)}
 
 
 def main():
     print("下载真实 Skill 语料（仅静态分析，不执行任何样本内容）")
+    print(f"工作目录：{os.path.join(BASE, 'real_corpus')}")
     results = []
     for c in CORPORA:
         try:
             results.append(fetch_corpus(c))
+        except KeyboardInterrupt:
+            print("\n  已中断（已下载的文件保留，可再次运行续传）")
+            break
         except Exception as e:
             print(f"  [异常] {c['out']}: {type(e).__name__} {e}")
-            results.append({"repo": c["repo"], "ok": 0, "fail": 0, "out": c["out"]})
+            results.append({"out": c["out"], "ok": 0, "fail": 0, "total": 0})
 
     print(f"\n{'=' * 72}")
     print("汇总")
     print("=" * 72)
-    total_ok = 0
     for r in results:
-        print(f"  {r['out']:22s} 成功 {r['ok']:4d}  失败 {r['fail']:3d}  ({r['repo']})")
-        total_ok += r["ok"]
-    print(f"  合计下载 {total_ok} 个含正文的真实样本")
+        print(f"  {r['out']:22s} 共 {r.get('total', 0):4d} 个"
+              f"（新下载 {r.get('ok', 0)}，失败 {r.get('fail', 0)}）")
     print()
     print("下一步：运行 samples/run_corpus_eval.py 计算真实检出率与误报率")
     print("=" * 72)
