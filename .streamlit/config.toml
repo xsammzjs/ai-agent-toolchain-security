@@ -1,20 +1,22 @@
 # ==========================================
-# 界面主题（v4.1：雾白 · 克制高级 · 浅色）
+# 界面主题（v4.2：雾白 · 克制高级 · 浅色）
 # 与 main.py 内嵌 CSS 的 :root 变量保持一致
 # ==========================================
 [theme]
-# 主色：靛蓝（按钮、进度条、链接）
 primaryColor = "#2563eb"
-# 背景：雾白
 backgroundColor = "#f7f8fa"
-# 次级背景（侧边栏）：近白
 secondaryBackgroundColor = "#fbfcfd"
-# 文字色：近黑
 textColor = "#1a1d21"
 font = "sans serif"
 
 [server]
+# 云端部署注意：
+# Streamlit Community Cloud 托管时会自行管理 CORS/XSRF，
+# 手动关闭反而会导致浏览器拒绝加载页面。
+# 本地开发时若需跨源调试，用命令行参数临时覆盖：
+#   streamlit run main.py --server.enableCORS=false
 fileWatcherType = "auto"
-# 部署云端公网 Demo 时需要关闭跨源保护才能被外部访问
-enableCORS = false
-enableXsrfProtection = false
+maxUploadSize = 200          # 允许上传较大的技能包压缩文件
+
+# 云端部署时使用系统临时目录，避免写入只读文件系统
+# （本地开发不受影响）
