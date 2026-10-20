@@ -48,13 +48,19 @@ HARD_REQUIREMENTS: List[Requirement] = [
                       "「选手下载并使用华为云码道 CodeArts 代码智能体」",
         why="官方在开发工具栏标注「必选」，并在任务要求中单独列出。"
             "这是赛题1 唯一明确的「必选工具」，不用即不符合资格。",
-        status="未开始",
+        status="部分完成",
         acceptance="① 用 CodeArts 完成过真实的代码审计工作（不只是安装）"
                    "② 保留 CodeArts 使用记录/截图，能说明它在本项目中做了什么"
                    "③ 提交材料中明确展示 CodeArts 的使用价值"
                    "（赛题原文：「应体现华为云产品在需求理解、代码生成、"
                    "项目构建、问题修复、部署上线等环节的使用价值」）",
-        evidence="待补：CodeArts 审计记录截图 + 使用说明文档章节",
+        evidence="已具备：① 三轮真实审计记录（第一轮 11 处误报建议、第二轮"
+                 "发现 2 处 P0 漏报、第三轮复核全部修复并确认无回退），"
+                 "见 docs/CodeArts审计实践.md 六章；"
+                 "② 双用例验证脚本 samples/verify_codearts_suggestions.py，"
+                 "11 条建议采纳 10 / 否决 1，全部实测通过；"
+                 "③ 使用价值已写入模板1「作品介绍②」与 docs/作品报告.md。"
+                 "⚠️ 待补：CodeArts 客户端使用截图（对话历史/审计记录留档）",
     ),
     Requirement(
         no="②",
@@ -92,12 +98,21 @@ HARD_REQUIREMENTS: List[Requirement] = [
                       "中国总决赛还要求：「提供可视化 Demo 页面地址」",
         why="初赛是作品评审，中国总决赛要复核代码能否复现答辩效果。"
             "Demo 页面地址是硬性提交物。",
-        status="未开始",
+        status="部分完成",
         acceptance="① 应用真实部署在华为云（ECS/容器等）"
                    "② 有公网可访问的 Demo 地址，评委能打开"
                    "③ 断网降级已验证（本地 demo_mode.py 可作为降级兜底）"
                    "④ readme 中写明部署复现步骤（总决赛会复核）",
-        evidence="待补：公网 Demo 网址 + 部署文档",
+        evidence="已有：公网 Demo 网址（Streamlit Community Cloud 免费托管）"
+                 "https://xsammzjs-ai-agent-toolchain-security-main-w3d8io.streamlit.app"
+                 "；断网降级模块 modules/demo_mode.py（4 预置场景 + 降级披露）；"
+                 "README 含完整本地复现步骤。"
+                 "待补（依赖代金券）：真实部署到华为云 ECS / 容器。"
+                 "免券替代路径：华为云「弹性云服务器 3 个月免费试用」或"
+                 "「Serverless 容器 / 函数工作流免费额度」，可先自查账号是否已开通"
+                 "免费额度（不依赖代金券）。"
+                 "另需注意：Streamlit Cloud 免费版闲置会休眠，"
+                 "提交前需访问一次唤醒（见 docs/模板1填写对照表.md 末尾提醒）",
     ),
     Requirement(
         no="⑤",
@@ -141,9 +156,16 @@ INITIAL_SUBMISSION: List[Requirement] = [
         title="作品信息收集表 Word（官方模板1）",
         official_text="「提交【模板1】作品信息收集表 Word」",
         why="唯一明确标注「必交」的文档。",
-        status="未开始",
+        status="部分完成",
         acceptance="按官方模板填写完整（学校/队名/队长姓名/手机号等字段）",
-        evidence="待补",
+        evidence="已有：docs/模板1填写对照表.md —— 逐栏给出可直接粘贴的"
+                 "作品名称、①背景价值（实测 301 字 / 限 500）、②CodeArts 使用价值"
+                 "（实测 590 字 / 限 1000，五环节齐全）、技术方案介绍"
+                 "（架构图 + 4 个模块 + 可量化指标）、作品展示"
+                 "（网址 + 仓库 + 演示路径 + 截图清单），并附提交前 10 项检查清单。"
+                 "需用户完成：填 3 处空格（指导老师姓名、另 2 名队员姓名、"
+                 "队长邮箱）、插入团队合照、粘贴内容进桌面 Word 文件。"
+                 "截止 2026-12-28",
     ),
     Requirement(
         no="初赛-2",
@@ -160,9 +182,9 @@ INITIAL_SUBMISSION: List[Requirement] = [
         acceptance="① 背景与真实问题（ClawHavoc 1184 个恶意技能、Snyk 3984 个样本"
                    "中 36.82% 含缺陷）"
                    "② 创新性解读（跨技能攻击链关联，45 个国奖一等奖中无同类实现）"
-                   "③ 数据集（已接入 Snyk 官方真实样本库，TPR 100% / FPR 0%）"
+                   "③ 数据集（107 个含正文真实样本，TPR 100% / FPR 2.0% / 特异度 98.0%）"
                    "④ 关键代码片段（置信度评级算法、攻击链路径搜索）"
-                   "⑤ 可量化指标（TPR 100%、FPR 0%、35ms、对照 Snyk mcp-scan "
+                   "⑤ 可量化指标（TPR 100%、FPR 2.0%、33ms、151 条断言、对照 Snyk mcp-scan "
                    "CRITICAL 级召回 90-100%）",
         evidence="部分已有：samples/run_real_eval.py 输出；待补：作品报告文档",
     ),

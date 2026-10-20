@@ -61,7 +61,7 @@ PyCharm → 设置 → 插件 → Marketplace → 搜索 "CodeArts Agent" → In
 
 ### 6.2.2 第一轮：误报边界审计
 
-**任务**：让 CodeArts 分析 `skill_scanner.py` 中 29 条正则规则的匹配边界，
+**任务**：让 CodeArts 分析 `skill_scanner.py` 中 30 条正则规则（另含 2 条模块级组合规则）的匹配边界，
 找出潜在误报。
 
 **CodeArts 的执行结果**：
