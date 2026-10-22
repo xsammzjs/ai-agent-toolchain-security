@@ -68,6 +68,21 @@
 
 ## 快速开始
 
+### 快速开始
+
+### 一键复现校验（推荐先跑这个）
+
+```bash
+python samples/verify_reproduction.py    # 12 项校验：语料 + 指标 + 规则 + 回归测试
+python samples/check_doc_consistency.py  # 对外材料数字一致性检查
+```
+
+`verify_reproduction.py` 会在本机跑出全部指标并与材料中的数字逐项核对，
+输出 PASS/FAIL 对照表。**这是为满足官方「组委会复现材料」要求准备的**——
+若复现结果与答辩材料不符，会被取消晋级&获奖资格。
+
+评测语料**已随仓库提供**，克隆后无需联网下载即可复现。
+
 ### 本地运行
 
 ```bash
@@ -78,13 +93,15 @@ streamlit run main.py
 ### 运行评测
 
 ```bash
-python samples/run_real_eval.py      # 恶意样本检出率
-python samples/run_corpus_eval.py    # 真实语料误报率
+python samples/run_corpus_eval.py    # 完整混淆矩阵：TPR + FPR + 特异度
+python samples/run_real_eval.py      # 恶意样本逐条明细
 python samples/run_bench_eval.py     # 威胁类型分布分析
 python tests/test_regression.py      # 151 条回归测试
 ```
 
-### 下载评测语料
+### 重新拉取最新语料（可选）
+
+仓库内已包含评测语料快照，仅在需要更新到上游最新版时执行：
 
 ```bash
 python samples/fetch_real_samples.py

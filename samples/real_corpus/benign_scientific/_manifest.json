@@ -1,0 +1,809 @@
+{
+  "repo": "K-Dense-AI/scientific-agent-skills",
+  "branch": "main",
+  "label": "benign",
+  "desc": "真实科研类技能，无恶意载荷，用作误报率测试集",
+  "count": 100,
+  "items": [
+    {
+      "file": "skills__13c-metabolic-flux__SKILL.md",
+      "source_path": "skills/13c-metabolic-flux/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/13c-metabolic-flux/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12928
+    },
+    {
+      "file": "skills__adaptyv__SKILL.md",
+      "source_path": "skills/adaptyv/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/adaptyv/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 13754
+    },
+    {
+      "file": "skills__aeon__SKILL.md",
+      "source_path": "skills/aeon/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/aeon/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15320
+    },
+    {
+      "file": "skills__alphagenome__SKILL.md",
+      "source_path": "skills/alphagenome/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/alphagenome/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 17725
+    },
+    {
+      "file": "skills__analytical-method-validation__SKILL.md",
+      "source_path": "skills/analytical-method-validation/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/analytical-method-validation/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 20215
+    },
+    {
+      "file": "skills__anndata__SKILL.md",
+      "source_path": "skills/anndata/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/anndata/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16225
+    },
+    {
+      "file": "skills__arbor__SKILL.md",
+      "source_path": "skills/arbor/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/arbor/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 17268
+    },
+    {
+      "file": "skills__arboreto__SKILL.md",
+      "source_path": "skills/arboreto/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/arboreto/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 10864
+    },
+    {
+      "file": "skills__astropy__SKILL.md",
+      "source_path": "skills/astropy/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/astropy/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 17428
+    },
+    {
+      "file": "skills__autoskill__SKILL.md",
+      "source_path": "skills/autoskill/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/autoskill/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 17179
+    },
+    {
+      "file": "skills__benchling-integration__SKILL.md",
+      "source_path": "skills/benchling-integration/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/benchling-integration/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 8726
+    },
+    {
+      "file": "skills__bgpt-paper-search__SKILL.md",
+      "source_path": "skills/bgpt-paper-search/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/bgpt-paper-search/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 8061
+    },
+    {
+      "file": "skills__bids__SKILL.md",
+      "source_path": "skills/bids/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/bids/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15062
+    },
+    {
+      "file": "skills__biopython__SKILL.md",
+      "source_path": "skills/biopython/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/biopython/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 17703
+    },
+    {
+      "file": "skills__bioservices__SKILL.md",
+      "source_path": "skills/bioservices/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/bioservices/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12193
+    },
+    {
+      "file": "skills__bulk-rnaseq__SKILL.md",
+      "source_path": "skills/bulk-rnaseq/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/bulk-rnaseq/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 17123
+    },
+    {
+      "file": "skills__cantera__SKILL.md",
+      "source_path": "skills/cantera/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/cantera/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 8765
+    },
+    {
+      "file": "skills__cellprofiler__SKILL.md",
+      "source_path": "skills/cellprofiler/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/cellprofiler/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 7821
+    },
+    {
+      "file": "skills__cellxgene-census__SKILL.md",
+      "source_path": "skills/cellxgene-census/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/cellxgene-census/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 13982
+    },
+    {
+      "file": "skills__cirq__SKILL.md",
+      "source_path": "skills/cirq/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/cirq/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 14252
+    },
+    {
+      "file": "skills__citation-management__SKILL.md",
+      "source_path": "skills/citation-management/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/citation-management/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16989
+    },
+    {
+      "file": "skills__clinical-decision-support__SKILL.md",
+      "source_path": "skills/clinical-decision-support/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/clinical-decision-support/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 14440
+    },
+    {
+      "file": "skills__clinical-reports__SKILL.md",
+      "source_path": "skills/clinical-reports/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/clinical-reports/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16152
+    },
+    {
+      "file": "skills__cobrapy__SKILL.md",
+      "source_path": "skills/cobrapy/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/cobrapy/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11931
+    },
+    {
+      "file": "skills__consciousness-council__SKILL.md",
+      "source_path": "skills/consciousness-council/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/consciousness-council/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 14108
+    },
+    {
+      "file": "skills__dask__SKILL.md",
+      "source_path": "skills/dask/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/dask/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 17976
+    },
+    {
+      "file": "skills__database-lookup__SKILL.md",
+      "source_path": "skills/database-lookup/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/database-lookup/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 27981
+    },
+    {
+      "file": "skills__datalad__SKILL.md",
+      "source_path": "skills/datalad/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/datalad/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 17760
+    },
+    {
+      "file": "skills__datamol__SKILL.md",
+      "source_path": "skills/datamol/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/datamol/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11174
+    },
+    {
+      "file": "skills__deepchem__SKILL.md",
+      "source_path": "skills/deepchem/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/deepchem/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 9128
+    },
+    {
+      "file": "skills__deepspot-m__SKILL.md",
+      "source_path": "skills/deepspot-m/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/deepspot-m/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 10158
+    },
+    {
+      "file": "skills__deeptools__SKILL.md",
+      "source_path": "skills/deeptools/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/deeptools/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 18737
+    },
+    {
+      "file": "skills__depmap__SKILL.md",
+      "source_path": "skills/depmap/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/depmap/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 14120
+    },
+    {
+      "file": "skills__dhdna-profiler__SKILL.md",
+      "source_path": "skills/dhdna-profiler/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/dhdna-profiler/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11510
+    },
+    {
+      "file": "skills__diffdock__SKILL.md",
+      "source_path": "skills/diffdock/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/diffdock/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12061
+    },
+    {
+      "file": "skills__dnanexus-integration__SKILL.md",
+      "source_path": "skills/dnanexus-integration/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/dnanexus-integration/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12676
+    },
+    {
+      "file": "skills__esm__SKILL.md",
+      "source_path": "skills/esm/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/esm/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 10954
+    },
+    {
+      "file": "skills__etetoolkit__SKILL.md",
+      "source_path": "skills/etetoolkit/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/etetoolkit/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 13650
+    },
+    {
+      "file": "skills__exa-search__SKILL.md",
+      "source_path": "skills/exa-search/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/exa-search/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 6500
+    },
+    {
+      "file": "skills__experimental-design__SKILL.md",
+      "source_path": "skills/experimental-design/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/experimental-design/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16614
+    },
+    {
+      "file": "skills__exploratory-data-analysis__SKILL.md",
+      "source_path": "skills/exploratory-data-analysis/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/exploratory-data-analysis/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15033
+    },
+    {
+      "file": "skills__fictiv__SKILL.md",
+      "source_path": "skills/fictiv/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/fictiv/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 14418
+    },
+    {
+      "file": "skills__flowio__SKILL.md",
+      "source_path": "skills/flowio/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/flowio/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 13880
+    },
+    {
+      "file": "skills__flowkit__SKILL.md",
+      "source_path": "skills/flowkit/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/flowkit/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 8929
+    },
+    {
+      "file": "skills__fluidsim__SKILL.md",
+      "source_path": "skills/fluidsim/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/fluidsim/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 14323
+    },
+    {
+      "file": "skills__folklore-variant-evidence__SKILL.md",
+      "source_path": "skills/folklore-variant-evidence/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/folklore-variant-evidence/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 13809
+    },
+    {
+      "file": "skills__generate-image__SKILL.md",
+      "source_path": "skills/generate-image/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/generate-image/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 18204
+    },
+    {
+      "file": "skills__geniml__SKILL.md",
+      "source_path": "skills/geniml/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/geniml/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16511
+    },
+    {
+      "file": "skills__genomic-coordinates__SKILL.md",
+      "source_path": "skills/genomic-coordinates/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/genomic-coordinates/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 13007
+    },
+    {
+      "file": "skills__genomic-intelligence__SKILL.md",
+      "source_path": "skills/genomic-intelligence/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/genomic-intelligence/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 25242
+    },
+    {
+      "file": "skills__geomaster__SKILL.md",
+      "source_path": "skills/geomaster/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/geomaster/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11520
+    },
+    {
+      "file": "skills__geopandas__SKILL.md",
+      "source_path": "skills/geopandas/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/geopandas/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15674
+    },
+    {
+      "file": "skills__get-available-resources__SKILL.md",
+      "source_path": "skills/get-available-resources/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/get-available-resources/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11993
+    },
+    {
+      "file": "skills__gget__SKILL.md",
+      "source_path": "skills/gget/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/gget/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11438
+    },
+    {
+      "file": "skills__ginkgo-cloud-lab__SKILL.md",
+      "source_path": "skills/ginkgo-cloud-lab/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/ginkgo-cloud-lab/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11411
+    },
+    {
+      "file": "skills__glycoengineering__SKILL.md",
+      "source_path": "skills/glycoengineering/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/glycoengineering/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12128
+    },
+    {
+      "file": "skills__gtars__SKILL.md",
+      "source_path": "skills/gtars/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/gtars/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15396
+    },
+    {
+      "file": "skills__histolab__SKILL.md",
+      "source_path": "skills/histolab/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/histolab/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 8953
+    },
+    {
+      "file": "skills__hugging-science__SKILL.md",
+      "source_path": "skills/hugging-science/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/hugging-science/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11740
+    },
+    {
+      "file": "skills__hypogenic__SKILL.md",
+      "source_path": "skills/hypogenic/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/hypogenic/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 14322
+    },
+    {
+      "file": "skills__hypothesis-generation__SKILL.md",
+      "source_path": "skills/hypothesis-generation/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/hypothesis-generation/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16556
+    },
+    {
+      "file": "skills__imaging-data-commons__SKILL.md",
+      "source_path": "skills/imaging-data-commons/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/imaging-data-commons/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 31332
+    },
+    {
+      "file": "skills__infographics__SKILL.md",
+      "source_path": "skills/infographics/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/infographics/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15310
+    },
+    {
+      "file": "skills__iso-standards-readiness__SKILL.md",
+      "source_path": "skills/iso-standards-readiness/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/iso-standards-readiness/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 18253
+    },
+    {
+      "file": "skills__lab-hardware-cad__SKILL.md",
+      "source_path": "skills/lab-hardware-cad/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/lab-hardware-cad/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 22782
+    },
+    {
+      "file": "skills__labarchive-integration__SKILL.md",
+      "source_path": "skills/labarchive-integration/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/labarchive-integration/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11723
+    },
+    {
+      "file": "skills__lamindb__SKILL.md",
+      "source_path": "skills/lamindb/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/lamindb/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 8202
+    },
+    {
+      "file": "skills__latchbio-integration__SKILL.md",
+      "source_path": "skills/latchbio-integration/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/latchbio-integration/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 10006
+    },
+    {
+      "file": "skills__latex-posters__SKILL.md",
+      "source_path": "skills/latex-posters/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/latex-posters/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 10618
+    },
+    {
+      "file": "skills__liteparse__SKILL.md",
+      "source_path": "skills/liteparse/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/liteparse/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12360
+    },
+    {
+      "file": "skills__literature-review__SKILL.md",
+      "source_path": "skills/literature-review/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/literature-review/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12849
+    },
+    {
+      "file": "skills__mageck__SKILL.md",
+      "source_path": "skills/mageck/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/mageck/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 8610
+    },
+    {
+      "file": "skills__marine-carbonate-chemistry__SKILL.md",
+      "source_path": "skills/marine-carbonate-chemistry/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/marine-carbonate-chemistry/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 9548
+    },
+    {
+      "file": "skills__markdown-mermaid-writing__SKILL.md",
+      "source_path": "skills/markdown-mermaid-writing/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/markdown-mermaid-writing/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16615
+    },
+    {
+      "file": "skills__market-research-reports__SKILL.md",
+      "source_path": "skills/market-research-reports/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/market-research-reports/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15333
+    },
+    {
+      "file": "skills__markitdown__SKILL.md",
+      "source_path": "skills/markitdown/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/markitdown/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12200
+    },
+    {
+      "file": "skills__matchms__SKILL.md",
+      "source_path": "skills/matchms/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/matchms/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12781
+    },
+    {
+      "file": "skills__matlab__SKILL.md",
+      "source_path": "skills/matlab/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/matlab/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16551
+    },
+    {
+      "file": "skills__matplotlib__SKILL.md",
+      "source_path": "skills/matplotlib/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/matplotlib/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16615
+    },
+    {
+      "file": "skills__medchem__SKILL.md",
+      "source_path": "skills/medchem/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/medchem/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15698
+    },
+    {
+      "file": "skills__modal__SKILL.md",
+      "source_path": "skills/modal/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/modal/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 17961
+    },
+    {
+      "file": "skills__molecular-dynamics__SKILL.md",
+      "source_path": "skills/molecular-dynamics/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/molecular-dynamics/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 18961
+    },
+    {
+      "file": "skills__molfeat__SKILL.md",
+      "source_path": "skills/molfeat/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/molfeat/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 9481
+    },
+    {
+      "file": "skills__ncats-arax__SKILL.md",
+      "source_path": "skills/ncats-arax/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/ncats-arax/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 9136
+    },
+    {
+      "file": "skills__networkx__SKILL.md",
+      "source_path": "skills/networkx/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/networkx/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 16981
+    },
+    {
+      "file": "skills__neurokit2__SKILL.md",
+      "source_path": "skills/neurokit2/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/neurokit2/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15519
+    },
+    {
+      "file": "skills__neuropixels-analysis__SKILL.md",
+      "source_path": "skills/neuropixels-analysis/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/neuropixels-analysis/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 20012
+    },
+    {
+      "file": "skills__nextflow__SKILL.md",
+      "source_path": "skills/nextflow/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/nextflow/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 14905
+    },
+    {
+      "file": "skills__nmrglue__SKILL.md",
+      "source_path": "skills/nmrglue/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/nmrglue/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 8448
+    },
+    {
+      "file": "skills__nwb-conversion__SKILL.md",
+      "source_path": "skills/nwb-conversion/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/nwb-conversion/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 7581
+    },
+    {
+      "file": "skills__omero-integration__SKILL.md",
+      "source_path": "skills/omero-integration/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/omero-integration/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11130
+    },
+    {
+      "file": "skills__onekgpd__SKILL.md",
+      "source_path": "skills/onekgpd/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/onekgpd/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 22492
+    },
+    {
+      "file": "skills__ontology-term-resolution__SKILL.md",
+      "source_path": "skills/ontology-term-resolution/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/ontology-term-resolution/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 14565
+    },
+    {
+      "file": "skills__open-notebook__SKILL.md",
+      "source_path": "skills/open-notebook/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/open-notebook/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 11351
+    },
+    {
+      "file": "skills__openpiv__SKILL.md",
+      "source_path": "skills/openpiv/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/openpiv/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 19019
+    },
+    {
+      "file": "skills__opentrons-integration__SKILL.md",
+      "source_path": "skills/opentrons-integration/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/opentrons-integration/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 15200
+    },
+    {
+      "file": "skills__optimize-for-gpu__SKILL.md",
+      "source_path": "skills/optimize-for-gpu/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/optimize-for-gpu/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 13774
+    },
+    {
+      "file": "skills__pacsomatic__SKILL.md",
+      "source_path": "skills/pacsomatic/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/pacsomatic/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 6477
+    },
+    {
+      "file": "skills__paper-lookup__SKILL.md",
+      "source_path": "skills/paper-lookup/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/paper-lookup/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 26048
+    },
+    {
+      "file": "skills__paperclip__SKILL.md",
+      "source_path": "skills/paperclip/SKILL.md",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/blob/main/skills/paperclip/SKILL.md",
+      "label": "benign",
+      "corpus": "benign_scientific",
+      "chars": 12962
+    }
+  ]
+}

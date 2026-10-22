@@ -201,12 +201,16 @@ FINAL_SUBMISSION: List[Requirement] = [
         official_text="「组委会将根据队伍提交材料进行复现，若发现验证效果与"
                       "答辩材料呈现结果不符，则取消晋级&获奖资格」",
         why="🔴 最容易翻车的条款。现场演示必须与PPT 数据完全一致。",
-        status="部分完成",
+        status="已完成",
         acceptance="① 离线演示模式可完整跑通（demo_mode.py 已实现）"
-                   "② 所有 PPT 数字均来自 samples/run_real_eval.py 实测输出"
+                   "② 所有 PPT 数字均来自 samples/run_corpus_eval.py 实测输出"
                    "③ 云端部署版本与本地版本输出一致"
                    "④ readme 含完整复现步骤",
-        evidence="部分已有：modules/demo_mode.py（4 预置场景 + 降级披露）",
+        evidence="✅ samples/verify_reproduction.py（12 项校验全绿，2026-10-22 实测）"
+                 "✅ 评测语料已随仓库提交（103 个文件，含 _manifest.json 溯源）"
+                 "✅ 干净副本实测：git archive 导出后 12 项校验仍全绿"
+                 "✅ modules/demo_mode.py（4 预置场景 + 降级披露）"
+                 "✅ samples/check_doc_consistency.py（对外材料数字一致性检查）",
     ),
     Requirement(
         no="总决赛-2",

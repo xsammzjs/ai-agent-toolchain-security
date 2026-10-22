@@ -1,0 +1,10 @@
+{
+  "_comment": "逐文件 ground truth。来源：Snyk ToxicSkills 公开恶意样本库 https://github.com/snyk-labs/toxicskills-goof 。malicious=含真实恶意载荷；benign=被误当作可疑但实为正常技能（防御工具自身会提到凭据路径，git 命令速查会提到 shell 命令）。本目录当前实际存放 7 个文件，标注与文件严格一一对应。",
+  "agents__skills__vercel__SKILL.md": "malicious",
+  "demos__skill-with-commands__SKILL.md": "benign",
+  "gemini__skills__clawhub__SKILL.md": "malicious",
+  "gemini__skills__skill-defender-1.0.0__SKILL.md": "benign",
+  "gemini__skills__snyk-skill__SKILL.md": "malicious",
+  "gemini__skills__testing-guidelines__SKILL.md": "malicious",
+  "gemini__skills__vercel__SKILL.md": "malicious"
+}

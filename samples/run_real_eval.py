@@ -30,28 +30,59 @@ import os
 import sys
 import time
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+if __name__ == "__main__":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules import skill_scanner as ss
 
-# ==========================================
-# 样本标注（来源：样本库自身用途声明）
-# ==========================================
-LABELS = {
-    "agents__skills__google__SKILL.md":("malicious", "伪装 Google 技能的恶意样本"),
-    "agents__skills__vercel__SKILL.md":("malicious", "伪装 Vercel 部署，实为外带主机信息"),
-    "gemini__skills__clawhub__SKILL.md":          ("malicious", "ClawHub 恶意技能"),
-    "gemini__skills__snyk-skill__SKILL.md":       ("malicious", "含管道执行下载内容"),
-    "gemini__skills__testing-guidelines__SKILL.md": ("malicious", "ASCII Smuggling 隐藏 Unicode 标签"),
-    "gemini__skills__vercel__SKILL.md":           ("malicious", "伪装 Vercel 部署，实为外带主机信息"),
-    "demos__skill-with-commands__SKILL.md":       ("benign",    "git 命令速查，正常技能"),
-    "gemini__skills__skill-defender-1.0.0__SKILL.md": ("benign",  "防御工具本身，提及凭据路径属正常"),
-}
-
 SAMPLE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                           "real_toxicskills")
+
+# ==========================================
+# 样本标注（ground truth）
+# ==========================================
+# 2026-10-22 改为**从 _labels.json 读取**，与 run_corpus_eval.py 共用同一份标注。
+# 原因：此前本文件内嵌一份 LABELS，run_corpus_eval.py 另有一份，
+# 两处可能不同步（实际就出现过：此处含一个已删除文件的死条目）。
+# 单一数据源杜绝口径分裂。
+#
+# 标注语义来自样本库自身用途声明：
+#   malicious = 含真实恶意载荷
+#   benign    = 正常技能（防御工具自身提及凭据路径、git 命令速查提及 shell 命令）
+_DESCRIPTIONS = {
+    "agents__skills__vercel__SKILL.md": "伪装 Vercel 部署，实为外带主机信息",
+    "gemini__skills__clawhub__SKILL.md": "ClawHub 恶意技能",
+    "gemini__skills__snyk-skill__SKILL.md": "含管道执行下载内容",
+    "gemini__skills__testing-guidelines__SKILL.md": "ASCII Smuggling 隐藏 Unicode 标签",
+    "gemini__skills__vercel__SKILL.md": "伪装 Vercel 部署，实为外带主机信息",
+    "demos__skill-with-commands__SKILL.md": "git 命令速查，正常技能",
+    "gemini__skills__skill-defender-1.0.0__SKILL.md": "防御工具本身，提及凭据路径属正常",
+}
+
+
+def _load_labels():
+    """从 _labels.json 读取逐文件 ground truth；缺失时回退到内置描述表。"""
+    lf = os.path.join(SAMPLE_DIR, "_labels.json")
+    raw = {}
+    if os.path.isfile(lf):
+        try:
+            import json
+            raw = {k: v for k, v in json.load(open(lf, encoding="utf-8")).items()
+                   if not k.startswith("_")}
+        except (OSError, ValueError):
+            raw = {}
+    if not raw:
+        # 回退：只有 _DESCRIPTIONS 里有的才算已标注
+        raw = {k: ("malicious" if "vercel" in k or "clawhub" in k or "snyk-skill" in k
+                   or "testing-guidelines" in k else "benign")
+               for k in _DESCRIPTIONS}
+    return {k: (v, _DESCRIPTIONS.get(k, "未标注"))
+            for k, v in raw.items()}
+
+
+LABELS = _load_labels()
 
 SEV_ICON = {"严重": "🔴", "高危": "🟠", "中危": "🟡", "低危": "🟢", "安全": "⚪"}
 

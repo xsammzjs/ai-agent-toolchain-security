@@ -33,8 +33,17 @@ run_compare_log.txt
 # ===== 存储抽象层运行时数据 =====
 data_store/
 
-# ===== 真实语料（体积大，需用 fetch_real_samples.py 重新下载）=====
-samples/real_corpus/
+# ===== 真实语料 =====
+# 2026-10-22 变更：语料改为**纳入仓库**。
+# 原因：官方要求「组委会将根据队伍提交材料进行复现，若发现验证效果与
+# 答辩材料呈现结果不符，则取消晋级&获奖资格」。
+# 语料不入库 → 评委 clone 后跑 run_corpus_eval.py 得到 0/2，
+# 与材料里写的 FPR 2.0% 不符 → 撞上取消资格条款。
+# 体积：100 个良性样本约 1.4MB，可接受。
+# 合规：均为公开仓库的第三方样本，_manifest.json 记录每个文件的来源 URL，
+#       samples/real_toxicskills/_labels.json 记录逐文件 ground truth。
+# 如需重新拉取最新版本：python samples/fetch_real_samples.py
+# samples/real_corpus/
 
 # ===== 大体积运行时缓存（绝对不能推到 GitHub）=====
 trivy_cache/
