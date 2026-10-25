@@ -587,8 +587,9 @@ if "scan_result_pending" not in st.session_state:
     st.session_state.scan_result_pending = None
 if "scan_error" not in st.session_state:
     st.session_state.scan_error = None
-# 说明：AI 辅助研判功能已整体移除，系统不再调用任何大模型。
-# 全部结论由确定性规则 + OSV/NVD/GitHub/EPSS 权威数据得出。
+# 说明：AI 研判为**可选**能力，未配置 MaaS 时自动降级为本地模板并明确显示
+# 「未调用大模型」。检测结论全部由确定性规则 + OSV/NVD/GitHub/EPSS 权威数据得出，
+# 代码级约束见 modules/adjudicator.py 的 assert_ai_not_judging()。
 
 # ==========================================
 # 主页面
@@ -596,10 +597,10 @@ if "scan_error" not in st.session_state:
 st.markdown("""
 <div id="top" class="hero-banner">
     <div class="hero-title">AI Agent 工具链安全检测</div>
-    <div class="hero-sub">29 条检测规则 · <b>跨技能攻击链关联</b> · 权威置信度评级 · 证据溯源</div>
+    <div class="hero-sub">32 条检测规则 · <b>跨技能攻击链关联</b> · 权威置信度评级 · 证据溯源</div>
     <div class="hero-badges">
         <span class="hero-chip">OWASP Agentic Skills Top10</span>
-        <span class="hero-chip">真实样本 TPR 100% / FPR 0%</span>
+        <span class="hero-chip">真实样本 TPR 100% / FPR 2.0%</span>
         <span class="hero-chip">纯离线 · 33ms</span>
     </div>
 </div>

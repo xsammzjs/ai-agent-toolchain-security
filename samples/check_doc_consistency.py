@@ -87,6 +87,17 @@ BANNED = [
 ]
 
 
+UI_FILES = ["main.py"]
+
+# UI 文案专用的禁止表述（对外可见，评委在浏览器里能直接看到）
+UI_BANNED = [
+    (r"29\s*条检测规则|29\s*条规则", "UI 写「29 条检测规则」（正确值 32 条）"),
+    (r"FPR\s*0%", "UI 写「FPR 0%」（正确值 2.0%）"),
+    (r"AI\s*辅助研判功能已整体移除|不再调用任何大模型",
+     "UI 注释说「不再调用任何大模型」——与 adjudicator.py 矛盾"),
+]
+
+
 def is_whitelisted(rel, line_text, whitelist):
     """白名单命中判断：该行是否属于「故意提及旧数字」的场景。"""
     for wl_file, wl_kw in whitelist:
@@ -157,8 +168,28 @@ def main():
             note = f"（{skipped} 处为故意提及，已豁免）" if skipped else ""
             print(f"  [OK]   无「{pat}」{note}")
 
-    # ---------- ③ 实测值与材料对照 ----------
-    print("\n③ 代码实测值")
+    # ---------- ③ UI 文案一致性（main.py 浏览器里直接可见） ----------
+    print("\n③ UI 文案（main.py，对外可见）")
+    print("-" * 76)
+    ui_bad = 0
+    for rel in UI_FILES:
+        s = read_doc(rel)
+        if s is None:
+            print(f"  [SKIP] {rel} 未找到")
+            continue
+        for pat, why in UI_BANNED:
+            for m in re.finditer(pat, s):
+                lines = s.splitlines()
+                line_no = s[:m.start()].count("\n")
+                line_text = lines[line_no] if line_no < len(lines) else ""
+                print(f"  [WARN] {why}")
+                print(f"         {rel}:{line_no + 1}  {line_text.strip()[:60]}")
+                ui_bad += 1
+    if ui_bad == 0:
+        print("  [OK]   UI 文案无过时表述")
+
+    # ---------- ④ 实测值与材料对照 ----------
+    print("\n④ 代码实测值")
     print("-" * 76)
     print(f"  RULE_TABLE 条数：{len(ss.RULE_TABLE)}（对外口径 32）")
     cats = Counter(r[0] for r in ss.RULE_TABLE)
@@ -167,7 +198,7 @@ def main():
 
     # ---------- 汇总 ----------
     print("\n" + "=" * 76)
-    if miss_count or bad_count:
+    if miss_count or bad_count or ui_bad:
         print(f"发现 {miss_count} 项缺失、{bad_count} 处过时表述")
         print("=" * 76)
         return 1
