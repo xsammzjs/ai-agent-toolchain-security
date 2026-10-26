@@ -59,8 +59,33 @@ START_PY = ROOT / "start.py"
 # （我和主理人各跑一份），固定端口 8765 会互相抢端口，
 # 一方的 kill_port_listeners 还会把另一方的服务杀掉，
 # 结果两边都误判 FAIL。所以这里按 PID 派生一个唯一端口。
-TEST_PORT_BASE = 8765
-TEST_PORT = TEST_PORT_BASE + (os.getpid() % 300)
+TEST_PORT_BASE = 8900
+
+
+def _pick_test_port() -> int:
+    """挑一个当前没人用的测试端口。
+
+    🔴 为什么要动态挑：
+       固定端口（或只按 pid 派生）时，两个实例同时跑会撞到同一端口，
+       互相 kill_port_listeners → 双方结果都不可信，还可能误杀对方的服务。
+       所以这里从 pid 派生的起点开始，逐个试到没人占用为止。
+    """
+    start = TEST_PORT_BASE + (os.getpid() % 400)
+    for candidate in range(start, start + 60):
+        try:
+            proc = subprocess.run(["netstat", "-ano", "-p", "TCP"],
+                                  capture_output=True, timeout=8)
+            out = proc.stdout.decode("gbk", errors="replace")
+        except (OSError, subprocess.SubprocessError):
+            return candidate
+        busy = any(":%d " % candidate in line and "LISTENING" in line
+                   for line in out.splitlines())
+        if not busy:
+            return candidate
+    return start
+
+
+TEST_PORT = _pick_test_port()
 
 # 本机请求专用 opener：清空代理，否则 127.0.0.1 会被转发到代理服务器
 LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
