@@ -37,16 +37,6 @@ VENV_PY = ROOT / ".venv" / "Scripts" / "python.exe"
 
 
 
-def _port_is_listening(port: int) -> bool:
-    """该端口有没有人在 LISTEN（精确匹配，不误伤 :87650 这种）。"""
-    try:
-        proc = subprocess.run(["netstat", "-ano", "-p", "TCP"],
-                              capture_output=True, timeout=8)
-        out = proc.stdout.decode("gbk", errors="replace")
-    except (OSError, subprocess.SubprocessError):
-        return False
-    needle = f":{port} "
-    return any(needle in line and "LISTENING" in line for line in out.splitlines())
 
 
 

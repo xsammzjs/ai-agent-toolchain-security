@@ -34,6 +34,18 @@ TEST_PORT_BASE = 8900
 TEST_PORT_SPAN = 400
 
 
+def _port_is_listening(port: int) -> bool:
+    """该端口有没有人在 LISTEN（精确匹配，不误伤 :87650 这种）。"""
+    try:
+        proc = subprocess.run(["netstat", "-ano", "-p", "TCP"],
+                              capture_output=True, timeout=8)
+        out = proc.stdout.decode("gbk", errors="replace")
+    except (OSError, subprocess.SubprocessError):
+        return False
+    needle = f":{port} "
+    return any(needle in line and "LISTENING" in line for line in out.splitlines())
+
+
 def _lock_path(port: int) -> Path:
     """端口锁文件路径 —— 内容是持有者 PID。"""
     lock_dir = Path(os.environ.get("TEMP") or "/tmp") / "sbom_qa_port_locks"
