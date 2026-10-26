@@ -39,6 +39,9 @@ START_PY = ROOT / "start.py"
 # 本进程实例专属的测试端口（Launcher 收尾时要用它清理子进程）
 from _portkit import TEST_PORT, kill_port_listeners          # noqa: E402
 
+# 用例注册项的类型：(编号, 名称, 执行函数, 是否安全可跑)
+Case = Tuple[str, str, Callable[["Result"], None], bool]
+
 # 本机请求专用 opener：清空代理，否则 127.0.0.1 会被转发到代理服务器
 LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 

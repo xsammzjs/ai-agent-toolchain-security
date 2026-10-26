@@ -13,7 +13,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from _harness import ROOT, Result, run_cmd
+from _harness import ROOT, Result, run_cmd, Case
 
 
 
@@ -68,3 +68,11 @@ def case_h1_no_venv_first_run(res: Result) -> None:
                   "输出说明了正在创建虚拟环境")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+# ==========================================================
+# 本模块的用例注册表
+# ==========================================================
+CASES: List[Case] = [
+    ("H1", "无 venv 首次运行能自建并装依赖（慢）", case_h1_no_venv_first_run, True),
+]

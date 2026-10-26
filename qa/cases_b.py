@@ -17,6 +17,7 @@ import time
 from typing import List, Optional
 
 from _harness import (
+    Case,
     health_ok,
     Launcher,
     Result,
@@ -248,3 +249,14 @@ def case_d1_open_browser(res: Result) -> None:
     finally:
         launcher.close()
         kill_port_listeners(TEST_PORT)
+
+
+# ==========================================================
+# 本模块的用例注册表
+# ==========================================================
+CASES: List[Case] = [
+    ("C1", "端口占用时探测准确且不崩", case_c1_port_conflict_behavior, True),
+    ("C2", "实际端口 == 提示地址（避让后不串号）", case_c2_actual_port_matches, True),
+    ("C3", "占用者绑 0.0.0.0 时也能识别（防重复实例）", case_c3_wildcard_occupant, True),
+    ("D1", "自动开浏览器且 URL 与实际端口一致", case_d1_open_browser, True),
+]

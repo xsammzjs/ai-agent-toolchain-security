@@ -18,6 +18,7 @@ from _harness import (
     BAT,
     bat_bytes,
     bat_line_endings,
+    Case,
     has_bom,
     Result,
     ROOT,
@@ -171,3 +172,15 @@ def case_b2_no_reinstall(res: Result) -> None:
     res.check("pip install" not in out,
               "输出中无 pip install 痕迹（确认没有触发重装）")
     res.note(f"--check 输出片段：{out.strip()[:400]!r}")
+
+
+# ==========================================================
+# 本模块的用例注册表
+# ==========================================================
+CASES: List[Case] = [
+    ("A1", "bat 编码：无 BOM + CRLF", case_a1_bat_encoding, True),
+    ("A2", "bat 能被 cmd.exe 正常解析", case_a2_bat_cmd_parse, True),
+    ("A3", "bat 有 chcp 65001（中文不乱码）", case_a3_bat_codepage, True),
+    ("B1", "bat 依赖检查覆盖全部必需包", case_b1_bat_dep_check, True),
+    ("B2", "依赖齐全时不重复安装", case_b2_no_reinstall, True),
+]

@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from _harness import Result, wait_until
+from _harness import Result, wait_until, Case
 from _portkit import (
     netstat_listening,
     TEST_PORT,
@@ -99,3 +99,13 @@ def case_x3_holder_cleanup(res: Result) -> None:
                           timeout=15, interval=0.5)
     res.check(released,
               f"异常路径下占位进程也被清理干净（残留 = {netstat_listening(TEST_PORT)}）")
+
+
+# ==========================================================
+# 本模块的用例注册表
+# ==========================================================
+CASES: List[Case] = [
+    ("X1", "自检：端口精确匹配（不误伤相邻端口）", case_x1_port_match_precision, True),
+    ("X2", "自检：占位进程启动失败能被识别", case_x2_holder_failure_detected, True),
+    ("X3", "自检：占位进程异常路径也清理干净", case_x3_holder_cleanup, True),
+]

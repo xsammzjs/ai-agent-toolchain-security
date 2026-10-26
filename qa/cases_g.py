@@ -18,6 +18,7 @@ import time
 
 from _harness import (
     BAT,
+    Case,
     Launcher,
     Result,
     ROOT,
@@ -217,4 +218,14 @@ def case_g6_cancel_exit_code(res: Result) -> None:
         kill_port_listeners(TEST_PORT)
 
 
-
+# ==========================================================
+# 本模块的用例注册表
+# ==========================================================
+CASES: List[Case] = [
+    ("G1", "bat 委托 start.py（单一逻辑源）", case_g1_bat_delegates, True),
+    ("G2", "--check 不开浏览器", case_g2_no_browser_in_check, True),
+    ("G3", "bat 正确传递 start.py 退出码", case_g3_bat_exit_code, True),
+    ("G4", "start.py 接受 bat 传的 --ask-port", case_g4_bat_ask_port, True),
+    ("G5", "交互提示端口号跟随实际起始端口", case_g5_ask_port_prompt, True),
+    ("G6", "用户取消时退出码非 0", case_g6_cancel_exit_code, True),
+]

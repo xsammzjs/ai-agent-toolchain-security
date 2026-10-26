@@ -15,9 +15,10 @@ import time
 
 from _harness import (
     BAT,
+    Case,
+    health_ok,
     http_get,
     Launcher,
-    health_ok,
     Result,
     ROOT,
     run_cmd,
@@ -199,15 +200,20 @@ def case_g7_signal_exit_port_released(res: Result) -> None:
                          "--timeout", "120"])
     try:
         launcher.pump(["正在启动"], timeout=60)
-        ready = wait_for_health(TEST_PORT, timeout=90)
-        if not ready:
-            res.skip(f"服务没能就绪（端口 {TEST_PORT} health 不通），"
-                     f"无法验证信号退出")
+        # 🔴 关键：等「端口开始监听」就立刻发信号 —— 这正是修复前会出事的窗口。
+        #    修复前 _install_stop_handlers 在 wait_until_ready() 之后才调用，
+        #    而 wait_until_ready 轮询 health（间隔 0.5s），所以外部探针可能
+        #    比 start.py 自己更早看到「服务就绪」—— 那时 handler 还没装，
+        #    信号被 OS 按默认动作处理（3221225786），streamlit 变孤儿占着端口。
+        #    修复后 handler 在 start_streamlit() 返回后立刻装，
+        #    早于子进程 bind 端口，所以这里发信号是安全的 —— 正好锁住这次修复。
+        bound = wait_until(lambda: bool(netstat_listening(TEST_PORT)),
+                           timeout=90, interval=0.1)
+        if not bound:
+            res.skip(f"服务没能监听端口 {TEST_PORT}，无法验证信号退出")
             return
-        # 等一个稳定期，确保 start.py 已经走到「装好信号处理器、进入前台等待」
-        time.sleep(3.0)
         res.check(bool(netstat_listening(TEST_PORT)),
-                  f"发信号前端口 {TEST_PORT} 有监听")
+                  f"端口 {TEST_PORT} 刚开始监听就发信号（覆盖修复前的竞态窗口）")
 
         # 发 CTRL_BREAK_EVENT
         try:
@@ -255,3 +261,15 @@ def case_g7_signal_exit_port_released(res: Result) -> None:
     finally:
         launcher.close()
         kill_port_listeners(TEST_PORT)
+
+
+# ==========================================================
+# 本模块的用例注册表
+# ==========================================================
+CASES: List[Case] = [
+    ("E1", "停止方式明确告知", case_e1_stop_method, True),
+    ("E2", "Ctrl+C 后端口释放、无孤儿进程", case_e2_ctrl_c_no_orphan, True),
+    ("F1", "四个视图都能执行（AppTest）", case_f1_four_views, True),
+    ("F2", "health 接口返回 200 ok", case_f2_health_endpoint, True),
+    ("G7", "信号退出后端口被释放", case_g7_signal_exit_port_released, True),
+]
