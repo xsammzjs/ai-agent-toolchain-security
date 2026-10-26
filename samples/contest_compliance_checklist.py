@@ -206,9 +206,9 @@ FINAL_SUBMISSION: List[Requirement] = [
                    "② 所有 PPT 数字均来自 samples/run_corpus_eval.py 实测输出"
                    "③ 云端部署版本与本地版本输出一致"
                    "④ readme 含完整复现步骤",
-        evidence="✅ samples/verify_reproduction.py（12 项校验全绿，2026-10-22 实测）"
+        evidence="✅ samples/verify_reproduction.py（13 项校验全绿，2026-10-22 实测）"
                  "✅ 评测语料已随仓库提交（103 个文件，含 _manifest.json 溯源）"
-                 "✅ 干净副本实测：git archive 导出后 12 项校验仍全绿"
+                 "✅ 干净副本实测：git archive 导出后 13 项校验仍全绿"
                  "✅ modules/demo_mode.py（4 预置场景 + 降级披露）"
                  "✅ samples/check_doc_consistency.py（对外材料数字一致性检查）",
     ),

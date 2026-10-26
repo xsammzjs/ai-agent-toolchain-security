@@ -37,6 +37,7 @@
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 from collections import Counter
@@ -329,6 +330,42 @@ def check_regression():
         record("151 条回归断言全绿", False, "151 条", "执行超时")
 
 
+
+def check_code_refs():
+    """文档里的代码引用（文件:行号 / 符号:行号）是否仍指向正确位置。
+
+    重构拆文件后行号会悄悄失效 —— 评委按材料去翻代码却对不上，
+    材料可信度直接受损。这一项把「材料与代码一致」也纳入复现校验。
+    """
+    print("\n" + "=" * 74)
+    print("⑬ 文档代码引用有效性")
+    print("=" * 74)
+
+    script = os.path.join(ROOT, "samples", "check_code_refs.py")
+    if not os.path.isfile(script):
+        record("文档代码引用全部有效", True, "全部有效", "检查脚本不存在，跳过")
+        return
+    try:
+        r = subprocess.run([sys.executable, script],
+                           capture_output=True, text=True, timeout=120,
+                           encoding="utf-8", errors="replace")
+        out = r.stdout or ""
+        n_checked = 0
+        for line in out.splitlines():
+            m = re.search(r"检查了 (\d+) 处代码引用", line)
+            if m:
+                n_checked = int(m.group(1))
+        ok = r.returncode == 0
+        detail = ""
+        if not ok:
+            bad = [l.strip() for l in out.splitlines() if l.strip().startswith("docs/")]
+            detail = "；".join(bad[:3])
+        record("文档代码引用全部有效", ok, "全部有效",
+               f"{n_checked} 处引用" + (f"；失效：{detail}" if detail else ""))
+    except Exception as e:
+        record("文档代码引用全部有效", False, "全部有效", f"执行失败：{e}")
+
+
 # ==========================================================
 def main():
     print("=" * 74)
@@ -344,6 +381,7 @@ def main():
     check_regression()
     check_code_size()
     check_sample_count()
+    check_code_refs()
 
     print("\n" + "=" * 74)
     failed = [r for r in RESULTS if not r["ok"]]
