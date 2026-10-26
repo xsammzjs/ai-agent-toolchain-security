@@ -22,9 +22,19 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 MAX_FILE_LINES = 700        # 单文件行数上限
-SKIP_DIRS = {".git", ".venv", ".workbuddy", "samples/real_corpus",
-             "temp_shots", "data_store", "trivy_cache", "temp_upload",
-             "__pycache__", "docs"}
+
+# 按**目录名**跳过的规则（比相对路径匹配更可靠：
+# 嵌套层级深浅都不影响，评委自己建的 venv 也能被排除）
+SKIP_DIR_NAMES = {
+    ".git", ".venv", "venv", "env", ".env", "virtualenv", "__pycache__",
+    ".workbuddy", ".idea", ".vscode", ".pytest_cache", ".mypy_cache",
+    "node_modules", "site-packages", "dist-packages", "eggs",
+}
+# 按**相对路径**跳过的规则（项目内的特定目录）
+SKIP_DIR_PATHS = {
+    "samples/real_corpus", "temp_shots", "data_store",
+    "trivy_cache", "temp_upload", "docs",
+}
 
 # 门面模块：拆分后仍需保持对外 API 完整
 FACADES = {
@@ -33,16 +43,25 @@ FACADES = {
 }
 
 
+def _should_skip_dir(rel_path: str, name: str) -> bool:
+    """这个子目录要不要跳过"""
+    if name in SKIP_DIR_NAMES:
+        return True
+    if name.startswith(".venv") or name.startswith("venv"):
+        return True
+    rel = rel_path.replace("\\", "/")
+    for s in SKIP_DIR_PATHS:
+        if rel == s or rel.startswith(s + "/"):
+            return True
+    return False
+
+
 def py_files():
     for dirpath, dirnames, filenames in os.walk(ROOT):
         rel = os.path.relpath(dirpath, ROOT).replace("\\", "/")
-        if any(rel == s or rel.startswith(s + "/") for s in SKIP_DIRS):
-            dirnames[:] = []
-            continue
+        # 先按目录名剪枝，再按相对路径剪枝
         dirnames[:] = [d for d in dirnames
-                       if not any((rel + "/" + d) == s or
-                                  (rel + "/" + d).startswith(s + "/")
-                                  for s in SKIP_DIRS)]
+                       if not _should_skip_dir(rel + "/" + d, d)]
         for fn in filenames:
             if fn.endswith(".py"):
                 yield os.path.join(dirpath, fn)
