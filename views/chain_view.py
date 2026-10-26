@@ -23,7 +23,7 @@ def render():
     # ==========================================
     st.divider()
     st.markdown('<div id="chain-section"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">🔗 组合风险分析</div>',
+    st.markdown('<div class="section-title">🔗 资产关联分析</div>',
                 unsafe_allow_html=True)
     st.caption(
         "传统工具只能逐个判定单点风险等级。本功能建立「能力图」，"
@@ -54,7 +54,7 @@ def render():
 
 
     def _run_chain_from_zip(zip_list: list):
-        """对用户上传的多个技能包做组合风险分析"""
+        """对用户上传的多个技能包做资产关联分析"""
         from modules import attack_chain as ac
         from modules import skill_scanner as ss
 
@@ -87,7 +87,7 @@ def render():
             st.markdown("**🎬 演示：三个「无害」技能如何组成攻击链**")
             st.caption("三个技能单看判定分别为低危 / 中危 / 高危，"
                        "传统工具到此为止；关联后识别出完整的凭据外泄链路。")
-            if st.button("🔗 运行组合风险分析演示", type="primary",
+            if st.button("🔗 运行资产关联分析演示", type="primary",
                          key="chain_demo_btn", width="stretch"):
                 _run_chain_demo()
             st.caption("💡 答辩建议：先点左边的演示，再指出页面下方的"
