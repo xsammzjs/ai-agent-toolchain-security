@@ -1,4 +1,4 @@
-# AI Agent 工具链安全检测平台
+# SkillGuard · AI 技能供应链安全检测平台
 
 > 面向AI Agent Skill（智能体技能包）的静态安全检测与跨技能攻击链关联分析。
 > 参赛：第十一届华为 ICT 大赛 · 中国创新赛 · 赛题 1（基于华为云产品打造 AI 创新应用）
@@ -112,7 +112,7 @@ python samples/fetch_real_samples.py
 ## 项目结构
 
 ```
-main.py                      Streamlit 界面（4 个功能视图）
+main.py                      Streamlit 界面（3 个功能）
 config.py                    全局配置
 modules/
   engine.py                  扫描调度
