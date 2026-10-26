@@ -24,11 +24,14 @@ def start_streamlit(python: Path, port: int, host: str) -> subprocess.Popen:
     """拉起 streamlit 子进程。
 
     Windows 上用 ``CREATE_NEW_PROCESS_GROUP`` 把子进程放进**独立进程组**：
-    这样 Ctrl+C 只送到 start.py 自己，子进程不会跟着一起被 Ctrl+C 打断
-    （uvicorn 收到 Ctrl+C 后会走优雅关闭，可能要好几秒，这期间端口还被占着，
-    看起来就像「停了服务但端口没释放」的孤儿进程）。
+    MSDN 明确写着该标志**禁用组内所有进程的 Ctrl+C** —— 于是子进程不会
+    跟着一起被 Ctrl+C 打断（uvicorn 收到 Ctrl+C 后会走优雅关闭，可能要
+    好几秒，这期间端口还被占着，看起来就像「停了服务但端口没释放」的
+    孤儿进程）。
 
-    改成由父进程显式 terminate + wait 子进程，端口一定能干净释放。
+    代价是：**子进程不会自己退出**，``stop_streamlit()``（taskkill /T /F
+    杀整棵树）成了唯一能把端口收干净的主路径。完整原理见
+    ``start.py`` 里 ``_install_stop_handlers`` 的 docstring。
     """
     cmd = [
         str(python), "-m", "streamlit", "run", "main.py",

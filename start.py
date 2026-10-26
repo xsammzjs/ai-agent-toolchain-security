@@ -181,14 +181,26 @@ def check_env_file() -> None:
 def _install_stop_handlers(proc) -> None:
     """接管 Ctrl+C / Ctrl+Break / 终止信号，先收干净子进程再退出。
 
-    🔴 为什么必须显式接管：
-    Windows 的 ``CTRL_BREAK_EVENT`` 在 Python 里映射成 ``SIGBREAK``，
-    而 SIGBREAK 的**默认动作是直接终止进程** —— 不会抛 KeyboardInterrupt，
-    也就不会跑上面那个 ``except KeyboardInterrupt`` 分支。
-    结果就是：窗口关了，但 streamlit 子进程变成孤儿、**继续占着端口**，
-    下次启动就报「端口被占用」。
+    这段是「用户按 Ctrl+C 之后端口到底能不能被收回来」的全部关键，
+    四个要点串起来读：
 
-    这里统一接管 SIGINT / SIGBREAK / SIGTERM，收到就先把子进程树收干净。
+    1. **不能用 ``proc.wait()`` 等子进程**：Windows 上它阻塞在
+       ``WaitForSingleObject`` 上，**不可中断**。主线程卡住 → Python 级的
+       信号处理函数**永远排不上执行** → OS 只能按默认动作终止进程
+       （退出码 3221225786 = STATUS_CONTROL_C_EXIT）→ 清理代码一行没跑 →
+       **端口还被占着**，下次启动就报「端口被占用」。
+    2. 所以前台等待改成**短超时轮询**（见调用处）：``time.sleep()`` 可被信号
+       打断，信号处理才能及时执行，把子进程树收干净再退出。
+    3. 子进程是用 ``CREATE_NEW_PROCESS_GROUP`` 起的 —— MSDN 明确写着该标志
+       **禁用组内所有进程的 Ctrl+C**。也就是**子进程不会自己退出**，
+       ``stop_streamlit()`` 是**唯一**能把端口收干净的主路径，不是兜底。
+    4. ``stop_streamlit()`` 用 ``taskkill /T /F`` 杀**整棵进程树**：
+       Windows 的 ``terminate()`` 不杀子孙进程，streamlit 派生的子进程会
+       变成孤儿继续占着端口。
+
+    顺带：``CTRL_BREAK_EVENT`` 在 Python 里映射成 ``SIGBREAK``，其默认动作
+    是直接终止进程（不抛 KeyboardInterrupt），所以必须显式接管，
+    否则上面的清理逻辑同样不会执行。
     """
     def _handler(signum, _frame):        # noqa: ANN001 - 信号处理函数签名固定
         print()
@@ -332,10 +344,10 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # ---------- 保持前台运行 ----------
     _install_stop_handlers(proc)
-    # 用轮询而不是 proc.wait()：
-    # Windows 上 Popen.wait() 会阻塞在一个不可中断的 WaitForSingleObject 上，
-    # Python 级的信号处理函数**永远等不到执行机会** —— 装了 SIGBREAK 处理后，
-    # OS 就不再默认终止进程了，结果就是「Ctrl+C 后进程卡住不退、端口一直被占」。
+    # 用轮询而不是 proc.wait()：Windows 上 Popen.wait() 阻塞在不可中断的
+    # WaitForSingleObject 上，装了信号处理后 OS 不再默认终止进程，
+    # 两者一叠加就成了「Ctrl+C 后进程卡住不退、端口一直被占」。
+    # 详细原理见 _install_stop_handlers 的 docstring。
     # time.sleep() 是可被信号打断的，轮询能保证及时响应 Ctrl+C / Ctrl+Break。
     while proc.poll() is None:
         try:
