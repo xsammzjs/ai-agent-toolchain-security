@@ -19,3 +19,9 @@ python-dotenv>=1.0.0
 
 # ===== RAR 支持 =====
 rarfile>=4.0
+
+# ===== 华为云存储（可选：仅在配置了 RDS/Redis 时才 import）=====
+# modules/storage/huawei.py 里是函数内可选 import + 优雅降级，
+# 不装也不影响主流程；装上后可直接运行该模块做连通性自检。
+pymysql>=1.1.0
+redis>=5.0.0
