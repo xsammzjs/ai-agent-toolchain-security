@@ -1546,7 +1546,7 @@ if current_view == VIEW_MAIN:
 
 
     # ==========================================
-    # 攻击链关联分析区（2026-10-15 新增 · 项目核心创新）
+    # 组合风险分析区（2026-10-15 新增 · 项目核心创新）
 
 # ===== 功能 C：组合风险分析 =====
 if current_view == VIEW_CHAIN:
@@ -1584,7 +1584,7 @@ if current_view == VIEW_CHAIN:
 
 
     def _run_chain_from_zip(zip_list: list):
-        """对用户上传的多个技能包做攻击链关联分析"""
+        """对用户上传的多个技能包做组合风险分析"""
         from modules import attack_chain as ac
         from modules import skill_scanner as ss
 

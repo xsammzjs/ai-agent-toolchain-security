@@ -29,7 +29,7 @@ def generate_docx_report(scan_result: dict, sbom_data: dict) -> str:
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     doc.add_paragraph(f'生成时间：{datetime.now().strftime("%Y-%m-%d %H:%M")}')
-    doc.add_paragraph(f'扫描工具：双链软件供应链安全检测系统')
+    doc.add_paragraph(f'扫描工具：SkillGuard · AI 技能供应链安全检测平台')
     doc.add_paragraph('')
 
     # ===== 一、扫描摘要 =====
