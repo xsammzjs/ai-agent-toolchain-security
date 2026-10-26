@@ -73,7 +73,7 @@
 ### 一键复现校验（推荐先跑这个）
 
 ```bash
-python samples/verify_reproduction.py    # 13 项校验：语料 + 指标 + 规则 + 回归测试
+python samples/verify_reproduction.py    # 14 项校验：语料 + 指标 + 规则 + 回归测试
 python samples/check_doc_consistency.py  # 对外材料数字一致性检查
 ```
 
