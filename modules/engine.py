@@ -11,7 +11,6 @@ from typing import Optional
 
 from modules import parser
 from modules import vulnerability
-from modules import report as report_gen
 
 
 class ScanEngine:

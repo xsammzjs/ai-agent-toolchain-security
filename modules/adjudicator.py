@@ -44,9 +44,7 @@ MaaS 未配置 / 调用失败 → 使用本地规则模板生成研判文本。
 """
 from __future__ import annotations
 
-import json
 import os
-import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
 

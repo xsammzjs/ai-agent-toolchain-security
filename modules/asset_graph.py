@@ -179,7 +179,6 @@ def build_graph(dep_list: Optional[list] = None,
     if chain_result:
         for ch in chain_result.get("chains", []):
             steps = ch.get("steps", [])
-            src_nid = skill_nodes.get(steps[0].get("skill", "")) if steps else None
             for i in range(len(steps) - 1):
                 a = skill_nodes.get(steps[i].get("skill", ""))
                 b = skill_nodes.get(steps[i + 1].get("skill", ""))
