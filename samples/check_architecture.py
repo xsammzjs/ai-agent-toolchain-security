@@ -36,8 +36,10 @@ SKIP_DIR_NAMES = {
 # 也不需要按「单文件 700 行」的对外口径约束，故排除。
 SKIP_DIR_PATHS = {
     "samples/real_corpus", "temp_shots", "data_store",
-    "trivy_cache", "temp_upload", "docs", "qa",
+    "trivy_cache", "temp_upload", "docs",
 }
+# 注：qa/ 早期因 launcher_acceptance.py 单文件 900+ 行被排除；
+#     现已拆成 9 个模块（最大 296 行），前提不存在，故纳入体检范围。
 
 # 门面模块：拆分后仍需保持对外 API 完整
 FACADES = {

@@ -74,31 +74,38 @@ def _port_locked_by_other(port: int) -> bool:
     if owner == os.getpid():
         return False
     # 持有者还活着吗？死了就当锁失效
-    try:
-        out = subprocess.run(["tasklist", "/FI", f"PID eq {owner}"],
-                             capture_output=True, timeout=8).stdout
-        text = out.decode("gbk", errors="replace")
-        return str(owner) in text
-    except (OSError, subprocess.SubprocessError):
-        return True                       # 查不了就保守当成被占
+    return _pid_alive(owner)
 
 
 
 def _claim_port(port: int) -> bool:
-    """尝试占住这个端口的锁。"""
+    """尝试占住这个端口的锁。
+
+    锁文件被 SIGKILL/SIGTERM 打断时不会被 atexit 清掉（atexit 只在正常退出时跑），
+    所以这里遇到「锁存在但持有者已死」时要**主动清理再抢**，
+    否则过期锁会越积越多。
+    """
     lock = _lock_path(port)
-    try:
-        # O_EXCL 保证原子性：别人先拿到就抢不走
-        fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    for _attempt in range(2):
         try:
-            os.write(fd, str(os.getpid()).encode("ascii"))
-        finally:
-            os.close(fd)
-        return True
-    except FileExistsError:
-        return False
-    except OSError:
-        return True                       # 建不了锁就当占住了，保守
+            # O_EXCL 保证原子性：别人先拿到就抢不走
+            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            try:
+                os.write(fd, str(os.getpid()).encode("ascii"))
+            finally:
+                os.close(fd)
+            return True
+        except FileExistsError:
+            if _port_locked_by_other(port):
+                return False                 # 持有者还活着，不能抢
+            # 持有者已死 —— 锁过期，清掉再抢一次
+            try:
+                lock.unlink()
+            except OSError:
+                return False
+        except OSError:
+            return True                    # 建不了锁就当占住了，保守
+    return False
 
 
 
@@ -111,6 +118,42 @@ def _release_port(port: int) -> None:
 
 
 
+def _reap_stale_locks() -> None:
+    """启动时清掉「持有者已死」的过期锁文件。
+
+    锁文件靠 atexit 释放，但 atexit 只在**正常退出**时执行 ——
+    被 SIGTERM/SIGKILL 打断的运行会留下孤儿锁。
+    虽然过期锁在抢锁时会被判定为「可抢」，但它们会一直堆在磁盘上。
+    所以这里启动时扫一遍，把持有者进程已不存在的锁删掉。
+    """
+    lock_dir = _lock_path(0).parent
+    try:
+        locks = list(lock_dir.glob("port_*.lock"))
+    except OSError:
+        return
+    for lock in locks:
+        try:
+            owner = int(lock.read_text(encoding="utf-8").strip() or "0")
+        except (OSError, ValueError):
+            owner = 0
+        if owner and _pid_alive(owner):
+            continue                        # 持有者还活着，锁有效
+        try:
+            lock.unlink()
+        except OSError:
+            pass
+
+
+def _pid_alive(pid: int) -> bool:
+    """这个 PID 的进程还在吗？"""
+    try:
+        out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}"],
+                             capture_output=True, timeout=8).stdout
+        return str(pid) in out.decode("gbk", errors="replace")
+    except (OSError, subprocess.SubprocessError):
+        return True                        # 查不了就保守当成活着
+
+
 def _pick_test_port() -> int:
     """挑一个当前没人用、也没被别的实例锁住的测试端口。
 
@@ -118,6 +161,7 @@ def _pick_test_port() -> int:
        固定端口（或只按 pid 派生）时，两个实例同时跑会撞到同一端口，
        互相 kill_port_listeners → 双方结果都不可信，还可能误杀对方的服务。
     """
+    _reap_stale_locks()
     start = TEST_PORT_BASE + random.randint(0, TEST_PORT_SPAN - 1)
     for offset in range(TEST_PORT_SPAN):
         candidate = start + offset
