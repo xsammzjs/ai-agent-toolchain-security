@@ -1,5 +1,5 @@
 """
-双链——软件供应链安全检测系统
+SkillGuard —— AI 技能供应链安全检测平台
 =======================================
 Streamlit Web 界面
 核心功能：精准漏洞检测 + 多源证据溯源 + 修复优先级排序
@@ -57,7 +57,7 @@ def _build_fixed_requirements(req_path: str | None, fix_map: dict, dep_list: lis
                 else:
                     lines.append(line.rstrip("\n"))
     else:
-        lines.append("# 由双链软件供应链安全检测系统自动生成（已包含修复版本）")
+        lines.append("# 由 SkillGuard 自动生成（已包含修复版本）")
         for dep in dep_list:
             if dep.get("is_transitive"):
                 continue  # 间接依赖版本为推断值，不写入
@@ -80,7 +80,7 @@ def _build_fixed_requirements(req_path: str | None, fix_map: dict, dep_list: lis
 # 页面配置
 # ==========================================
 st.set_page_config(
-    page_title="双链·软件供应链安全检测系统",
+    page_title="SkillGuard · AI 技能供应链安全检测平台",
     page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -508,60 +508,61 @@ div[data-testid="stAlertContainer"] p { color: var(--text) !important; }
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand">
-        <div class="sidebar-brand-title">AI Agent 工具链安全</div>
-        <div class="sidebar-brand-sub">规则检测 · 攻击链关联 · 证据溯源</div>
+        <div class="sidebar-brand-title">SkillGuard</div>
+        <div class="sidebar-brand-sub">AI 技能供应链安全检测</div>
     </div>
     """, unsafe_allow_html=True)
 
     st.divider()
 
-    # ===== 功能切换（把 4 个功能收敛到侧边栏，首页不再堆叠所有功能）=====
-    VIEW_MAIN = "🛡️Agent 安全检测"
-    VIEW_CHAIN = "🔗 攻击链关联分析"
-    VIEW_DEP = "📦 依赖漏洞扫描"
+    # ===== 功能切换（2026-10-26 聚焦化：4 个入口收敛为 3 个）=====
+    # 原「📦 依赖漏洞扫描」独立入口已取消 —— 该能力与 Snyk / pip-audit /
+    # OSV-Scanner 等成熟工具功能重叠，单独作为并列功能会削弱主线。
+    # 现在它降级为「组合风险分析」视图里的 *依赖侧证据*（可选附加）。
+    VIEW_MAIN = "🛡️ Skill 安全检测"
+    VIEW_CHAIN = "🔗 组合风险分析"
     VIEW_DEMO = "🎬 离线演示"
 
     current_view = st.radio(
         "功能选择",
-        [VIEW_MAIN, VIEW_CHAIN, VIEW_DEP, VIEW_DEMO],
+        [VIEW_MAIN, VIEW_CHAIN, VIEW_DEMO],
         label_visibility="collapsed",
         key="main_view",
     )
 
     st.divider()
 
-    if current_view == VIEW_DEP:
-        st.markdown("### 📤 上传项目文件")
-        upload_mode = st.radio(
-            "选择上传方式",
-            ["requirements.txt", "项目压缩包 (ZIP/RAR)", "package.json (npm)"]
-        )
-        uploaded_file = st.file_uploader(
-            "选择文件",
-            type=["txt", "zip", "rar", "json"],
-            help="支持 requirements.txt, .zip, .rar, package.json"
-        )
+    if current_view == VIEW_CHAIN:
+        # 依赖侧证据：传统依赖漏洞扫描（可选附加，默认折叠）
+        with st.expander("📎 依赖侧证据（可选）", expanded=False):
+            st.caption("上传项目包后，可同时解析其传统依赖的已知漏洞，"
+                       "作为组合风险分析里的「依赖侧证据」。非必需。")
+            upload_mode = st.radio(
+                "选择上传方式",
+                ["requirements.txt", "项目压缩包 (ZIP/RAR)", "package.json (npm)"]
+            )
+            uploaded_file = st.file_uploader(
+                "选择文件",
+                type=["txt", "zip", "rar", "json"],
+                help="支持 requirements.txt, .zip, .rar, package.json"
+            )
 
-        st.divider()
+            st.markdown("**⚙️ 扫描选项**")
+            do_epss = st.checkbox("EPSS 利用预测", value=True,
+                                  help="查询 FIRST EPSS，评估漏洞30天内被利用的概率")
+            use_nvd = st.checkbox("NVD 交叉验证", value=True,
+                                  help="使用 NIST NVD 数据库进行交叉验证（需联网）")
+            do_transitive = st.checkbox("间接依赖检测（一层推断）", value=False,
+                                        help="自动推断直接依赖的一层间接依赖并检测漏洞。"
+                                             "扫描时间会显著增加，且版本为约束推断值，"
+                                             "精确检测建议使用 pip freeze 完整清单")
 
-        st.markdown("### ⚙️ 扫描选项")
-        do_epss = st.checkbox("EPSS 利用预测", value=True,
-                              help="查询 FIRST EPSS，评估漏洞30天内被利用的概率")
-        use_nvd = st.checkbox("NVD 交叉验证", value=True,
-                              help="使用 NIST NVD 数据库进行交叉验证（需联网）")
-        do_transitive = st.checkbox("间接依赖检测（一层推断）", value=False,
-                                    help="自动推断直接依赖的一层间接依赖并检测漏洞。扫描时间会显著增加，"
-                                         "且版本为约束推断值，精确检测建议使用 pip freeze 完整清单")
-
-        st.divider()
-
-        start_scan = st.button("🚀 开始安全扫描", type="primary", width="stretch")
-
-        st.divider()
-        st.caption("💡 每个漏洞结论都有 NVD/GitHub 官方链接可验证")
-
+            start_scan = st.button("🚀 开始安全扫描", type="primary", width="stretch")
+            st.caption("💡 每个漏洞结论都有 NVD/GitHub 官方链接可验证")
+            st.caption("📄 扫描结果会显示在「组合风险分析」页面下方的"
+                       "「📎 依赖侧证据」面板中。")
     else:
-        # 上传控件只在「依赖漏洞扫描」视图下定义，
+        # 上传控件只在「组合风险分析」视图下定义，
         # 但下方主流程会引用这些变量 —— 此处给出安全默认值，
         # 避免切换到其他功能时抛 NameError。
         upload_mode = "requirements.txt"
@@ -596,8 +597,8 @@ if "scan_error" not in st.session_state:
 # ==========================================
 st.markdown("""
 <div id="top" class="hero-banner">
-    <div class="hero-title">AI Agent 工具链安全检测</div>
-    <div class="hero-sub">32 条检测规则 · <b>跨技能攻击链关联</b> · 权威置信度评级 · 证据溯源</div>
+    <div class="hero-title">SkillGuard · AI 技能供应链安全检测</div>
+    <div class="hero-sub">32 条检测规则 · <b>组合风险分析</b> · 权威置信度评级 · 证据溯源</div>
     <div class="hero-badges">
         <span class="hero-chip">OWASP Agentic Skills Top10</span>
         <span class="hero-chip">真实样本 TPR 100% / FPR 2.0%</span>
@@ -715,611 +716,588 @@ if st.session_state.scanning:
         _scan_progress_ui()
 
 # ---- 显示结果 ----
-# ===== 功能A：依赖漏洞扫描 =====
-if current_view == VIEW_DEP:
-    if st.session_state.scan_done and st.session_state.result:
-        result = st.session_state.result
-        summary = result["summary"]
-        vulns = result["vulns"]
-        dep_list = result["dep_list"]
+# ==========================================
+# 依赖侧证据（2026-10-26 聚焦化重构）
+# 原「📦 依赖漏洞扫描」是独立视图，功能与 Snyk / pip-audit / OSV-Scanner
+# 等成熟工具高度重叠，单独并列会削弱主线，也难回答「你和 Snyk 什么区别」。
+# 现在它降级为「组合风险分析」视图里的 *可选附加证据*：传统依赖漏洞作为
+# 资产图谱中的「依赖侧节点」，与技能、工具节点合流参与组合分析。
+# ==========================================
+def _render_dep_evidence():
+    """渲染传统依赖漏洞的扫描结果（由「组合风险分析」视图的折叠面板调用）。"""
+    if not (st.session_state.scan_done and st.session_state.result):
+        return
 
-        # 间接依赖截断提示（v3.1 新增）
-        t_info = result.get("transitive_info") or {}
-        if t_info.get("deps"):
-            st.info(f"ℹ️ 本次推断出 {len(t_info['deps'])} 个一层间接依赖"
-                    f"（依赖总数中已计入）。间接依赖版本为约束推断值，仅供参考。")
-        if t_info.get("truncated"):
-            st.warning(f"⚠️ 间接依赖超过上限 {t_info.get('limit', 0)} 个，已截断。"
-                       f"建议用 `pip freeze > requirements.txt` 导出完整清单后扫描。")
+    result = st.session_state.result
+    summary = result["summary"]
+    vulns = result["vulns"]
+    dep_list = result["dep_list"]
+    st.session_state.dep_list = dep_list  # 资产图谱读取依赖侧节点
 
-        # 查询失败披露：网络中断/限流时，"零漏洞"不再可信，必须明确告知
-        qe_total = summary.get("query_error_total", 0)
-        if qe_total:
-            qe = summary.get("query_errors", {})
-            st.error(
-                f"⚠️ 本次扫描有 **{qe_total} 次数据源查询失败**"
-                f"（{'、'.join(f'{k}×{v}' for k, v in qe.items() if v)}）。"
-                f"失败的依赖**未被判定为安全**，漏洞数量可能偏低，请检查网络后重新扫描。"
+    # 间接依赖截断提示（v3.1 新增）
+    t_info = result.get("transitive_info") or {}
+    if t_info.get("deps"):
+        st.info(f"ℹ️ 本次推断出 {len(t_info['deps'])} 个一层间接依赖"
+                f"（依赖总数中已计入）。间接依赖版本为约束推断值，仅供参考。")
+    if t_info.get("truncated"):
+        st.warning(f"⚠️ 间接依赖超过上限 {t_info.get('limit', 0)} 个，已截断。"
+                   f"建议用 `pip freeze > requirements.txt` 导出完整清单后扫描。")
+
+    # 查询失败披露：网络中断/限流时，"零漏洞"不再可信，必须明确告知
+    qe_total = summary.get("query_error_total", 0)
+    if qe_total:
+        qe = summary.get("query_errors", {})
+        st.error(
+            f"⚠️ 本次扫描有 **{qe_total} 次数据源查询失败**"
+            f"（{'、'.join(f'{k}×{v}' for k, v in qe.items() if v)}）。"
+            f"失败的依赖**未被判定为安全**，漏洞数量可能偏低，请检查网络后重新扫描。"
+        )
+
+    # 检测覆盖度披露（原实现静默丢弃部分依赖，用户完全看不到，属于隐性漏检）
+    if summary.get("skipped_count"):
+        with st.expander(
+            f"⚠️ 有 {summary['skipped_count']} 个依赖未纳入检测（点击查看）",
+            expanded=True,
+        ):
+            st.caption(
+                "以下依赖的版本声明无法定位实际安装版本，因此未查询漏洞库。"
+                "用 `pip freeze > requirements.txt` 导出精确版本后可覆盖。"
+            )
+            st.dataframe(
+                pd.DataFrame([
+                    {"包名": d["package"], "声明版本": d["version"], "未检测原因": d["reason"]}
+                    for d in summary.get("skipped_deps", [])
+                ]),
+                width="stretch",
+                hide_index=True,
             )
 
-        # 检测覆盖度披露（原实现静默丢弃部分依赖，用户完全看不到，属于隐性漏检）
-        if summary.get("skipped_count"):
-            with st.expander(
-                f"⚠️ 有 {summary['skipped_count']} 个依赖未纳入检测（点击查看）",
-                expanded=True,
-            ):
-                st.caption(
-                    "以下依赖的版本声明无法定位实际安装版本，因此未查询漏洞库。"
-                    "用 `pip freeze > requirements.txt` 导出精确版本后可覆盖。"
-                )
-                st.dataframe(
-                    pd.DataFrame([
-                        {"包名": d["package"], "声明版本": d["version"], "未检测原因": d["reason"]}
-                        for d in summary.get("skipped_deps", [])
-                    ]),
+    # 版本下限推断披露：>= / ~= 声明按最坏情况检查，结论偏保守，必须告知用户
+    if summary.get("lower_bound_count"):
+        st.info(
+            f"ℹ️ 有 {summary['lower_bound_count']} 条结论基于版本下限推断"
+            f"（依赖声明为 `>=` / `~=`，实际安装版本可能更高）。"
+            f"这类结论偏保守，可能包含已在新版本中修复的漏洞；"
+            f"用 `pip freeze` 导出精确版本可获得更准确结果。"
+        )
+
+    # ===== 顶部指标卡 =====
+    st.markdown('<div class="section-title">📊 扫描总览</div>', unsafe_allow_html=True)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+    with col1:
+        dep_extra = f"（含间接 {summary.get('indirect_count', 0)}）" if summary.get('indirect_count') else ""
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">📦</div>
+            <div class="metric-value">{summary['total_dependencies']}</div>
+            <div class="metric-label">依赖总数{dep_extra}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        critical = summary['critical_count']
+        vuln_color = "#e74c3c" if critical > 0 else "#2e9e6b"
+        st.markdown(f"""
+        <div class="metric-card {'metric-card-red' if critical > 0 else 'metric-card-green'}">
+            <div class="metric-icon">🐛</div>
+            <div class="metric-value" style="color:{vuln_color}">{summary['total_vulnerabilities']}</div>
+            <div class="metric-label">漏洞总数</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+        <div class="metric-card metric-card-red">
+            <div class="metric-icon">🔥</div>
+            <div class="metric-value" style="color:#e74c3c">{critical}</div>
+            <div class="metric-label">严重/高危</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        st.markdown(f"""
+        <div class="metric-card metric-card-green">
+            <div class="metric-icon">✅</div>
+            <div class="metric-value" style="color:#2e9e6b">{summary['high_confidence_count']}</div>
+            <div class="metric-label">高置信度</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col5:
+        st.markdown(f"""
+        <div class="metric-card metric-card-orange">
+            <div class="metric-icon">⏰</div>
+            <div class="metric-value" style="color:#e74c3c">{summary['priority_1_count']}</div>
+            <div class="metric-label">需立即修复</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col6:
+        exploited = summary.get('actively_exploited_count', 0)
+        exp_color = "#e74c3c" if exploited > 0 else "#8a97a8"
+        st.markdown(f"""
+        <div class="metric-card {'metric-card-red' if exploited > 0 else 'metric-card-gray'}">
+            <div class="metric-icon">🎯</div>
+            <div class="metric-value" style="color:{exp_color}">{exploited}</div>
+            <div class="metric-label">活跃利用风险</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # ===== 可视化仪表盘 =====
+    if vulns:
+        st.markdown('<div class="section-title">📈 可视化仪表盘</div>', unsafe_allow_html=True)
+
+        # ---- 第一行：风险等级分布 + 置信度分布 ----
+        viz_col1, viz_col2 = st.columns(2)
+
+        with viz_col1:
+            with st.container(border=True):
+                st.markdown('<div class="viz-title">漏洞风险等级分布</div>', unsafe_allow_html=True)
+                sev_counts = {"严重": 0, "高危": 0, "中危": 0, "低危": 0, "未知": 0}
+                for v in vulns:
+                    sev = v.get("severity", "未知")
+                    if sev in sev_counts:
+                        sev_counts[sev] += 1
+                # 转置：每个等级一列，颜色就能一一对应
+                sev_df = pd.DataFrame({
+                    "严重": [sev_counts["严重"]],
+                    "高危": [sev_counts["高危"]],
+                    "中危": [sev_counts["中危"]],
+                    "低危": [sev_counts["低危"]],
+                    "未知": [sev_counts["未知"]],
+                })
+                st.bar_chart(sev_df, width="stretch",
+                             color=["#c0392b", "#e74c3c", "#f39c12", "#27ae60", "#95a5a6"])
+
+        with viz_col2:
+            with st.container(border=True):
+                st.markdown('<div class="viz-title">置信度评级分布</div>', unsafe_allow_html=True)
+                conf_counts = {"高": 0, "中": 0, "低": 0}
+                for v in vulns:
+                    level = v.get("confidence", {}).get("level", "低")
+                    if level in conf_counts:
+                        conf_counts[level] += 1
+                conf_df = pd.DataFrame({
+                    "高": [conf_counts["高"]],
+                    "中": [conf_counts["中"]],
+                    "低": [conf_counts["低"]],
+                })
+                st.bar_chart(conf_df, width="stretch",
+                             color=["#27ae60", "#f39c12", "#e74c3c"])
+
+        # ---- 第二行：CVSS vs EPSS 散点图（关键图）----
+        with st.container(border=True):
+            st.markdown('<div class="viz-title">🎯 漏洞风险矩阵：CVSS 严重度 × EPSS 利用概率</div>', unsafe_allow_html=True)
+            st.caption("右上角 = 又严重又容易被打，最危险 | 圆圈大小 = 置信度")
+
+            scatter_data = []
+            for v in vulns:
+                cvss = v.get("cvss_score", 0)
+                epss = v.get("epss_score", 0)
+                if cvss > 0:
+                    conf_w = {"高": 3, "中": 2, "低": 1}.get(v.get("confidence", {}).get("level", "低"), 1)
+                    scatter_data.append({
+                        "CVSS 分数": cvss,
+                        "EPSS 利用概率": epss * 100,
+                        "严重程度": v.get("severity", "未知"),
+                        "置信权重": conf_w * 30,
+                        "组件": v.get("package", ""),
+                        "CVE": v.get("cve_id", ""),
+                    })
+
+            if scatter_data:
+                scatter_df = pd.DataFrame(scatter_data)
+                # 颜色映射
+                color_map = {"严重": "#c0392b", "高危": "#e74c3c", "中危": "#f39c12", "低危": "#27ae60", "未知": "#95a5a6"}
+                scatter_df["颜色"] = scatter_df["严重程度"].map(color_map)
+
+                st.scatter_chart(
+                    scatter_df,
+                    x="CVSS 分数",
+                    y="EPSS 利用概率",
+                    x_label="CVSS 分数（越高越危险）",
+                    y_label="EPSS 利用概率 %（越高越容易被攻击）",
+                    size="置信权重",
+                    color="颜色",
                     width="stretch",
-                    hide_index=True,
                 )
 
-        # 版本下限推断披露：>= / ~= 声明按最坏情况检查，结论偏保守，必须告知用户
-        if summary.get("lower_bound_count"):
-            st.info(
-                f"ℹ️ 有 {summary['lower_bound_count']} 条结论基于版本下限推断"
-                f"（依赖声明为 `>=` / `~=`，实际安装版本可能更高）。"
-                f"这类结论偏保守，可能包含已在新版本中修复的漏洞；"
-                f"用 `pip freeze` 导出精确版本可获得更准确结果。"
-            )
+        # ---- 第三行：Top 依赖漏洞数 + 修复优先级分布 ----
+        viz_col3, viz_col4 = st.columns(2)
 
-        # ===== 顶部指标卡 =====
-        st.markdown('<div class="section-title">📊 扫描总览</div>', unsafe_allow_html=True)
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        with viz_col3:
+            with st.container(border=True):
+                st.markdown('<div class="viz-title">🔝 漏洞最多的依赖包</div>', unsafe_allow_html=True)
+                pkg_counts = {}
+                for v in vulns:
+                    pkg = v.get("package", "未知")
+                    pkg_counts[pkg] = pkg_counts.get(pkg, 0) + 1
+                top_pkgs = sorted(pkg_counts.items(), key=lambda x: x[1], reverse=True)[:8]
+                # 转置为单行多列
+                pkg_data = {p[0]: [p[1]] for p in top_pkgs}
+                pkg_df = pd.DataFrame(pkg_data)
+                st.bar_chart(pkg_df, width="stretch")
 
-        with col1:
-            dep_extra = f"（含间接 {summary.get('indirect_count', 0)}）" if summary.get('indirect_count') else ""
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-icon">📦</div>
-                <div class="metric-value">{summary['total_dependencies']}</div>
-                <div class="metric-label">依赖总数{dep_extra}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col2:
-            critical = summary['critical_count']
-            vuln_color = "#e74c3c" if critical > 0 else "#2e9e6b"
-            st.markdown(f"""
-            <div class="metric-card {'metric-card-red' if critical > 0 else 'metric-card-green'}">
-                <div class="metric-icon">🐛</div>
-                <div class="metric-value" style="color:{vuln_color}">{summary['total_vulnerabilities']}</div>
-                <div class="metric-label">漏洞总数</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col3:
-            st.markdown(f"""
-            <div class="metric-card metric-card-red">
-                <div class="metric-icon">🔥</div>
-                <div class="metric-value" style="color:#e74c3c">{critical}</div>
-                <div class="metric-label">严重/高危</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col4:
-            st.markdown(f"""
-            <div class="metric-card metric-card-green">
-                <div class="metric-icon">✅</div>
-                <div class="metric-value" style="color:#2e9e6b">{summary['high_confidence_count']}</div>
-                <div class="metric-label">高置信度</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col5:
-            st.markdown(f"""
-            <div class="metric-card metric-card-orange">
-                <div class="metric-icon">⏰</div>
-                <div class="metric-value" style="color:#e74c3c">{summary['priority_1_count']}</div>
-                <div class="metric-label">需立即修复</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col6:
-            exploited = summary.get('actively_exploited_count', 0)
-            exp_color = "#e74c3c" if exploited > 0 else "#8a97a8"
-            st.markdown(f"""
-            <div class="metric-card {'metric-card-red' if exploited > 0 else 'metric-card-gray'}">
-                <div class="metric-icon">🎯</div>
-                <div class="metric-value" style="color:{exp_color}">{exploited}</div>
-                <div class="metric-label">活跃利用风险</div>
-            </div>
-            """, unsafe_allow_html=True)
+        with viz_col4:
+            with st.container(border=True):
+                st.markdown('<div class="viz-title">🔧 修复优先级分布</div>', unsafe_allow_html=True)
+                priority_labels = ["立即修复", "尽快修复", "计划修复", "关注即可", "低优先"]
+                pri_counts = {label: 0 for label in priority_labels}
+                label_map = {
+                    "🔴 立即修复": "立即修复", "🟠 尽快修复": "尽快修复",
+                    "🟡 计划修复": "计划修复", "🟢 关注即可": "关注即可",
+                    "⚪ 低优先": "低优先"
+                }
+                for v in vulns:
+                    raw = v.get("fix_priority", {}).get("label", "低优先")
+                    clean = label_map.get(raw, "低优先")
+                    if clean in pri_counts:
+                        pri_counts[clean] += 1
+                pri_df = pd.DataFrame({
+                    "立即修复": [pri_counts["立即修复"]],
+                    "尽快修复": [pri_counts["尽快修复"]],
+                    "计划修复": [pri_counts["计划修复"]],
+                    "关注即可": [pri_counts["关注即可"]],
+                    "低优先": [pri_counts["低优先"]],
+                })
+                st.bar_chart(pri_df, width="stretch",
+                             color=["#c0392b", "#e74c3c", "#f39c12", "#27ae60", "#95a5a6"])
 
         st.divider()
 
-        # ===== 可视化仪表盘 =====
+    # ===== 标签页 =====
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 漏洞研判结果", "🔍 漏洞详情与证据", "🔧 修复方案", "📄 报告导出"
+    ])
+
+    # ===== Tab 1: 漏洞研判结果 =====
+    with tab1:
         if vulns:
-            st.markdown('<div class="section-title">📈 可视化仪表盘</div>', unsafe_allow_html=True)
+            st.markdown(f"### 共检测到 {len(vulns)} 个已知漏洞")
 
-            # ---- 第一行：风险等级分布 + 置信度分布 ----
-            viz_col1, viz_col2 = st.columns(2)
+            # 筛选器
+            filt_col1, filt_col2, filt_col3 = st.columns(3)
+            with filt_col1:
+                sev_filter = st.multiselect(
+                    "风险等级", ["严重", "高危", "中危", "低危", "未知"],
+                    default=["严重", "高危", "中危"]
+                )
+            with filt_col2:
+                conf_filter = st.multiselect(
+                    "置信度", ["高", "中", "低"],
+                    default=["高", "中"]
+                )
+            with filt_col3:
+                priority_filter = st.multiselect(
+                    "修复优先级",
+                    ["🔴 立即修复", "🟠 尽快修复", "🟡 计划修复", "🟢 关注即可", "⚪ 低优先"],
+                    default=["🔴 立即修复", "🟠 尽快修复"]
+                )
 
-            with viz_col1:
-                with st.container(border=True):
-                    st.markdown('<div class="viz-title">漏洞风险等级分布</div>', unsafe_allow_html=True)
-                    sev_counts = {"严重": 0, "高危": 0, "中危": 0, "低危": 0, "未知": 0}
-                    for v in vulns:
-                        sev = v.get("severity", "未知")
-                        if sev in sev_counts:
-                            sev_counts[sev] += 1
-                    # 转置：每个等级一列，颜色就能一一对应
-                    sev_df = pd.DataFrame({
-                        "严重": [sev_counts["严重"]],
-                        "高危": [sev_counts["高危"]],
-                        "中危": [sev_counts["中危"]],
-                        "低危": [sev_counts["低危"]],
-                        "未知": [sev_counts["未知"]],
-                    })
-                    st.bar_chart(sev_df, width="stretch",
-                                 color=["#c0392b", "#e74c3c", "#f39c12", "#27ae60", "#95a5a6"])
+            # 过滤
+            filtered = vulns
+            if sev_filter:
+                filtered = [v for v in filtered if v["severity"] in sev_filter]
+            if conf_filter:
+                filtered = [v for v in filtered if v.get("confidence", {}).get("level") in conf_filter]
+            if priority_filter:
+                filtered = [v for v in filtered if v.get("fix_priority", {}).get("label") in priority_filter]
 
-            with viz_col2:
-                with st.container(border=True):
-                    st.markdown('<div class="viz-title">置信度评级分布</div>', unsafe_allow_html=True)
-                    conf_counts = {"高": 0, "中": 0, "低": 0}
-                    for v in vulns:
-                        level = v.get("confidence", {}).get("level", "低")
-                        if level in conf_counts:
-                            conf_counts[level] += 1
-                    conf_df = pd.DataFrame({
-                        "高": [conf_counts["高"]],
-                        "中": [conf_counts["中"]],
-                        "低": [conf_counts["低"]],
-                    })
-                    st.bar_chart(conf_df, width="stretch",
-                                 color=["#27ae60", "#f39c12", "#e74c3c"])
+            st.caption(f"当前显示 {len(filtered)} / {len(vulns)} 条（按修复优先级排序）")
 
-            # ---- 第二行：CVSS vs EPSS 散点图（关键图）----
-            with st.container(border=True):
-                st.markdown('<div class="viz-title">🎯 漏洞风险矩阵：CVSS 严重度 × EPSS 利用概率</div>', unsafe_allow_html=True)
-                st.caption("右上角 = 又严重又容易被打，最危险 | 圆圈大小 = 置信度")
+            # 表格
+            df_data = []
+            for v in filtered:
+                conf = v.get("confidence", {})
+                conf_badge = {
+                    "高": "🟢 高",
+                    "中": "🟡 中",
+                    "低": "🔴 低"
+                }.get(conf.get("level", ""), "⚪ 未知")
 
-                scatter_data = []
-                for v in vulns:
-                    cvss = v.get("cvss_score", 0)
-                    epss = v.get("epss_score", 0)
-                    if cvss > 0:
-                        conf_w = {"高": 3, "中": 2, "低": 1}.get(v.get("confidence", {}).get("level", "低"), 1)
-                        scatter_data.append({
-                            "CVSS 分数": cvss,
-                            "EPSS 利用概率": epss * 100,
-                            "严重程度": v.get("severity", "未知"),
-                            "置信权重": conf_w * 30,
-                            "组件": v.get("package", ""),
-                            "CVE": v.get("cve_id", ""),
-                        })
+                epss = v.get("epss_score", 0)
+                epss_str = f"**{epss:.1%}**" if epss > 0.1 else (f"{epss:.1%}" if epss > 0 else "N/A")
 
-                if scatter_data:
-                    scatter_df = pd.DataFrame(scatter_data)
-                    # 颜色映射
-                    color_map = {"严重": "#c0392b", "高危": "#e74c3c", "中危": "#f39c12", "低危": "#27ae60", "未知": "#95a5a6"}
-                    scatter_df["颜色"] = scatter_df["严重程度"].map(color_map)
+                df_data.append({
+                    "优先级": v.get("fix_priority", {}).get("label", "未知"),
+                    "CVE 编号": v["cve_id"],
+                    "组件": v["package"],
+                    "版本": v["version"],
+                    "版本依据": "⚠️ 下限推断" if v.get("version_basis") == "lower_bound" else "精确锁定",
+                    "层级": "🔸 间接" if v.get("is_transitive") else "🔹 直接",
+                    "生态": v.get("ecosystem", "PyPI"),
+                    "风险等级": v["severity"],
+                    "CVSS": v["cvss_score"],
+                    "置信度": conf_badge,
+                    "EPSS": epss_str,
+                    "修复版本": v.get("fixed_version", "未知"),
+                })
 
-                    st.scatter_chart(
-                        scatter_df,
-                        x="CVSS 分数",
-                        y="EPSS 利用概率",
-                        x_label="CVSS 分数（越高越危险）",
-                        y_label="EPSS 利用概率 %（越高越容易被攻击）",
-                        size="置信权重",
-                        color="颜色",
-                        width="stretch",
-                    )
+            st.dataframe(
+                pd.DataFrame(df_data),
+                width="stretch",
+                height=450,
+                column_config={
+                    "优先级": st.column_config.TextColumn(width="small"),
+                    "CVSS": st.column_config.NumberColumn(width="small"),
+                    "层级": st.column_config.TextColumn(width="small"),
+                    "版本依据": st.column_config.TextColumn(width="small"),
+                    "置信度": st.column_config.TextColumn(width="small"),
+                    "EPSS": st.column_config.TextColumn(width="small"),
+                }
+            )
+        else:
+            st.success("🎉 未检测到已知漏洞，项目依赖安全状况良好。")
 
-            # ---- 第三行：Top 依赖漏洞数 + 修复优先级分布 ----
-            viz_col3, viz_col4 = st.columns(2)
+    # ===== Tab 2: 漏洞详情与证据 =====
+    with tab2:
+        if vulns:
+            st.markdown("### 🔍 漏洞详情与证据溯源")
+            st.caption("展开查看每个漏洞的完整证据链，包括 NVD/GitHub 官方链接")
 
-            with viz_col3:
-                with st.container(border=True):
-                    st.markdown('<div class="viz-title">🔝 漏洞最多的依赖包</div>', unsafe_allow_html=True)
-                    pkg_counts = {}
-                    for v in vulns:
-                        pkg = v.get("package", "未知")
-                        pkg_counts[pkg] = pkg_counts.get(pkg, 0) + 1
-                    top_pkgs = sorted(pkg_counts.items(), key=lambda x: x[1], reverse=True)[:8]
-                    # 转置为单行多列
-                    pkg_data = {p[0]: [p[1]] for p in top_pkgs}
-                    pkg_df = pd.DataFrame(pkg_data)
-                    st.bar_chart(pkg_df, width="stretch")
+            # 只显示前 20 条高危/高置信度的
+            display_vulns = sorted(vulns, key=lambda v: (
+                v.get("fix_priority", {}).get("priority", 5),
+                -v["cvss_score"]
+            ))[:20]
 
-            with viz_col4:
-                with st.container(border=True):
-                    st.markdown('<div class="viz-title">🔧 修复优先级分布</div>', unsafe_allow_html=True)
-                    priority_labels = ["立即修复", "尽快修复", "计划修复", "关注即可", "低优先"]
-                    pri_counts = {label: 0 for label in priority_labels}
-                    label_map = {
-                        "🔴 立即修复": "立即修复", "🟠 尽快修复": "尽快修复",
-                        "🟡 计划修复": "计划修复", "🟢 关注即可": "关注即可",
-                        "⚪ 低优先": "低优先"
+            for i, v in enumerate(display_vulns, 1):
+                conf = v.get("confidence", {})
+                fp = v.get("fix_priority", {})
+                epss = v.get("epss_score", 0)
+                is_exploited = v.get("is_actively_exploited")
+
+                # 展开面板标题
+                dep_layer = "🔸间接" if v.get("is_transitive") else "🔹直接"
+                exp_title = (
+                    f"{fp.get('label', '')} | {v['cve_id']} | "
+                    f"{v['package']} {v['version']} [{dep_layer}] | "
+                    f"CVSS {v['cvss_score']} | "
+                    f"置信度 {conf.get('level', '?')}"
+                )
+
+                with st.expander(exp_title, expanded=(i <= 3)):
+                    detail_col1, detail_col2 = st.columns([1, 1])
+
+                    with detail_col1:
+                        st.markdown(f"**CVE 编号**: {v['cve_id']}")
+                        st.markdown(f"**组件**: {v['package']} ({v.get('ecosystem', 'PyPI')})")
+                        if v.get("is_transitive"):
+                            st.markdown(
+                                f"**依赖层级**: 🔸 间接依赖（一层推断"
+                                f"{'，来自 ' + v['transitive_from'] if v.get('transitive_from') else ''}）"
+                            )
+                        else:
+                            st.markdown("**依赖层级**: 🔹 直接依赖")
+                        if v.get("version_basis") == "lower_bound":
+                            st.markdown(
+                                f"**当前版本**: {v['version']} ⚠️（声明下限，实际可能更高）"
+                            )
+                        else:
+                            st.markdown(f"**当前版本**: {v['version']}")
+                        st.markdown(f"**修复版本**: {v.get('fixed_version', '未知')}")
+                        st.markdown(f"**CWE 类型**: {v.get('cwe_id', '未知')}")
+
+                        st.divider()
+                        st.markdown("**评分详情**")
+                        st.markdown(f"- CVSS 分数: **{v['cvss_score']}** ({v.get('score_source', '')})")
+                        st.markdown(f"- 分数类型: {'✅ 精确' if v.get('score_type') == 'exact' else '⚠️ 估算'}")
+                        st.markdown(f"- EPSS 利用概率: **{epss:.2%}**")
+                        if is_exploited:
+                            st.warning("⚠️ 该漏洞存在活跃野外利用风险！")
+                        st.markdown(f"- EPSS 百分位: 前 {v.get('epss_percentile', 0):.1f}%")
+
+                    with detail_col2:
+                        st.markdown("**置信度评估**")
+                        st.markdown(f"{conf.get('badge', '')} **{conf.get('level', '')}** 级置信度")
+                        st.caption(conf.get('detail', ''))
+                        if v.get("divergent"):
+                            st.warning("⚠️ 源间分歧：多个漏洞库评分差异较大，本结果分数已采信 NVD。")
+
+                        st.divider()
+                        st.markdown("**修复建议**")
+                        st.markdown(f"优先级: {fp.get('label', '')}")
+                        st.markdown(f"紧急程度: {fp.get('urgency', '')}")
+                        if v.get('fixed_version', '未知') != '未知':
+                            st.markdown(f"升级到: `{v['package']}=={v['fixed_version']}`")
+
+                        st.divider()
+                        st.markdown("**📎 证据来源**")
+                        for link in v.get("evidence_links", []):
+                            st.markdown(f"- [{link['label']}]({link['url']})")
+
+                    # 漏洞描述
+                    if v.get("summary"):
+                        st.caption(f"描述: {v['summary'][:250]}")
+
+        else:
+            st.success("无漏洞记录")
+
+    # ===== Tab 3: 一键修复方案（v3.1 新增）=====
+    with tab3:
+        st.markdown("### 🔧 一键修复方案")
+        st.caption("自动汇总所有可修复漏洞，生成升级后的 requirements.txt，一个包多个修复版本冲突时取最高。")
+
+        if not vulns:
+            st.success("🎉 未检测到漏洞，无需修复。")
+        elif st.button("⚙️ 生成修复方案", type="primary"):
+            from modules.vulnerability import generate_fix_plan
+
+            fix_plan = generate_fix_plan(vulns)
+            fix_map = fix_plan["fix_map"]
+            unfixable = fix_plan["unfixable"]
+
+            if fix_map:
+                st.markdown(f"#### 📋 升级清单（{len(fix_map)} 个包）")
+                plan_df = pd.DataFrame([
+                    {
+                        "包名": pkg,
+                        "当前版本": info["current"],
+                        "升级到": f"≥ {info['target']}",
+                        "关联漏洞": ", ".join(info["cve_ids"]),
+                        "最高风险": info["severity"],
                     }
-                    for v in vulns:
-                        raw = v.get("fix_priority", {}).get("label", "低优先")
-                        clean = label_map.get(raw, "低优先")
-                        if clean in pri_counts:
-                            pri_counts[clean] += 1
-                    pri_df = pd.DataFrame({
-                        "立即修复": [pri_counts["立即修复"]],
-                        "尽快修复": [pri_counts["尽快修复"]],
-                        "计划修复": [pri_counts["计划修复"]],
-                        "关注即可": [pri_counts["关注即可"]],
-                        "低优先": [pri_counts["低优先"]],
-                    })
-                    st.bar_chart(pri_df, width="stretch",
-                                 color=["#c0392b", "#e74c3c", "#f39c12", "#27ae60", "#95a5a6"])
+                    for pkg, info in fix_map.items()
+                ])
+                st.dataframe(plan_df, width="stretch", height=min(420, 36 + 35 * len(plan_df)))
 
-            st.divider()
+                # 生成修改后的 requirements.txt
+                req_path = st.session_state.get("req_file_path")
+                fixed_content = _build_fixed_requirements(req_path, fix_map, dep_list)
 
-        # ===== 标签页 =====
-        tab1, tab2, tab3, tab4 = st.tabs([
-            "📊 漏洞研判结果", "🔍 漏洞详情与证据", "🔧 修复方案", "📄 报告导出"
-        ])
+                st.markdown("#### 📥 下载修改后的 requirements.txt")
+                st.caption("直接依赖已按修复版本升级（`>=修复版本`），间接依赖版本为推断值、不写入生成文件。")
+                st.download_button(
+                    "📥 下载 requirements_fixed.txt",
+                    fixed_content.encode("utf-8"),
+                    "requirements_fixed.txt",
+                    "text/plain",
+                    width="stretch",
+                )
 
-        # ===== Tab 1: 漏洞研判结果 =====
-        with tab1:
-            if vulns:
-                st.markdown(f"### 共检测到 {len(vulns)} 个已知漏洞")
+                with st.expander("👀 预览修改后的 requirements.txt"):
+                    st.code(fixed_content, language="text")
+            else:
+                st.info("没有可自动修复的漏洞。")
 
-                # 筛选器
-                filt_col1, filt_col2, filt_col3 = st.columns(3)
-                with filt_col1:
-                    sev_filter = st.multiselect(
-                        "风险等级", ["严重", "高危", "中危", "低危", "未知"],
-                        default=["严重", "高危", "中危"]
-                    )
-                with filt_col2:
-                    conf_filter = st.multiselect(
-                        "置信度", ["高", "中", "低"],
-                        default=["高", "中"]
-                    )
-                with filt_col3:
-                    priority_filter = st.multiselect(
-                        "修复优先级",
-                        ["🔴 立即修复", "🟠 尽快修复", "🟡 计划修复", "🟢 关注即可", "⚪ 低优先"],
-                        default=["🔴 立即修复", "🟠 尽快修复"]
-                    )
-
-                # 过滤
-                filtered = vulns
-                if sev_filter:
-                    filtered = [v for v in filtered if v["severity"] in sev_filter]
-                if conf_filter:
-                    filtered = [v for v in filtered if v.get("confidence", {}).get("level") in conf_filter]
-                if priority_filter:
-                    filtered = [v for v in filtered if v.get("fix_priority", {}).get("label") in priority_filter]
-
-                st.caption(f"当前显示 {len(filtered)} / {len(vulns)} 条（按修复优先级排序）")
-
-                # 表格
-                df_data = []
-                for v in filtered:
-                    conf = v.get("confidence", {})
-                    conf_badge = {
-                        "高": "🟢 高",
-                        "中": "🟡 中",
-                        "低": "🔴 低"
-                    }.get(conf.get("level", ""), "⚪ 未知")
-
-                    epss = v.get("epss_score", 0)
-                    epss_str = f"**{epss:.1%}**" if epss > 0.1 else (f"{epss:.1%}" if epss > 0 else "N/A")
-
-                    df_data.append({
-                        "优先级": v.get("fix_priority", {}).get("label", "未知"),
+            if unfixable:
+                st.markdown(f"#### ⚠️ 暂无官方修复版本（{len(unfixable)} 个漏洞）")
+                unfixable_df = pd.DataFrame([
+                    {
                         "CVE 编号": v["cve_id"],
                         "组件": v["package"],
-                        "版本": v["version"],
-                        "版本依据": "⚠️ 下限推断" if v.get("version_basis") == "lower_bound" else "精确锁定",
+                        "当前版本": v["version"],
                         "层级": "🔸 间接" if v.get("is_transitive") else "🔹 直接",
-                        "生态": v.get("ecosystem", "PyPI"),
                         "风险等级": v["severity"],
-                        "CVSS": v["cvss_score"],
-                        "置信度": conf_badge,
-                        "EPSS": epss_str,
-                        "修复版本": v.get("fixed_version", "未知"),
-                    })
-
-                st.dataframe(
-                    pd.DataFrame(df_data),
-                    width="stretch",
-                    height=450,
-                    column_config={
-                        "优先级": st.column_config.TextColumn(width="small"),
-                        "CVSS": st.column_config.NumberColumn(width="small"),
-                        "层级": st.column_config.TextColumn(width="small"),
-                        "版本依据": st.column_config.TextColumn(width="small"),
-                        "置信度": st.column_config.TextColumn(width="small"),
-                        "EPSS": st.column_config.TextColumn(width="small"),
+                        "建议": "关注上游项目安全公告，等待官方补丁",
                     }
-                )
-            else:
-                st.success("🎉 未检测到已知漏洞，项目依赖安全状况良好。")
+                    for v in unfixable
+                ])
+                st.dataframe(unfixable_df, width="stretch")
 
-        # ===== Tab 2: 漏洞详情与证据 =====
-        with tab2:
-            if vulns:
-                st.markdown("### 🔍 漏洞详情与证据溯源")
-                st.caption("展开查看每个漏洞的完整证据链，包括 NVD/GitHub 官方链接")
+    # ===== Tab 4: 报告导出 =====
+    with tab4:
+        st.markdown("### 📄 生成审计报告")
 
-                # 只显示前 20 条高危/高置信度的
-                display_vulns = sorted(vulns, key=lambda v: (
-                    v.get("fix_priority", {}).get("priority", 5),
-                    -v["cvss_score"]
-                ))[:20]
+        rep_col1, rep_col2 = st.columns(2)
+        with rep_col1:
+            report_format = st.radio("选择报告格式", ["DOCX (正式审计报告)", "PDF (精简报告)"])
 
-                for i, v in enumerate(display_vulns, 1):
-                    conf = v.get("confidence", {})
-                    fp = v.get("fix_priority", {})
-                    epss = v.get("epss_score", 0)
-                    is_exploited = v.get("is_actively_exploited")
+        with rep_col2:
+            st.info(
+                "📋 报告包含：扫描摘要、漏洞清单（含置信度/EPSS/优先级）、"
+                "证据溯源链接、修复建议"
+            )
 
-                    # 展开面板标题
-                    dep_layer = "🔸间接" if v.get("is_transitive") else "🔹直接"
-                    exp_title = (
-                        f"{fp.get('label', '')} | {v['cve_id']} | "
-                        f"{v['package']} {v['version']} [{dep_layer}] | "
-                        f"CVSS {v['cvss_score']} | "
-                        f"置信度 {conf.get('level', '?')}"
-                    )
+        if st.button("📝 生成并下载报告", type="primary"):
+            with st.spinner("正在生成报告..."):
+                from modules import report as report_gen
 
-                    with st.expander(exp_title, expanded=(i <= 3)):
-                        detail_col1, detail_col2 = st.columns([1, 1])
+                if "DOCX" in report_format:
+                    try:
+                        path = report_gen.generate_docx_report(result, result["sbom"])
+                        mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        with open(path, "rb") as f:
+                            st.download_button(
+                                "📥 下载 DOCX 审计报告", f.read(),
+                                os.path.basename(path), mime, width="stretch"
+                            )
+                        st.success(f"✅ 报告已生成：`{path}`")
+                    except Exception as e:
+                        st.error(f"DOCX 生成失败：{e}")
 
-                        with detail_col1:
-                            st.markdown(f"**CVE 编号**: {v['cve_id']}")
-                            st.markdown(f"**组件**: {v['package']} ({v.get('ecosystem', 'PyPI')})")
-                            if v.get("is_transitive"):
-                                st.markdown(
-                                    f"**依赖层级**: 🔸 间接依赖（一层推断"
-                                    f"{'，来自 ' + v['transitive_from'] if v.get('transitive_from') else ''}）"
-                                )
-                            else:
-                                st.markdown("**依赖层级**: 🔹 直接依赖")
-                            if v.get("version_basis") == "lower_bound":
-                                st.markdown(
-                                    f"**当前版本**: {v['version']} ⚠️（声明下限，实际可能更高）"
-                                )
-                            else:
-                                st.markdown(f"**当前版本**: {v['version']}")
-                            st.markdown(f"**修复版本**: {v.get('fixed_version', '未知')}")
-                            st.markdown(f"**CWE 类型**: {v.get('cwe_id', '未知')}")
-
-                            st.divider()
-                            st.markdown("**评分详情**")
-                            st.markdown(f"- CVSS 分数: **{v['cvss_score']}** ({v.get('score_source', '')})")
-                            st.markdown(f"- 分数类型: {'✅ 精确' if v.get('score_type') == 'exact' else '⚠️ 估算'}")
-                            st.markdown(f"- EPSS 利用概率: **{epss:.2%}**")
-                            if is_exploited:
-                                st.warning("⚠️ 该漏洞存在活跃野外利用风险！")
-                            st.markdown(f"- EPSS 百分位: 前 {v.get('epss_percentile', 0):.1f}%")
-
-                        with detail_col2:
-                            st.markdown("**置信度评估**")
-                            st.markdown(f"{conf.get('badge', '')} **{conf.get('level', '')}** 级置信度")
-                            st.caption(conf.get('detail', ''))
-                            if v.get("divergent"):
-                                st.warning("⚠️ 源间分歧：多个漏洞库评分差异较大，本结果分数已采信 NVD。")
-
-                            st.divider()
-                            st.markdown("**修复建议**")
-                            st.markdown(f"优先级: {fp.get('label', '')}")
-                            st.markdown(f"紧急程度: {fp.get('urgency', '')}")
-                            if v.get('fixed_version', '未知') != '未知':
-                                st.markdown(f"升级到: `{v['package']}=={v['fixed_version']}`")
-
-                            st.divider()
-                            st.markdown("**📎 证据来源**")
-                            for link in v.get("evidence_links", []):
-                                st.markdown(f"- [{link['label']}]({link['url']})")
-
-                        # 漏洞描述
-                        if v.get("summary"):
-                            st.caption(f"描述: {v['summary'][:250]}")
-
-            else:
-                st.success("无漏洞记录")
-
-        # ===== Tab 3: 一键修复方案（v3.1 新增）=====
-        with tab3:
-            st.markdown("### 🔧 一键修复方案")
-            st.caption("自动汇总所有可修复漏洞，生成升级后的 requirements.txt，一个包多个修复版本冲突时取最高。")
-
-            if not vulns:
-                st.success("🎉 未检测到漏洞，无需修复。")
-            elif st.button("⚙️ 生成修复方案", type="primary"):
-                from modules.vulnerability import generate_fix_plan
-
-                fix_plan = generate_fix_plan(vulns)
-                fix_map = fix_plan["fix_map"]
-                unfixable = fix_plan["unfixable"]
-
-                if fix_map:
-                    st.markdown(f"#### 📋 升级清单（{len(fix_map)} 个包）")
-                    plan_df = pd.DataFrame([
-                        {
-                            "包名": pkg,
-                            "当前版本": info["current"],
-                            "升级到": f"≥ {info['target']}",
-                            "关联漏洞": ", ".join(info["cve_ids"]),
-                            "最高风险": info["severity"],
-                        }
-                        for pkg, info in fix_map.items()
-                    ])
-                    st.dataframe(plan_df, width="stretch", height=min(420, 36 + 35 * len(plan_df)))
-
-                    # 生成修改后的 requirements.txt
-                    req_path = st.session_state.get("req_file_path")
-                    fixed_content = _build_fixed_requirements(req_path, fix_map, dep_list)
-
-                    st.markdown("#### 📥 下载修改后的 requirements.txt")
-                    st.caption("直接依赖已按修复版本升级（`>=修复版本`），间接依赖版本为推断值、不写入生成文件。")
-                    st.download_button(
-                        "📥 下载 requirements_fixed.txt",
-                        fixed_content.encode("utf-8"),
-                        "requirements_fixed.txt",
-                        "text/plain",
-                        width="stretch",
-                    )
-
-                    with st.expander("👀 预览修改后的 requirements.txt"):
-                        st.code(fixed_content, language="text")
-                else:
-                    st.info("没有可自动修复的漏洞。")
-
-                if unfixable:
-                    st.markdown(f"#### ⚠️ 暂无官方修复版本（{len(unfixable)} 个漏洞）")
-                    unfixable_df = pd.DataFrame([
-                        {
-                            "CVE 编号": v["cve_id"],
-                            "组件": v["package"],
-                            "当前版本": v["version"],
-                            "层级": "🔸 间接" if v.get("is_transitive") else "🔹 直接",
-                            "风险等级": v["severity"],
-                            "建议": "关注上游项目安全公告，等待官方补丁",
-                        }
-                        for v in unfixable
-                    ])
-                    st.dataframe(unfixable_df, width="stretch")
-
-        # ===== Tab 4: 报告导出 =====
-        with tab4:
-            st.markdown("### 📄 生成审计报告")
-
-            rep_col1, rep_col2 = st.columns(2)
-            with rep_col1:
-                report_format = st.radio("选择报告格式", ["DOCX (正式审计报告)", "PDF (精简报告)"])
-
-            with rep_col2:
-                st.info(
-                    "📋 报告包含：扫描摘要、漏洞清单（含置信度/EPSS/优先级）、"
-                    "证据溯源链接、修复建议"
-                )
-
-            if st.button("📝 生成并下载报告", type="primary"):
-                with st.spinner("正在生成报告..."):
-                    from modules import report as report_gen
-
-                    if "DOCX" in report_format:
-                        try:
-                            path = report_gen.generate_docx_report(result, result["sbom"])
-                            mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                            with open(path, "rb") as f:
-                                st.download_button(
-                                    "📥 下载 DOCX 审计报告", f.read(),
-                                    os.path.basename(path), mime, width="stretch"
-                                )
-                            st.success(f"✅ 报告已生成：`{path}`")
-                        except Exception as e:
-                            st.error(f"DOCX 生成失败：{e}")
-
-                    if "PDF" in report_format:
-                        try:
-                            path = report_gen.generate_pdf_report(result, result["sbom"])
-                            mime = "application/pdf"
-                            with open(path, "rb") as f:
-                                st.download_button(
-                                    "📥 下载 PDF 报告", f.read(),
-                                    os.path.basename(path), mime, width="stretch"
-                                )
-                            st.success(f"✅ 报告已生成：`{path}`")
-                        except Exception as e:
-                            st.error(f"PDF 生成失败：{e}")
-
-    # ---- 初始状态 ----
-    elif not st.session_state.scan_done:
-        st.info("👈 请在左侧上传文件并点击「开始安全扫描」")
-
-        intro_col1, intro_col2 = st.columns([1.25, 1])
-
-        with intro_col1:
-            with st.container(border=True):
-                st.markdown('<div class="viz-title">🔍 本系统做什么</div>', unsafe_allow_html=True)
-                st.markdown("""
-                输入 Python 项目，输出**可验证**的漏洞研判结果：
-
-                | 步骤 | 做什么 | 怎么验证 |
-                |------|--------|----------|
-                | 1️⃣ 解析 | 提取项目所有依赖包和版本 | 对照 requirements.txt |
-                | 2️⃣ 查询 | OSV + NVD + GitHub 检索 | NVD 官方链接直达 |
-                | 3️⃣ 研判 | 置信度评级 + EPSS 利用预测 + 修复优先级 | 每个结论有据可查 |
-                """)
-
-        with intro_col2:
-            with st.container(border=True):
-                st.markdown('<div class="viz-title">✨ 和普通工具有什么不同</div>', unsafe_allow_html=True)
-                st.markdown("""
-                - ❌ 普通工具：列一堆 CVE，不知道真假
-                - ✅ 本系统：**每个漏洞都有置信度评级和 NVD 官方链接**
-                - 🔧 还支持：间接依赖检测、一键修复方案
-                """)
-
-        st.markdown("### 📈 后续升级方向")
-        st.markdown("- npm/Maven 多生态支持 → 许可证合规检测 → CI/CD 自动扫描 → Skill 技能包安全检测（已上线，见页面底部）")
+                if "PDF" in report_format:
+                    try:
+                        path = report_gen.generate_pdf_report(result, result["sbom"])
+                        mime = "application/pdf"
+                        with open(path, "rb") as f:
+                            st.download_button(
+                                "📥 下载 PDF 报告", f.read(),
+                                os.path.basename(path), mime, width="stretch"
+                            )
+                        st.success(f"✅ 报告已生成：`{path}`")
+                    except Exception as e:
+                        st.error(f"PDF 生成失败：{e}")
 
 
-    # ==========================================
-    # Skill 安全检测辅助函数（2026-09-09 新增，定义在使用之前）
-    # ==========================================
-    def _extract_skill_zip(zip_bytes: bytes, dest: str) -> str:
-        """安全解压技能包 zip：拒绝路径穿越（zip slip），返回技能包根目录"""
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-            for info in zf.infolist():
-                name = info.filename.replace("\\", "/")
-                if name.startswith("/") or ".." in name.split("/"):
-                    raise ValueError(f"压缩包含非法路径，已拒绝解压：{info.filename}")
-            zf.extractall(dest)
-        # 若顶层只有一个目录且无 SKILL.md，进入该目录（GitHub 下载的 zip 常见结构）
-        skill_md = os.path.join(dest, "SKILL.md")
-        if not os.path.isfile(skill_md):
-            entries = [e for e in os.listdir(dest) if os.path.isdir(os.path.join(dest, e))]
-            if len(entries) == 1 and os.path.isfile(os.path.join(dest, entries[0], "SKILL.md")):
-                return os.path.join(dest, entries[0])
-        return dest
+# ==========================================
+# Skill 安全检测辅助函数（2026-09-09 新增，定义在使用之前）
+# ==========================================
+def _extract_skill_zip(zip_bytes: bytes, dest: str) -> str:
+    """安全解压技能包 zip：拒绝路径穿越（zip slip），返回技能包根目录"""
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+        for info in zf.infolist():
+            name = info.filename.replace("\\", "/")
+            if name.startswith("/") or ".." in name.split("/"):
+                raise ValueError(f"压缩包含非法路径，已拒绝解压：{info.filename}")
+        zf.extractall(dest)
+    # 若顶层只有一个目录且无 SKILL.md，进入该目录（GitHub 下载的 zip 常见结构）
+    skill_md = os.path.join(dest, "SKILL.md")
+    if not os.path.isfile(skill_md):
+        entries = [e for e in os.listdir(dest) if os.path.isdir(os.path.join(dest, e))]
+        if len(entries) == 1 and os.path.isfile(os.path.join(dest, entries[0], "SKILL.md")):
+            return os.path.join(dest, entries[0])
+    return dest
 
 
-    def _run_skill_scan(zip_bytes: bytes | None = None, text: str | None = None,
-                        demo: bool = False):
-        """静态规则引擎检测，结果写入 session_state 后刷新页面"""
-        from modules import skill_scanner as ss
+def _run_skill_scan(zip_bytes: bytes | None = None, text: str | None = None,
+                    demo: bool = False):
+    """静态规则引擎检测，结果写入 session_state 后刷新页面"""
+    from modules import skill_scanner as ss
 
-        tmp_dir = tempfile.mkdtemp(prefix="skill_scan_")
-        try:
-            if demo:
-                root = ss.make_demo_package(tmp_dir)
-                result = ss.scan_skill_package(root)
-                skill_md = os.path.join(root, "SKILL.md")
+    tmp_dir = tempfile.mkdtemp(prefix="skill_scan_")
+    try:
+        if demo:
+            root = ss.make_demo_package(tmp_dir)
+            result = ss.scan_skill_package(root)
+            skill_md = os.path.join(root, "SKILL.md")
+            with open(skill_md, encoding="utf-8", errors="ignore") as f:
+                skill_text = f.read()
+        elif zip_bytes is not None:
+            root = _extract_skill_zip(zip_bytes, tmp_dir)
+            result = ss.scan_skill_package(root)
+            skill_text = ""
+            skill_md = os.path.join(root, "SKILL.md")
+            if os.path.isfile(skill_md):
                 with open(skill_md, encoding="utf-8", errors="ignore") as f:
                     skill_text = f.read()
-            elif zip_bytes is not None:
-                root = _extract_skill_zip(zip_bytes, tmp_dir)
-                result = ss.scan_skill_package(root)
-                skill_text = ""
-                skill_md = os.path.join(root, "SKILL.md")
-                if os.path.isfile(skill_md):
-                    with open(skill_md, encoding="utf-8", errors="ignore") as f:
-                        skill_text = f.read()
-            else:
-                result = ss.scan_skill_text("", text or "")
-                skill_text = text or ""
-        except Exception as e:
-            st.error(f"❌ Skill 检测失败：{e}")
-            return
-        finally:
-            shutil.rmtree(tmp_dir, ignore_errors=True)
+        else:
+            result = ss.scan_skill_text("", text or "")
+            skill_text = text or ""
+    except Exception as e:
+        st.error(f"❌ Skill 检测失败：{e}")
+        return
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
-        st.session_state.skill_result = result
-        st.rerun()
+    st.session_state.skill_result = result
+    st.rerun()
 
 
-    # ==========================================
-    # Skill 安全检测区（独立功能，不依赖依赖扫描结果）
-
+# ==========================================
 # ===== 功能 B：Agent Skill 安全检测 =====
 if current_view == VIEW_MAIN:
     # ==========================================
@@ -1336,6 +1314,36 @@ if current_view == VIEW_MAIN:
         "造成 24.7 万次安装，Snyk 审计发现 36.82% 的技能含提示注入。"
         "本功能基于静态规则引擎对技能包做确定性检测，命中即给出原文行号作为证据。"
     )
+
+    # ---- 系统引导（2026-10-26 聚焦化：原依赖视图的引导页移到这里并重写）----
+    intro_col1, intro_col2 = st.columns([1.25, 1])
+
+    with intro_col1:
+        with st.container(border=True):
+            st.markdown('<div class="viz-title">🔍 本系统解决什么问题</div>',
+                        unsafe_allow_html=True)
+            st.markdown("""
+            Agent Skills 已成为新型软件供应链攻击面。传统工具只做**单点**判定——
+            告诉你「这个技能有提示注入」，却答不出「**这些技能凑在一起会怎样**」。
+
+            本系统两步走：
+
+            | 步骤 | 做什么 | 怎么验证 |
+            |------|--------|----------|
+            | 1️⃣ 单点检测 | 32 条规则扫技能包，命中即给原文行号 | 对照 SKILL.md 逐行核对 |
+            | 2️⃣ 组合分析 | 把技能拆成 6 类危险能力，找跨技能攻击链 | 每条链路可回溯到行号 |
+            """)
+
+    with intro_col2:
+        with st.container(border=True):
+            st.markdown('<div class="viz-title">✨ 和普通工具有什么不同</div>',
+                        unsafe_allow_html=True)
+            st.markdown("""
+            - ❌ 普通工具：列一堆命中项，不知道真实危害
+            - ✅ 本系统：**给出可核验的攻击链 + 真实危害 + 处置建议**
+            - 🔗 还能把传统依赖漏洞作为**依赖侧节点**接入同一张资产图谱
+            - 🤖 AI 只做汇总与处置建议，**不参与判定**（结论可复现）
+            """)
 
     skill_col1, skill_col2 = st.columns(2)
 
@@ -1540,12 +1548,12 @@ if current_view == VIEW_MAIN:
     # ==========================================
     # 攻击链关联分析区（2026-10-15 新增 · 项目核心创新）
 
-# ===== 功能 C：跨技能攻击链关联 =====
+# ===== 功能 C：组合风险分析 =====
 if current_view == VIEW_CHAIN:
     # ==========================================
     st.divider()
     st.markdown('<div id="chain-section"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">🔗 跨技能攻击链关联分析</div>',
+    st.markdown('<div class="section-title">🔗 组合风险分析</div>',
                 unsafe_allow_html=True)
     st.caption(
         "传统工具只能逐个判定单点风险等级。本功能建立「能力图」，"
@@ -1609,7 +1617,7 @@ if current_view == VIEW_CHAIN:
             st.markdown("**🎬 演示：三个「无害」技能如何组成攻击链**")
             st.caption("三个技能单看判定分别为低危 / 中危 / 高危，"
                        "传统工具到此为止；关联后识别出完整的凭据外泄链路。")
-            if st.button("🔗 运行跨技能攻击链演示", type="primary",
+            if st.button("🔗 运行组合风险分析演示", type="primary",
                          key="chain_demo_btn", width="stretch"):
                 _run_chain_demo()
             st.caption("💡 答辩建议：先点左边的演示，再指出页面下方的"
@@ -1785,7 +1793,7 @@ if current_view == VIEW_CHAIN:
                 st.markdown("**🕸️ 资产图谱 · 统一资产视图**")
                 st.caption("把传统依赖包、AI Agent 技能、MCP 工具统一建模为资产节点，"
                            "关系建成边。这是赛题 1 要求 RDS 承载的数据模型，"
-                           "也是「双链」（传统供应链 + AI 供应链）的数据基础。")
+                           "也是把传统依赖与 AI 技能统一到一张图上的数据基础。")
                 if st.button("生成资产图谱", key="graph_btn",
                              width="stretch"):
                     st.session_state.asset_graph = ag.build_graph(
@@ -1865,6 +1873,17 @@ if current_view == VIEW_CHAIN:
                             )
 
 
+
+    # ---- 依赖侧证据（可选附加）----
+    # 原「依赖漏洞扫描」独立视图降级而来。传统依赖漏洞不再作为并列功能，
+    # 而是作为资产图谱里的「依赖侧节点」，与技能、工具节点合流参与组合分析。
+    with st.expander("📎 依赖侧证据：该项目的传统依赖漏洞（可选附加）",
+                     expanded=bool(st.session_state.get("scan_done"))):
+        if st.session_state.get("scan_done") and st.session_state.get("result"):
+            _render_dep_evidence()
+        else:
+            st.info("尚未扫描依赖侧证据。在左侧「📎 依赖侧证据（可选）」中"
+                    "上传项目包并点击「开始安全扫描」，结果会显示在这里。")
 
 # ===== 功能 D：离线演示模式 =====
 if current_view == VIEW_DEMO:
