@@ -24,9 +24,9 @@
 
 停止服务：终端里按 ``Ctrl+C``，或直接关闭这个终端窗口。
 
-实现说明：可复用的启动机制都在 ``launcher.py`` 里，本文件只做
-「解析参数 + 组织流程 + 打印提示」。``快速运行.bat`` 内部调用的
-也是本文件，因此**启动逻辑只有一份**。
+实现说明：可复用的启动机制都在 ``launcher/`` 包里（output / env / net / proc
+四个子模块），本文件只做「解析参数 + 组织流程 + 打印提示」。
+``快速运行.bat`` 内部调用的也是本文件，因此**启动逻辑只有一份**。
 """
 
 from __future__ import annotations
@@ -38,31 +38,31 @@ import sys
 import time
 from typing import List, Optional, Tuple
 
-from launcher import (
+from launcher.const import (
     APP_TITLE,
     DEFAULT_PORT,
     LAUNCHER_ROOT,
     LauncherError,
     TOTAL_STEPS,
-    banner,
-    enable_line_buffering,
-    ensure_dependencies,
-    ensure_venv,
-    fail,
+)
+from launcher.env import ensure_dependencies, ensure_venv, python_version
+from launcher.net import (
     find_free_port,
     health_ok,
     kill_port_owner,
     lan_ip,
-    ok,
     open_browser,
     port_is_free,
-    python_version,
-    start_streamlit,
+)
+from launcher.output import (
+    banner,
+    enable_line_buffering,
+    fail,
+    ok,
     step_line,
-    stop_streamlit,
-    wait_until_ready,
     warn,
 )
+from launcher.proc import start_streamlit, stop_streamlit, wait_until_ready
 
 __all__ = [
     "main",
