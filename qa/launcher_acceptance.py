@@ -24,6 +24,12 @@
    不带 SO_REUSEADDR 的 bind**（start.py 的 port_is_free 已正确处理）。
 4. netstat 输出是 GBK 编码，用 subprocess 捕获时必须 decode("gbk")。
 5. 测试端口用 8765 等非 8501 端口，避免干扰工程师正在跑的实例。
+6. **Streamlit 冷启动要 10-30 秒**。所有「等服务起来」的断言必须用
+   **轮询 + 超时**，不能用固定 sleep —— 否则会在服务还没起来时就判 FAIL
+   （这是测试方法 Bug，不是产品缺陷）。
+7. 用 Popen 拉起 start.py 后，要**持续读取 stdout**（否则管道写满会死锁），
+   且必须用 CREATE_NEW_PROCESS_GROUP 之外的稳妥方式在 finally 里
+   连子进程一起杀干净。
 """
 
 from __future__ import annotations
@@ -31,9 +37,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -45,7 +53,13 @@ BAT = ROOT / "快速运行.bat"
 START_PY = ROOT / "start.py"
 
 # 测端口用的哑巴占用者端口（避开 8501）
-TEST_PORT = 8765
+#
+# ⚠️ 端口必须**每个进程实例唯一** —— 实测踩过：两���人同时跑验收脚本
+# （我和主理人各跑一份），固定端口 8765 会互相抢端口，
+# 一方的 kill_port_listeners 还会把另一方的服务杀掉，
+# 结果两边都误判 FAIL。所以这里按 PID 派生一个唯一端口。
+TEST_PORT_BASE = 8765
+TEST_PORT = TEST_PORT_BASE + (os.getpid() % 300)
 
 # 本机请求专用 opener：清空代理，否则 127.0.0.1 会被转发到代理服务器
 LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -60,16 +74,21 @@ class Result:
     def __init__(self, cid: str, name: str) -> None:
         self.cid = cid
         self.name = name
-        self.passed = False
+        self._failed = False
         self.evidence: List[str] = []
         self.error = ""
+
+    @property
+    def passed(self) -> bool:
+        """没有任何一条断言失败才算通过。"""
+        return not self._failed
 
     def check(self, condition: bool, detail: str) -> bool:
         """记录一条断言；返回是否通过（便于链式使用）。"""
         mark = "PASS" if condition else "FAIL"
         self.evidence.append(f"[{mark}] {detail}")
         if not condition:
-            self.passed = False
+            self._failed = True
         return condition
 
     def note(self, detail: str) -> None:
@@ -132,7 +151,14 @@ time.sleep(120)
 '''
     proc = subprocess.Popen([str(VENV_PY), "-c", code],
                             stdout=subprocess.PIPE, text=True)
-    proc.stdout.readline()                          # 等 HELD
+    # 必须确认真的拿到端口了 —— 端口被别人占时 bind 会抛异常，
+    # 进程直接退出、stdout 关闭，readline() 返回空串。
+    # 这里必须区分「拿到端口」和「bind 失败」，否则占用者根本没起来
+    # 却被当成「占用成功」，把后面所有断言带偏。
+    line = proc.stdout.readline()
+    if "HELD" not in (line or ""):
+        raise RuntimeError(
+            f"哑巴占用者没能占用 {addr}:{port}（可能已被其它进程占用）")
     time.sleep(0.3)
     return proc
 
@@ -143,21 +169,35 @@ def kill_pid(pid: int) -> None:
 
 
 def kill_port_listeners(port: int) -> None:
-    """杀掉监听指定端口的所有进程。"""
+    """杀掉监听指定端口的所有进程。
+
+    ⚠️ 只应用于**本进程实例专属**的测试端口（TEST_PORT 按 PID 派生），
+    绝不能拿去扫 8501 等公共端口 —— 那会杀掉别人的服务。
+    """
     for line in netstat_listening(port):
         parts = line.split()
         if parts:
             kill_pid(int(parts[-1]))
-    time.sleep(1.0)
+    # 等端口真正释放（taskkill 是异步的）
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        if not netstat_listening(port):
+            break
+        time.sleep(0.3)
 
 
 def run_cmd(cmd: List[str], cwd: Path = ROOT, timeout: int = 120,
             env: Optional[Dict[str, str]] = None) -> Tuple[int, str]:
-    """执行命令，返回 (returncode, 合并输出)。"""
+    """执行命令，返回 (returncode, 合并输出)。
+
+    stdin 必须接 DEVNULL —— 否则 .bat 里的 `pause` 会一直等按键，
+    把整个验收脚本挂死。
+    """
     try:
         proc = subprocess.run(cmd, cwd=str(cwd), capture_output=True,
                               text=True, timeout=timeout,
-                              encoding="utf-8", errors="replace", env=env)
+                              encoding="utf-8", errors="replace", env=env,
+                              stdin=subprocess.DEVNULL)
         return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
     except subprocess.TimeoutExpired as exc:
         out = (exc.stdout or b"")
@@ -181,6 +221,116 @@ def bat_line_endings(data: bytes) -> Tuple[int, int]:
 
 
 # ==========================================================
+# 轮询工具 —— 替代固定 sleep，等「服务真正就绪」
+# ==========================================================
+def wait_until(predicate: Callable[[], bool], timeout: float,
+               interval: float = 2.0) -> bool:
+    """轮询直到 predicate 为真或超时。
+
+    Streamlit 冷启动要 10-30 秒，用固定 sleep 会误判，
+    所以**一律用这个**。返回是否在超时前等到。
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(interval)
+    return predicate()
+
+
+def wait_for_health(port: int, timeout: float = 90.0,
+                    interval: float = 2.0) -> bool:
+    """轮询等待 /_stcore/health 返回 ok。"""
+    return wait_until(lambda: health_ok(port), timeout, interval)
+
+
+class Launcher:
+    """拉起 start.py 并持续收割 stdout，用完保证连子进程一起清干净。
+
+    ⚠️ 关键实现细节：**不能**用阻塞的 `stdout.readline()` 去等关键词。
+    readline() 在没有新输出时会一直阻塞，导致「超时检查」根本执行不到，
+    整个验收脚本被挂死（实测踩过）。
+    正确做法：起一个后台线程专门读 stdout，主线程只轮询缓冲区。
+    """
+
+    def __init__(self, args: List[str], env: Optional[Dict[str, str]] = None) -> None:
+        run_env = dict(os.environ)
+        run_env["BROWSER"] = "echo"          # 捕获浏览器实际打开的 URL
+        run_env["NO_PROXY"] = "127.0.0.1,localhost"
+        run_env["no_proxy"] = run_env["NO_PROXY"]
+        if env:
+            run_env.update(env)
+        self.proc = subprocess.Popen(
+            [str(VENV_PY), "start.py", *args],
+            cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace", env=run_env,
+            bufsize=1,
+        )
+        self._buf: List[str] = []
+        self._lock = threading.Lock()
+        self._reader = threading.Thread(target=self._read_loop, daemon=True)
+        self._reader.start()
+
+    def _read_loop(self) -> None:
+        """后台线程：不停把 stdout 读进缓冲区。"""
+        try:
+            for line in self.proc.stdout:
+                with self._lock:
+                    self._buf.append(line)
+        except (ValueError, OSError):
+            pass
+
+    @property
+    def output(self) -> str:
+        with self._lock:
+            return "".join(self._buf)
+
+    def pump(self, keywords: List[str], timeout: float = 120.0) -> str:
+        """等到出现任一关键词或超时。"""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            text = self.output
+            if any(k in text for k in keywords):
+                return text
+            if self.proc.poll() is not None:
+                # 进程已退出，再等一会儿看有没有残留输出
+                time.sleep(0.5)
+                return self.output
+            time.sleep(0.3)
+        return self.output
+
+    def read_all(self, seconds: float = 3.0) -> str:
+        """再等一会儿，让后续输出（服务就绪提示等）进缓冲区。"""
+        time.sleep(seconds)
+        return self.output
+
+    def alive(self) -> bool:
+        return self.proc.poll() is None
+
+    def close(self) -> None:
+        """结束进程并清掉它派生出来的 streamlit 子进程。"""
+        if self.proc.poll() is None:
+            self.proc.kill()
+            try:
+                self.proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                pass
+        # start.py 自己被 kill 后，streamlit 子进程会变孤儿，必须单独清
+        for port in range(TEST_PORT, TEST_PORT + 5):
+            kill_port_listeners(port)
+        try:
+            self.proc.stdout.close()
+        except Exception:                     # noqa: BLE001
+            pass
+
+    def __enter__(self) -> "Launcher":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+
+# ==========================================================
 # 用例
 # ==========================================================
 def case_a1_bat_encoding(res: Result) -> None:
@@ -195,13 +345,42 @@ def case_a1_bat_encoding(res: Result) -> None:
     res.check(bare_lf == 0, f"换行符：CRLF {crlf} 行，裸 LF {bare_lf} 行")
 
 
+def _make_bat_probe() -> Tuple[Path, str]:
+    """造一份「净化副本」：把有副作用 / 会阻塞的指令换成无害 echo。
+
+    需要处理三类：
+      - pause            —— 会等按键，stdin 接 DEVNULL 也可能挂住
+      - 拉起 start.py    —— 会真的开服务（只测退出码，不需要）
+      - 自举 cmd /c call —— 原样保留（这是被测结构的一部分）
+    返回 (副本路径, 说明)。
+    """
+    data = bat_bytes()
+    text = data.decode("utf-8-sig", errors="replace")
+    patched: List[str] = []
+    for line in text.splitlines():
+        low = line.lower().strip()
+        if low.startswith("cd /d"):
+            patched.append(f'cd /d "{ROOT}"')
+        elif "start.py" in low:
+            patched.append('echo [SANITIZED] start.py launch (skipped by QA)')
+        elif low.startswith("pause"):
+            patched.append('echo [SANITIZED] pause (skipped by QA)')
+        else:
+            patched.append(line)
+
+    tmp_dir = ROOT / "temp_upload" / "_qa_bat_probe"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    probe = tmp_dir / "probe.bat"
+    probe.write_bytes(("\r\n".join(patched) + "\r\n").encode("utf-8"))
+    return probe, "已在 temp_upload/_qa_bat_probe/probe.bat 生成净化副本"
+
+
 def case_a2_bat_cmd_parse(res: Result) -> None:
     """A2: .bat 能否被 cmd.exe 正常解析（无 BOM 语法错）。
 
     注意：**不能直接跑原 .bat** —— 它会真的拉起服务、开浏览器、还可能
-    卡在交互式 set /p 上。这里做一份「净化副本」：只把有副作用的三处
-    （拉服务 / 开浏览器 / 交互输入 / pause）换成无害的 echo，
-    其余全部原样保留，从而真实检验 cmd.exe 对该文件的解析结果。
+    卡在交互式 set /p 或 pause 上。这里跑净化副本（只把有副作用的几处
+    换成 echo），其余全部原样保留，从而真实检验 cmd.exe 对该文件的解析。
     """
     if not BAT.exists():
         res.check(False, f"文件不存在：{BAT}")
@@ -212,29 +391,10 @@ def case_a2_bat_cmd_parse(res: Result) -> None:
                          "'xxx 不是内部或外部命令'，双击必然出乱码错误")
         return
 
-    text = data.decode("utf-8-sig", errors="replace")
-    lines = text.splitlines()
-    patched: List[str] = []
-    for line in lines:
-        low = line.lower().strip()
-        if low.startswith('"%pyexe%" -m streamlit run'):
-            patched.append('echo [SANITIZED] streamlit run (skipped by QA)')
-        elif low.startswith("start \"\" /b cmd /c"):
-            patched.append('echo [SANITIZED] open browser (skipped by QA)')
-        elif low.startswith("pause"):
-            patched.append('echo [SANITIZED] pause (skipped by QA)')
-        elif "set /p" in low and "choice" in low:
-            patched.append('set "CHOICE=0"')
-        else:
-            patched.append(line)
-
-    tmp_dir = ROOT / "temp_upload" / "_qa_bat_probe"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-    probe = tmp_dir / "probe.bat"
-    probe.write_bytes(("\r\n".join(patched) + "\r\n").encode("utf-8"))
-
+    probe, note = _make_bat_probe()
+    res.note(note)
     try:
-        rc, out = run_cmd(["cmd", "/c", str(probe)], cwd=ROOT, timeout=60)
+        rc, out = run_cmd(["cmd", "/c", str(probe)], cwd=ROOT, timeout=120)
         bad = [ln for ln in out.splitlines()
                if "不是内部或外部命令" in ln or "不是可识别的" in ln
                or "命令语法不正确" in ln or "unexpected" in ln.lower()]
@@ -242,9 +402,9 @@ def case_a2_bat_cmd_parse(res: Result) -> None:
                   f"cmd.exe 解析无语法错误（捕获到 {len(bad)} 条语法错）")
         for ln in bad[:5]:
             res.note(f"语法错误行：{ln.strip()}")
-        # 净化副本应能跑到端口检测阶段
-        reached = any(k in out for k in ("端口", "PORT", "1/5", "2/5", "3/5"))
-        res.check(reached, "批处理能实际执行到端口检测阶段（不只是解析通过）")
+        # 净化副本应能跑到「交给 start.py」这一步
+        reached = any(k in out for k in ("start.py", "虚拟环境", "端口", "1/5"))
+        res.check(reached, "批处理能实际执行到启动阶段（不只是解析通过）")
         res.note(f"输出片段：{out.strip()[:400]!r}")
     finally:
         try:
@@ -277,7 +437,12 @@ def case_b1_bat_dep_check(res: Result) -> None:
 
 
 def case_b2_no_reinstall(res: Result) -> None:
-    """B2: 依赖齐全时不得重装 —— start.py --check 应秒回且不碰网络。"""
+    """B2: 依赖齐全时不得重装 —— start.py --check 应秒回且不碰网络。
+
+    断言用**多候选关键词**而不是单一固定短语 —— 文案会变，
+    语义（"不会重复安装"）不变，所以优先匹配「重复安装」四个字，
+    再退到其它等价表述。
+    """
     if not START_PY.exists():
         res.check(False, f"start.py 不存在：{START_PY}")
         return
@@ -285,10 +450,24 @@ def case_b2_no_reinstall(res: Result) -> None:
     rc, out = run_cmd([str(VENV_PY), "start.py", "--check"], timeout=180)
     dt = time.time() - t0
     res.check(rc == 0, f"start.py --check 退出码 = {rc}")
-    res.check("无需重复安装" in out or "依赖齐全" in out,
-              "输出明确说明依赖已齐全、无需重复安装")
+
+    # 候选关键词：任一命中即认为「明确表示不重复安装」
+    candidates = (
+        "重复安装",         # 最通用：「不会重复安装」「无需重复安装」都含这四个字
+        "依赖齐全",
+        "依赖检查通过",
+        "组件都已就绪",
+        "都已就绪",
+    )
+    hit = next((k for k in candidates if k in out), None)
+    res.check(hit is not None,
+              f"输出明确表示依赖已就绪、不重复安装（命中关键词：{hit or '无'}）")
     res.check(dt < 60, f"耗时 {dt:.1f}s（应远快于首次安装的 2-5 分钟）")
-    res.note(f"--check 输出片段：{out.strip()[:300]!r}")
+
+    # 真的没装东西：输出里不应出现 pip install 的痕迹
+    res.check("pip install" not in out,
+              "输出中无 pip install 痕迹（确认没有触发重装）")
+    res.note(f"--check 输出片段：{out.strip()[:400]!r}")
 
 
 def case_c1_port_conflict_behavior(res: Result) -> None:
@@ -297,7 +476,11 @@ def case_c1_port_conflict_behavior(res: Result) -> None:
         res.check(False, f"start.py 不存在：{START_PY}")
         return
     kill_port_listeners(TEST_PORT)
-    holder = start_port_holder(TEST_PORT, reuse=False, addr="127.0.0.1")
+    try:
+        holder = start_port_holder(TEST_PORT, reuse=False, addr="127.0.0.1")
+    except RuntimeError as exc:
+        res.check(False, f"哑巴占用者没能占住端口：{exc}")
+        return
     try:
         before = netstat_listening(TEST_PORT)
         res.check(bool(before), f"占用者已就绪，监听行 {before}")
@@ -324,93 +507,96 @@ def case_c1_port_conflict_behavior(res: Result) -> None:
 
 
 def case_c2_actual_port_matches(res: Result) -> None:
-    """C2: 实际端口必须与提示地址一致（避让到 8502 就必须显示 8502）。"""
+    """C2: 实际端口必须与提示地址一致（避让到 8502 就必须显示 8502）。
+
+    关键：**用轮询等 health 就绪**，不能用固定 sleep。
+    Streamlit 冷启动 10-30 秒，固定 sleep 会在服务还没起来时误判 FAIL。
+    """
     if not START_PY.exists():
         res.check(False, f"start.py 不存在：{START_PY}")
         return
     kill_port_listeners(TEST_PORT)
     holder = start_port_holder(TEST_PORT, reuse=False, addr="127.0.0.1")
-    proc = None
+    launcher = None
     try:
-        env = dict(os.environ)
-        env["BROWSER"] = "echo"                 # 捕获浏览器实际打开的 URL
-        env["NO_PROXY"] = "127.0.0.1,localhost"
-        env["no_proxy"] = env["NO_PROXY"]
-        proc = subprocess.Popen(
-            [str(VENV_PY), "start.py", "--port", str(TEST_PORT),
-             "--no-browser", "--timeout", "90"],
-            cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, encoding="utf-8", errors="replace", env=env)
-        # 等它自己探测端口并避让
-        deadline = time.time() + 60
-        buf = ""
-        while time.time() < deadline:
-            time.sleep(1.0)
-            buf = proc.stdout.read() or "" if proc.stdout else ""
-            if buf and ("访问地址" in buf or "改用" in buf):
-                break
-        res.note(f"start.py 输出：{buf.strip()[:400]!r}")
-        res.check("访问地址" in buf, "打印了明确的「访问地址」")
-        # 解析出实际端口
-        actual = None
-        for token in buf.replace("：", " ").split():
-            if token.startswith("http://localhost:"):
-                actual = int(token.rsplit(":", 1)[1])
+        res.check(bool(netstat_listening(TEST_PORT)), "占用者已就绪")
+
+        launcher = Launcher(["--port", str(TEST_PORT), "--no-browser",
+                             "--timeout", "120"])
+        # 先等到「访问地址」打印出来，解析出它打算用哪个端口
+        launcher.pump(["访问地址"], timeout=90)
+        res.note(f"start.py 输出：{launcher.output.strip()[:500]!r}")
+        res.check("访问地址" in launcher.output, "打印了明确的「访问地址」")
+
+        actual = extract_port(launcher.output)
         res.check(actual is not None, f"能从输出解析出访问端口：{actual}")
-        if actual is not None:
-            res.check(actual != TEST_PORT,
-                      f"端口 {TEST_PORT} 被占时，实际用了 {actual}（应避让）")
-            listeners = netstat_listening(actual)
-            res.check(bool(listeners),
-                      f"实际端口 {actual} 上确实有监听：{listeners}")
-            res.check(health_ok(actual),
-                      f"实际端口 {actual} 的 /_stcore/health 返回 ok")
+        if actual is None:
+            return
+        res.check(actual != TEST_PORT,
+                  f"端口 {TEST_PORT} 被占时，实际改用 {actual}（已避让）")
+
+        # **轮询**等 health 就绪，而不是固定 sleep
+        t0 = time.time()
+        ready = wait_for_health(actual, timeout=90)
+        wait_s = time.time() - t0
+        res.check(ready,
+                  f"实际端口 {actual} 的 /_stcore/health 返回 ok（等待 {wait_s:.1f}s）")
+        res.check(bool(netstat_listening(actual)),
+                  f"实际端口 {actual} 上确实有监听")
     finally:
-        if proc:
-            proc.kill()
-            proc.wait()
+        if launcher:
+            launcher.close()
         holder.kill()
         holder.wait()
         kill_port_listeners(TEST_PORT)
 
 
+def extract_port(text: str) -> Optional[int]:
+    """从启动器输出里解析出实际访问端口。
+
+    用正则直接抓 ``http://localhost:PORT``。
+    （不能用「把所有冒号换成空格再 split」的办法 —— 那样连
+    ``http://`` 里的 ASCII 冒号都会被拆散，任何 URL 都解析不出来。）
+    """
+    m = re.search(r"http://localhost:(\d+)", text)
+    return int(m.group(1)) if m else None
+
+
 def case_d1_open_browser(res: Result) -> None:
-    """D1: 自动开浏览器 —— 打开的 URL 必须与实际端口一致。"""
+    """D1: 自动开浏览器 —— 打开的 URL 必须与实际端口一致。
+
+    用 BROWSER=echo 把 webbrowser.open 的 URL 截获下来，
+    断言它等于**实际监听**的端口，而不是启动器「以为」的端口。
+    """
     if not START_PY.exists():
         res.check(False, f"start.py 不存在：{START_PY}")
         return
     kill_port_listeners(TEST_PORT)
-    env = dict(os.environ)
-    env["BROWSER"] = "echo"                     # webbrowser.open 会 echo 出 URL
-    env["NO_PROXY"] = "127.0.0.1,localhost"
-    env["no_proxy"] = env["NO_PROXY"]
-    proc = subprocess.Popen(
-        [str(VENV_PY), "start.py", "--port", str(TEST_PORT), "--timeout", "90"],
-        cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, encoding="utf-8", errors="replace", env=env)
+    launcher = Launcher(["--port", str(TEST_PORT), "--timeout", "120"])
     try:
-        deadline = time.time() + 90
-        seen = ""
-        while time.time() < deadline:
-            time.sleep(1.0)
-            line = proc.stdout.readline() if proc.stdout else ""
-            if not line:
-                break
-            seen += line
-            if "http://localhost:" in line and "访问地址" not in line:
-                break
-        res.note(f"捕获输出：{seen.strip()[:300]!r}")
-        urls = [ln.strip() for ln in seen.splitlines()
+        # 先等访问地址打印出来
+        launcher.pump(["访问地址"], timeout=90)
+        declared = extract_port(launcher.output)
+        res.check(declared is not None, f"解析出声明的访问端口：{declared}")
+
+        # **轮询**等浏览器被打开（服务就绪后才会 open_browser）
+        launcher.pump(["正在打开浏览器"], timeout=90)
+        launcher.read_all(seconds=5)
+        res.note(f"捕获输出：{launcher.output.strip()[-600:]!r}")
+
+        urls = [ln.strip() for ln in launcher.output.splitlines()
                 if ln.strip().startswith("http://localhost:")]
         res.check(bool(urls), "BROWSER=echo 捕获到了浏览器打开的 URL")
-        if urls:
-            port = int(urls[-1].rsplit(":", 1)[1].rstrip("/"))
-            res.check(port == TEST_PORT,
-                      f"浏览器打开的端口 {port} == 实际启动端口 {TEST_PORT}")
-            res.check(health_ok(port), f"该端口服务确实可用（health=ok）")
+        if not urls or declared is None:
+            return
+        opened = int(urls[-1].rsplit(":", 1)[1].rstrip("/"))
+        res.check(opened == declared,
+                  f"浏览器打开的端口 {opened} == 声明的访问端口 {declared}")
+        # 打开的那个端口必须真的有服务且可用
+        res.check(health_ok(opened),
+                  f"浏览器打开的端口 {opened} 服务确实可用（health=ok）")
     finally:
-        proc.kill()
-        proc.wait()
+        launcher.close()
         kill_port_listeners(TEST_PORT)
 
 
@@ -460,35 +646,24 @@ print("RESULT", "OK" if not bad else bad)
 
 
 def case_f2_health_endpoint(res: Result) -> None:
-    """F2: 服务起来后 /_stcore/health 必须返回 200 ok。"""
+    """F2: 服务起来后 /_stcore/health 必须返回 200 ok（轮询等待，不固定 sleep）。"""
     if not START_PY.exists():
         res.check(False, f"start.py 不存在：{START_PY}")
         return
     kill_port_listeners(TEST_PORT)
-    env = dict(os.environ)
-    env["NO_PROXY"] = "127.0.0.1,localhost"
-    env["no_proxy"] = env["NO_PROXY"]
-    proc = subprocess.Popen(
-        [str(VENV_PY), "start.py", "--port", str(TEST_PORT), "--no-browser",
-         "--timeout", "90"],
-        cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, encoding="utf-8", errors="replace", env=env)
+    launcher = Launcher(["--port", str(TEST_PORT), "--no-browser", "--timeout", "120"])
     try:
-        ok = False
-        deadline = time.time() + 90
-        while time.time() < deadline:
-            if health_ok(TEST_PORT):
-                ok = True
-                break
-            time.sleep(1.0)
-        res.check(ok, f"/_stcore/health 在 {TEST_PORT} 返回 200 'ok'")
-        if ok:
+        t0 = time.time()
+        ready = wait_for_health(TEST_PORT, timeout=90)
+        res.check(ready,
+                  f"/_stcore/health 在 {TEST_PORT} 返回 200 'ok'（等待 {time.time()-t0:.1f}s）")
+        if ready:
             status, body = http_get(TEST_PORT, "/")
             res.check(status == 200 and "Streamlit" in body,
                       f"首页返回 {status}，含 Streamlit 页面标识")
+        res.note(f"启动器输出：{launcher.output.strip()[-300:]!r}")
     finally:
-        proc.kill()
-        proc.wait()
+        launcher.close()
         kill_port_listeners(TEST_PORT)
 
 
@@ -523,6 +698,95 @@ def case_g2_no_browser_in_check(res: Result) -> None:
     res.note(f"--check 输出片段：{out.strip()[:200]!r}")
 
 
+def case_g3_bat_exit_code(res: Result) -> None:
+    """G3: .bat 必须正确传递 start.py 的退出码。
+
+    背景（真实踩过的坑）：bat 里用 `setlocal disabledelayedexpansion` +
+    `%ERRORLEVEL%` 会在 setlocal 作用域内取到**空串**，导致 start.py
+    即使成功，bat 也报「[启动失败]」。因此这里断言：
+    启动成功时 bat 的退出码必须是 0，且不出现「[启动失败]」。
+
+    这里跑**真实的 .bat**（不是净化副本）—— 因为要测的就是真实的
+    退出码传递链路。传 `--check --no-browser` 让 start.py 快速成功退出，
+    不拉起服务。stdin 接 DEVNULL，末尾的 `pause` 会立即返回（实测确认）。
+    """
+    if not BAT.exists():
+        res.check(False, f"文件不存在：{BAT}")
+        return
+    rc, out = run_cmd(["cmd", "/c", str(BAT), "--check", "--no-browser"],
+                      timeout=120)
+    res.check(rc == 0,
+              f"真实 bat 转发 --check --no-browser 时退出码 = {rc}（应为 0）")
+    res.check("[启动失败]" not in out,
+              "bat 未误报「[启动失败]」")
+    res.check("环境自检通过" in out,
+              "bat 确实把 start.py 的输出透传出来了")
+    res.check("服务已停止" in out,
+              "bat 打印了正常结束提示")
+    res.note(f"bat 输出片段：{out.strip()[-400:]!r}")
+
+
+def case_g4_bat_ask_port(res: Result) -> None:
+    """G4: bat 传的 --ask-port 必须被 start.py 正确接受（不能因未知参数报错）。
+
+    bat 现在固定传 `--ask-port`（端口被占时让用户选怎么处理）。
+    若 start.py 不认这个参数，会直接 argparse 报错退出 2 —— 双击即失败。
+    """
+    if not START_PY.exists():
+        res.check(False, f"start.py 不存在：{START_PY}")
+        return
+    rc, out = run_cmd([str(VENV_PY), "start.py", "--ask-port", "--check"],
+                      timeout=180)
+    res.check(rc == 0, f"start.py --ask-port --check 退出码 = {rc}（应为 0）")
+    res.check("unrecognized arguments" not in out
+              and "invalid choice" not in out,
+              "start.py 接受 --ask-port 参数（无 argparse 报错）")
+    res.note(f"输出片段：{out.strip()[-300:]!r}")
+
+
+def case_h1_no_venv_first_run(res: Result) -> None:
+    """H1（慢速，opt-in）：没有 .venv 时能否自建并装依赖。
+
+    ⚠️ **绝不能删项目的 .venv** —— 这里把项目复制到临时目录再测。
+    ⚠️ 依赖安装要联网、耗时 2-5 分钟，所以默认不在常规套件里跑，
+       用 `--only H1` 单独触发。
+    """
+    import shutil
+    import tempfile
+
+    tmp = Path(tempfile.mkdtemp(prefix="qa_novenv_"))
+    try:
+        # 复制项目（排除 .venv / 大目录），模拟「用户刚拿到项目」
+        for item in ("main.py", "config.py", "requirements.txt", "start.py",
+                     "launcher.py", "快速运行.bat"):
+            src = ROOT / item
+            if src.exists():
+                shutil.copy2(src, tmp / item)
+        for sub in ("modules", "views", ".streamlit"):
+            src = ROOT / sub
+            if src.is_dir():
+                shutil.copytree(src, tmp / sub,
+                                ignore=shutil.ignore_patterns("__pycache__"))
+        res.check(not (tmp / ".venv").exists(), "临时目录里确实没有 .venv")
+
+        # 用系统 Python 跑 start.py --check，验证它会自建 venv
+        base = shutil.which("python") or shutil.which("py")
+        if not base:
+            res.check(False, "找不到系统 Python，无法测无 venv 场景")
+            return
+        cmd = ([base, "-3", "start.py", "--check"] if base.endswith("py.exe")
+               else [base, "start.py", "--check"])
+        rc, out = run_cmd(cmd, cwd=tmp, timeout=1800)
+        res.note(f"临时目录 start.py --check 输出片段：{out.strip()[-600:]!r}")
+        res.check(rc == 0, f"无 venv 场景退出码 = {rc}（应为 0）")
+        res.check((tmp / ".venv" / "Scripts" / "python.exe").exists(),
+                  "自动创建了 .venv\\Scripts\\python.exe")
+        res.check("正在创建虚拟环境" in out or "创建" in out,
+                  "输出说明了正在创建虚拟环境")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 # ==========================================================
 # 注册表
 # ==========================================================
@@ -540,6 +804,13 @@ CASES: List[Tuple[str, str, Callable[[Result], None], bool]] = [
     ("F2", "health 接口返回 200 ok", case_f2_health_endpoint, True),
     ("G1", "bat 委托 start.py（单一逻辑源）", case_g1_bat_delegates, True),
     ("G2", "--check 不开浏览器", case_g2_no_browser_in_check, True),
+    ("G3", "bat 正确传递 start.py 退出码", case_g3_bat_exit_code, True),
+    ("G4", "start.py 接受 bat 传的 --ask-port", case_g4_bat_ask_port, True),
+]
+
+# 慢速用例：需要联网装依赖，默认不跑（用 --only H1 或 --slow 触发）
+SLOW_CASES: List[Tuple[str, str, Callable[[Result], None], bool]] = [
+    ("H1", "无 venv 首次运行能自建并装依赖（慢）", case_h1_no_venv_first_run, True),
 ]
 
 
@@ -554,19 +825,26 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="启动方式验收工具箱")
     parser.add_argument("--list", action="store_true", help="只列用例清单")
     parser.add_argument("--only", nargs="*", help="只跑指定编号，如 A1 C2")
+    parser.add_argument("--slow", action="store_true",
+                        help="额外跑慢速用例（需联网装依赖，耗时数分钟）")
     parser.add_argument("--json", action="store_true", help="输出 JSON")
     args = parser.parse_args(argv)
+
+    all_cases = CASES + (SLOW_CASES if args.slow else [])
 
     if args.list:
         print("验收用例清单：")
         for cid, name, _fn, _safe in CASES:
             print(f"  {cid:4s} {name}")
+        print("慢速用例（需 --slow 或 --only H1）：")
+        for cid, name, _fn, _safe in SLOW_CASES:
+            print(f"  {cid:4s} {name}")
         return 0
 
-    selected = CASES
+    selected = all_cases
     if args.only:
         keys = {k.upper() for k in args.only}
-        selected = [c for c in CASES if c[0].upper() in keys]
+        selected = [c for c in all_cases if c[0].upper() in keys]
         if not selected:
             print(f"没有匹配的用例：{args.only}")
             return 2

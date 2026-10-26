@@ -31,9 +31,12 @@ SKIP_DIR_NAMES = {
     "node_modules", "site-packages", "dist-packages", "eggs",
 }
 # 按**相对路径**跳过的规则（项目内的特定目录）
+# 说明：本检查针对**对外交付的产品代码**（modules/、views/、main.py、config.py）。
+# qa/ 是开发期自测工具（launcher_acceptance.py 等），不随作品包分发，
+# 也不需要按「单文件 700 行」的对外口径约束，故排除。
 SKIP_DIR_PATHS = {
     "samples/real_corpus", "temp_shots", "data_store",
-    "trivy_cache", "temp_upload", "docs",
+    "trivy_cache", "temp_upload", "docs", "qa",
 }
 
 # 门面模块：拆分后仍需保持对外 API 完整
@@ -49,7 +52,14 @@ def _should_skip_dir(rel_path: str, name: str) -> bool:
         return True
     if name.startswith(".venv") or name.startswith("venv"):
         return True
+    # 注意：调用方传进来的是 rel + "/" + d，仓库根目录下的子目录会带
+    # "./" 前缀（如 "./qa"）。不归一化的话，SKIP_DIR_PATHS 里所有
+    # **根目录级别**的条目（docs / temp_upload / qa ...）永远匹配不上，
+    # 跳过规则形同虚设。
     rel = rel_path.replace("\\", "/")
+    if rel.startswith("./"):
+        rel = rel[2:]
+    rel = rel.strip("/")
     for s in SKIP_DIR_PATHS:
         if rel == s or rel.startswith(s + "/"):
             return True

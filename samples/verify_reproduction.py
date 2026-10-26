@@ -388,17 +388,24 @@ def check_architecture():
                            encoding="utf-8", errors="replace")
         out = r.stdout or ""
         n_files = 0
-        m = re.search(r"全部 (\d+) 个文件都在", out)
-        if m:
-            n_files = int(m.group(1))
+        for pat in (r"全部 (\d+) 个文件都在",      # 全部合规
+                    r"发现 (\d+) 处架构问题",      # 有问题时的总数
+                    r"(\d+) 个文件超过"):          # 超标文件数
+            m = re.search(pat, out)
+            if m:
+                n_files = int(m.group(1))
+                break
+        if not n_files:
+            n_files = None                          # 匹配不到就不谎报 0
         ok = r.returncode == 0
         detail = ""
         if not ok:
             bad = [l.strip() for l in out.splitlines()
                    if l.strip().startswith(("modules/", "views/", "main.py", "samples/"))]
             detail = "；".join(bad[:3])
+        desc = f"{n_files} 个文件" if n_files else "文件数未知"
         record("代码架构均衡无问题", ok, "无问题",
-               f"{n_files} 个文件" + (f"；问题：{detail}" if detail else ""))
+               desc + (f"；问题：{detail}" if detail else ""))
     except Exception as e:
         record("代码架构均衡无问题", False, "无问题", f"执行失败：{e}")
 
