@@ -1248,16 +1248,29 @@ def case_h1_no_venv_first_run(res: Result) -> None:
     try:
         # 复制项目（排除 .venv / 大目录），模拟「用户刚拿到项目」
         for item in ("main.py", "config.py", "requirements.txt", "start.py",
-                     "launcher.py", "快速运行.bat"):
+                     "快速运行.bat"):
             src = ROOT / item
             if src.exists():
                 shutil.copy2(src, tmp / item)
+        # launcher 既可能是单文件 launcher.py，也可能是包 launcher/ ——
+        # 两种都要复制，否则 start.py 的 `from launcher...` 会 ImportError。
+        # （工程师把 launcher.py 拆成 launcher/ 包后，这里报过一次
+        #   ModuleNotFoundError: No module named 'launcher'）
+        single = ROOT / "launcher.py"
+        if single.is_file():
+            shutil.copy2(single, tmp / "launcher.py")
+        pkg = ROOT / "launcher"
+        if pkg.is_dir():
+            shutil.copytree(pkg, tmp / "launcher",
+                            ignore=shutil.ignore_patterns("__pycache__"))
         for sub in ("modules", "views", ".streamlit"):
             src = ROOT / sub
             if src.is_dir():
                 shutil.copytree(src, tmp / sub,
                                 ignore=shutil.ignore_patterns("__pycache__"))
         res.check(not (tmp / ".venv").exists(), "临时目录里确实没有 .venv")
+        res.check((tmp / "launcher.py").exists() or (tmp / "launcher").is_dir(),
+                  "临时目录里有 launcher（单文件或包），start.py 的 import 不会失败")
 
         # 用系统 Python 跑 start.py --check，验证它会自建 venv
         base = shutil.which("python") or shutil.which("py")
