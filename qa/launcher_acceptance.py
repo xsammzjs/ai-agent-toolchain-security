@@ -122,11 +122,18 @@ class Result:
 
 
 def netstat_listening(port: int) -> List[str]:
-    """返回该端口 LISTENING 的 netstat 行（GBK 解码）。"""
+    """返回该端口 LISTENING 的 netstat 行（GBK 解码）。
+
+    ⚠️ 端口必须**精确匹配**：``":8765" in line`` 会把 ``":87650"`` 也算进来
+    （实测确认），导致「以为端口被占」或「以为端口已释放」的误判。
+    netstat 的本地地址列格式是 ``127.0.0.1:8765`` + 空格，
+    所以用 ``":<port> "``（带尾随空格）就能精确命中。
+    """
     proc = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True)
     out = proc.stdout.decode("gbk", errors="replace")
+    needle = f":{port} "
     return [l.strip() for l in out.splitlines()
-            if f":{port}" in l and "LISTENING" in l]
+            if needle in l and "LISTENING" in l]
 
 
 def http_get(port: int, path: str = "/", timeout: float = 5.0) -> Tuple[int, str]:
@@ -164,7 +171,20 @@ def port_is_free(port: int, host: str = "127.0.0.1") -> bool:
 
 
 def start_port_holder(port: int, reuse: bool = False, addr: str = "127.0.0.1"):
-    """启动一个占用端口的哑巴进程，返回 Popen。"""
+    """启动一个占用端口的哑巴进程，返回 Popen。
+
+    🔴 两个必须做对的地方（都踩过坑）：
+
+    1. **启动失败必须能被发现**：端口被占时 bind 抛异常、进程直接退出，
+       stdout 关闭、readline() 返回空串。若把空串当成功，
+       「占用者其实没起来」会被当成「占用成功」，把后面所有断言带偏。
+       所以这里要求读到 "HELD" 且进程还活着，否则抛 RuntimeError。
+
+    2. **bind 失败要重试**：端口可能还在 TIME_WAIT，
+       刚 kill 掉上一个占用者立刻重绑会失败。带退避重试几次。
+
+    调用方**必须**用 try/finally 保证 holder 被 kill —— 见 kill_holder()。
+    """
     code = f'''
 import socket, time
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -175,18 +195,67 @@ s.listen(5)
 print("HELD", flush=True)
 time.sleep(120)
 '''
-    proc = subprocess.Popen([str(VENV_PY), "-c", code],
-                            stdout=subprocess.PIPE, text=True)
-    # 必须确认真的拿到端口了 —— 端口被别人占时 bind 会抛异常，
-    # 进程直接退出、stdout 关闭，readline() 返回空串。
-    # 这里必须区分「拿到端口」和「bind 失败」，否则占用者根本没起来
-    # 却被当成「占用成功」，把后面所有断言带偏。
-    line = proc.stdout.readline()
-    if "HELD" not in (line or ""):
-        raise RuntimeError(
-            f"哑巴占用者没能占用 {addr}:{port}（可能已被其它进程占用）")
-    time.sleep(0.3)
-    return proc
+    last_err = ""
+    for attempt in range(4):
+        proc = subprocess.Popen([str(VENV_PY), "-c", code],
+                                stdout=subprocess.PIPE, text=True)
+        line = proc.stdout.readline()
+        if "HELD" in (line or "") and proc.poll() is None:
+            time.sleep(0.3)
+            return proc
+        # 启动失败：把错误信息收回来，并确认进程真的退出了
+        try:
+            err = proc.stderr.read() if proc.stderr else ""
+        except Exception:                      # noqa: BLE001
+            err = ""
+        last_err = (err or line or "").strip()
+        proc.kill()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+        time.sleep(1.0 + attempt)             # 退避，等 TIME_WAIT 释放
+    raise RuntimeError(
+        f"哑巴占用者没能占用 {addr}:{port}（重试 4 次均失败）：{last_err}")
+
+
+def kill_holder(proc) -> None:
+    """**保证**占位进程被清理干净（异常路径也必须走到这里）。"""
+    if proc is None:
+        return
+    try:
+        if proc.poll() is None:
+            proc.kill()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+    except Exception:                          # noqa: BLE001
+        pass
+    finally:
+        # 兜底：万一 kill 没生效，用端口反查再杀一次
+        try:
+            for line in netstat_listening(_holder_port_of(proc)):
+                parts = line.split()
+                if parts:
+                    kill_pid(int(parts[-1]))
+        except Exception:                      # noqa: BLE001
+            pass
+
+
+def _holder_port_of(proc) -> int:
+    """从占位进程的命令行里取回端口号（兜底清理用）。"""
+    try:
+        cmd = " ".join(proc.args)
+        m = re.search(r"\((\"?'?\d+\.?'?),\s*(\d+)\)", cmd)
+        if m:
+            return int(m.group(2))
+        m = re.search(r"bind\(\(.*?,\s*(\d+)\)", cmd)
+        if m:
+            return int(m.group(1))
+    except Exception:                          # noqa: BLE001
+        pass
+    return TEST_PORT
 
 
 def kill_pid(pid: int) -> None:
@@ -530,8 +599,7 @@ def case_c1_port_conflict_behavior(res: Result) -> None:
         res.note("（Windows 语义：探测 bind 必须不带 SO_REUSEADDR，"
                  "否则后启动者会抢占已监听端口）")
     finally:
-        holder.kill()
-        holder.wait()
+        kill_holder(holder)
         kill_port_listeners(TEST_PORT)
 
 
@@ -575,20 +643,42 @@ def case_c2_actual_port_matches(res: Result) -> None:
     finally:
         if launcher:
             launcher.close()
-        holder.kill()
-        holder.wait()
+        kill_holder(holder)
         kill_port_listeners(TEST_PORT)
 
 
 def extract_port(text: str) -> Optional[int]:
     """从启动器输出里解析出实际访问端口。
 
-    用正则直接抓 ``http://localhost:PORT``。
-    （不能用「把所有冒号换成空格再 split」的办法 —— 那样连
-    ``http://`` 里的 ASCII 冒号都会被拆散，任何 URL 都解析不出来。）
+    ⚠️ 不能用「把所有冒号换成空格再 split」的办法 —— 那样连
+    ``http://`` 里的 ASCII 冒号都会被拆散，任何 URL 都解析不出来。
+
+    ⚠️ 端口可能出现在多种位置，格式各不相同：
+        >>> 访问地址： http://localhost:8766     （start.py 打印的）
+        URL: http://127.0.0.1:8765              （streamlit 打印的）
+        http://localhost:8765                   （BROWSER=echo 那行）
+    所以这里抓**所有** http(s) URL 里的端口，优先取「访问地址」那一行
+    声明的端口（那是用户真正会去访问的），取不到再退回任意一个。
     """
-    m = re.search(r"http://localhost:(\d+)", text)
+    # 1) 优先用 start.py 明确声明的「访问地址」
+    m = re.search(r"访问地址[：:]\s*https?://[^\s]*?:(\d+)", text)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"直接访问[：:]\s*https?://[^\s]*?:(\d+)", text)
+    if m:
+        return int(m.group(1))
+    # 2) 退回：任意 http(s) URL 的端口（取第一个出现的）
+    m = re.search(r"https?://[^\s]*?:(\d+)", text)
+    if m:
+        return int(m.group(1))
+    # 3) 最后退回：裸的 localhost:PORT
+    m = re.search(r"localhost:(\d+)", text)
     return int(m.group(1)) if m else None
+
+
+def extract_all_ports(text: str) -> List[int]:
+    """抓出输出里出现过的**所有**端口（用于与实际监听端口交叉验证）。"""
+    return [int(p) for p in re.findall(r"https?://[^\s]*?:(\d+)", text)]
 
 
 def case_d1_open_browser(res: Result) -> None:
@@ -827,8 +917,7 @@ def case_c3_wildcard_occupant(res: Result) -> None:
         finally:
             launcher.close()
     finally:
-        holder.kill()
-        holder.wait()
+        kill_holder(holder)
         kill_port_listeners(TEST_PORT)
 
 
@@ -924,8 +1013,7 @@ def case_g5_ask_port_prompt(res: Result) -> None:
     finally:
         if launcher:
             launcher.close()
-        holder.kill()
-        holder.wait()
+        kill_holder(holder)
         kill_port_listeners(TEST_PORT)
 
 
@@ -984,8 +1072,7 @@ def case_g6_cancel_exit_code(res: Result) -> None:
     finally:
         if proc and proc.poll() is None:
             proc.kill()
-        holder.kill()
-        holder.wait()
+        kill_holder(holder)
         kill_port_listeners(TEST_PORT)
 
 
