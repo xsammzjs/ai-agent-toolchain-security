@@ -65,7 +65,7 @@ def render():
                 sub = os.path.join(tmp_dir, f"skill_{idx}")
                 os.makedirs(sub, exist_ok=True)
                 try:
-                    root = _extract_skill_zip(zb, sub)
+                    root = extract_skill_zip(zb, sub)
                     results.append(ss.scan_skill_package(root))
                 except Exception:
                     continue
