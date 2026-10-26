@@ -35,8 +35,10 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
+import random
 import re
 import signal
 import socket
@@ -55,37 +57,108 @@ START_PY = ROOT / "start.py"
 
 # 测端口用的哑巴占用者端口（避开 8501）
 #
-# ⚠️ 端口必须**每个进程实例唯一** —— 实测踩过：两���人同时跑验收脚本
-# （我和主理人各跑一份），固定端口 8765 会互相抢端口，
-# 一方的 kill_port_listeners 还会把另一方的服务杀掉，
-# 结果两边都误判 FAIL。所以这里按 PID 派生一个唯一端口。
+# 🔴 端口必须**每个进程实例唯一**，否则并发跑的验收脚本会互相
+#    kill_port_listeners → 双方结果都不可信，还可能误杀对方的服务。
+#
+#    ⚠️ 不要只用 `pid % N` 派生 —— PID 会回收复用，两个并发实例完全
+#    可能撞到同一个余数（实测踩过：症状是「服务莫名消失、退出码
+#    4294967295 = taskkill /F 的特征」）。所以这里用
+#    **随机起点 + 逐个试占用**，并在候选端口上放一个带 PID 的锁文件，
+#    做到「逻辑独占」而不只是「碰巧不撞」。
 TEST_PORT_BASE = 8900
+TEST_PORT_SPAN = 400
+
+
+def _port_is_listening(port: int) -> bool:
+    """该端口有没有人在 LISTEN（精确匹配，不误伤 :87650 这种）。"""
+    try:
+        proc = subprocess.run(["netstat", "-ano", "-p", "TCP"],
+                              capture_output=True, timeout=8)
+        out = proc.stdout.decode("gbk", errors="replace")
+    except (OSError, subprocess.SubprocessError):
+        return False
+    needle = f":{port} "
+    return any(needle in line and "LISTENING" in line for line in out.splitlines())
+
+
+def _lock_path(port: int) -> Path:
+    """端口锁文件路径 —— 内容是持有者 PID。"""
+    lock_dir = Path(os.environ.get("TEMP") or "/tmp") / "sbom_qa_port_locks"
+    lock_dir.mkdir(parents=True, exist_ok=True)
+    return lock_dir / f"port_{port}.lock"
+
+
+def _port_locked_by_other(port: int) -> bool:
+    """这个端口是不是被**别的**活进程占了锁。"""
+    lock = _lock_path(port)
+    if not lock.exists():
+        return False
+    try:
+        owner = int(lock.read_text(encoding="utf-8").strip() or "0")
+    except (OSError, ValueError):
+        return False
+    if owner == os.getpid():
+        return False
+    # 持有者还活着吗？死了就当锁失效
+    try:
+        out = subprocess.run(["tasklist", "/FI", f"PID eq {owner}"],
+                             capture_output=True, timeout=8).stdout
+        text = out.decode("gbk", errors="replace")
+        return str(owner) in text
+    except (OSError, subprocess.SubprocessError):
+        return True                       # 查不了就保守当成被占
+
+
+def _claim_port(port: int) -> bool:
+    """尝试占住这个端口的锁。"""
+    lock = _lock_path(port)
+    try:
+        # O_EXCL 保证原子性：别人先拿到就抢不走
+        fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        try:
+            os.write(fd, str(os.getpid()).encode("ascii"))
+        finally:
+            os.close(fd)
+        return True
+    except FileExistsError:
+        return False
+    except OSError:
+        return True                       # 建不了锁就当占住了，保守
+
+
+def _release_port(port: int) -> None:
+    """释放端口锁。"""
+    try:
+        _lock_path(port).unlink()
+    except OSError:
+        pass
 
 
 def _pick_test_port() -> int:
-    """挑一个当前没人用的测试端口。
+    """挑一个当前没人用、也没被别的实例锁住的测试端口。
 
-    🔴 为什么要动态挑：
+    🔴 为什么要动态挑 + 加锁：
        固定端口（或只按 pid 派生）时，两个实例同时跑会撞到同一端口，
        互相 kill_port_listeners → 双方结果都不可信，还可能误杀对方的服务。
-       所以这里从 pid 派生的起点开始，逐个试到没人占用为止。
     """
-    start = TEST_PORT_BASE + (os.getpid() % 400)
-    for candidate in range(start, start + 60):
-        try:
-            proc = subprocess.run(["netstat", "-ano", "-p", "TCP"],
-                                  capture_output=True, timeout=8)
-            out = proc.stdout.decode("gbk", errors="replace")
-        except (OSError, subprocess.SubprocessError):
+    start = TEST_PORT_BASE + random.randint(0, TEST_PORT_SPAN - 1)
+    for offset in range(TEST_PORT_SPAN):
+        candidate = start + offset
+        if candidate >= TEST_PORT_BASE + TEST_PORT_SPAN:
+            candidate = TEST_PORT_BASE + (candidate % TEST_PORT_SPAN)
+        if _port_is_listening(candidate):
+            continue
+        if _port_locked_by_other(candidate):
+            continue
+        if _claim_port(candidate):
             return candidate
-        busy = any(":%d " % candidate in line and "LISTENING" in line
-                   for line in out.splitlines())
-        if not busy:
-            return candidate
+    # 实在挑不到就退回起点（并明确警告）
+    print(f"[WARN] 没找到空闲的测试端口，退回 {start}（可能有并发实例在跑）")
     return start
 
 
 TEST_PORT = _pick_test_port()
+atexit.register(_release_port, TEST_PORT)
 
 # 本机请求专用 opener：清空代理，否则 127.0.0.1 会被转发到代理服务器
 LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
