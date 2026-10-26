@@ -744,6 +744,65 @@ def case_g4_bat_ask_port(res: Result) -> None:
     res.note(f"输出片段：{out.strip()[-300:]!r}")
 
 
+def case_c3_wildcard_occupant(res: Result) -> None:
+    """C3: 占用者绑在 **0.0.0.0**（通配地址）时，必须也能识别出来。
+
+    背景（真实复现的缺陷）：《运行说明.md》方式二的命令
+    `streamlit run main.py` 默认绑 0.0.0.0。若用户先按文档起过一次、
+    那个窗口还开着，又双击了 bat，launcher 会误判「端口可用」，
+    **静默拉起第二个实例**，旧实例变僵尸。
+
+    根因：port_is_free 只 bind host(127.0.0.1)，而 Windows 上
+    绑 0.0.0.0 的服务不阻止别的进程 bind 127.0.0.1。
+
+    判据：面对 0.0.0.0 的占用者，launcher 必须能识别出
+    「已有本服务在运行」或「端口被占用」，而**不是**「端口可用」。
+    """
+    if not START_PY.exists():
+        res.check(False, f"start.py 不存在：{START_PY}")
+        return
+    kill_port_listeners(TEST_PORT)
+    # 占用者绑 0.0.0.0（模拟 `streamlit run main.py` 的默认行为）
+    try:
+        holder = start_port_holder(TEST_PORT, reuse=False, addr="0.0.0.0")
+    except RuntimeError as exc:
+        res.check(False, f"哑巴占用者没能占住端口：{exc}")
+        return
+    try:
+        code = (
+            "import sys; sys.path.insert(0, %r)\n"
+            "import launcher as L\n"
+            "print('FREE' if L.port_is_free(%d, '127.0.0.1') else 'BUSY')\n"
+            % (str(ROOT), TEST_PORT)
+        )
+        rc, out = run_cmd([str(VENV_PY), "-c", code], timeout=60)
+        verdict = out.strip().splitlines()[-1] if out.strip() else "(无输出)"
+        res.check(verdict == "BUSY",
+                  f"占用者绑 0.0.0.0 时，port_is_free 判定 = {verdict}"
+                  f"（应为 BUSY；若是 FREE，说明会静默拉起第二个实例）")
+
+        # 端到端：start.py 必须说「已有本服务」或「被占用」，而不是「可用」
+        launcher = Launcher(["--port", str(TEST_PORT), "--no-browser",
+                             "--timeout", "60"])
+        try:
+            launcher.pump(["访问地址", "直接访问"], timeout=60)
+            text = launcher.output
+            res.note(f"start.py 输出：{text.strip()[-400:]!r}")
+            # 注意文案是「端口 8781 可用。」（端口号夹在中间），
+            # 所以要用正则匹配，不能直接找「端口可用」四个字
+            misjudged = re.search(r"端口\s*\d+\s*可用", text) is not None
+            res.check(not misjudged,
+                      "start.py 未误判为「端口 … 可用」（应识别出已有服务/被占用）")
+            res.check(("已有本服务" in text) or ("占用" in text),
+                      "start.py 明确识别出端口上已有东西")
+        finally:
+            launcher.close()
+    finally:
+        holder.kill()
+        holder.wait()
+        kill_port_listeners(TEST_PORT)
+
+
 def case_h1_no_venv_first_run(res: Result) -> None:
     """H1（慢速，opt-in）：没有 .venv 时能否自建并装依赖。
 
@@ -798,6 +857,7 @@ CASES: List[Tuple[str, str, Callable[[Result], None], bool]] = [
     ("B2", "依赖齐全时不重复安装", case_b2_no_reinstall, True),
     ("C1", "端口占用时探测准确且不崩", case_c1_port_conflict_behavior, True),
     ("C2", "实际端口 == 提示地址（避让后不串号）", case_c2_actual_port_matches, True),
+    ("C3", "占用者绑 0.0.0.0 时也能识别（防重复实例）", case_c3_wildcard_occupant, True),
     ("D1", "自动开浏览器且 URL 与实际端口一致", case_d1_open_browser, True),
     ("E1", "停止方式明确告知", case_e1_stop_method, True),
     ("F1", "四个视图都能执行（AppTest）", case_f1_four_views, True),

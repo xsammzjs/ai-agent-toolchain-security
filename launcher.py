@@ -24,6 +24,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -323,12 +324,28 @@ def kill_port_owner(port: int) -> bool:
 # ==========================================================
 # 浏览器
 # ==========================================================
-def open_browser(url: str) -> bool:
-    """打开默认浏览器；失败不影响服务本身。"""
-    try:
-        return bool(webbrowser.open(url))
-    except Exception:      # noqa: BLE001 - 浏览器异常一律忽略
-        return False
+def open_browser(url: str, timeout: float = 3.0) -> bool:
+    """打开默认浏览器；失败不影响服务本身。
+
+    必须在守护线程里调用：Python 的 ``webbrowser`` 对
+    ``GenericBrowser`` 会执行 ``p.wait()`` —— 也就是**等浏览器进程退出**。
+    用真实浏览器（Edge/Chrome）时那可能是几分钟，启动流程会被卡住；
+    在管道重定向的环境下还可能拖住整个进程组。
+
+    所以这里只等一小会儿（默认 3 秒），拿不到结果也不影响服务启动。
+    """
+    result = {"ok": False}
+
+    def _worker() -> None:
+        try:
+            result["ok"] = bool(webbrowser.open(url))
+        except Exception:          # noqa: BLE001 - 浏览器异常一律忽略
+            result["ok"] = False
+
+    worker = threading.Thread(target=_worker, daemon=True)
+    worker.start()
+    worker.join(timeout)
+    return result["ok"]
 
 
 # ==========================================================
