@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import signal
 import sys
 import time
 from typing import List, Optional, Tuple
@@ -175,6 +176,43 @@ def check_env_file() -> None:
 
 
 # ==========================================================
+# 停止服务
+# ==========================================================
+def _install_stop_handlers(proc) -> None:
+    """接管 Ctrl+C / Ctrl+Break / 终止信号，先收干净子进程再退出。
+
+    🔴 为什么必须显式接管：
+    Windows 的 ``CTRL_BREAK_EVENT`` 在 Python 里映射成 ``SIGBREAK``，
+    而 SIGBREAK 的**默认动作是直接终止进程** —— 不会抛 KeyboardInterrupt，
+    也就不会跑上面那个 ``except KeyboardInterrupt`` 分支。
+    结果就是：窗口关了，但 streamlit 子进程变成孤儿、**继续占着端口**，
+    下次启动就报「端口被占用」。
+
+    这里统一接管 SIGINT / SIGBREAK / SIGTERM，收到就先把子进程树收干净。
+    """
+    def _handler(signum, _frame):        # noqa: ANN001 - 信号处理函数签名固定
+        print()
+        print("  正在停止服务 ...")
+        try:
+            stop_streamlit(proc)
+        finally:
+            print("  服务已停止。")
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os._exit(0)
+
+    candidates = [signal.SIGINT, signal.SIGTERM]
+    sigbreak = getattr(signal, "SIGBREAK", None)
+    if sigbreak is not None:
+        candidates.append(sigbreak)
+    for sig in candidates:
+        try:
+            signal.signal(sig, _handler)
+        except (ValueError, OSError, RuntimeError):
+            pass    # 非主线程或平台不支持时忽略
+
+
+# ==========================================================
 # 命令行
 # ==========================================================
 def build_parser() -> argparse.ArgumentParser:
@@ -235,6 +273,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("  已取消启动。")
         return EXIT_CANCELLED      # 2：用户主动取消，不是错误
 
+    if args.check:
+        # --check 只做环境自检：不开浏览器、不碰端口
+        print()
+        ok("环境自检通过，可以正常启动服务。")
+        return 0
+
     if already_running:
         print()
         print(f"  直接访问： http://localhost:{port}")
@@ -243,11 +287,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not args.no_browser:
             print("  正在打开浏览器 ...")
             open_browser(f"http://localhost:{port}")
-        return 0
-
-    if args.check:
-        print()
-        ok("环境自检通过，可以正常启动服务。")
         return 0
 
     # ---------- [5/5] 启动 ----------
@@ -292,14 +331,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     print()
 
     # ---------- 保持前台运行 ----------
-    try:
-        return proc.wait()
-    except KeyboardInterrupt:
-        print()
-        print("  正在停止服务 ...")
-        stop_streamlit(proc)
-        print("  服务已停止。")
-        return 0
+    _install_stop_handlers(proc)
+    # 用轮询而不是 proc.wait()：
+    # Windows 上 Popen.wait() 会阻塞在一个不可中断的 WaitForSingleObject 上，
+    # Python 级的信号处理函数**永远等不到执行机会** —— 装了 SIGBREAK 处理后，
+    # OS 就不再默认终止进程了，结果就是「Ctrl+C 后进程卡住不退、端口一直被占」。
+    # time.sleep() 是可被信号打断的，轮询能保证及时响应 Ctrl+C / Ctrl+Break。
+    while proc.poll() is None:
+        try:
+            time.sleep(0.3)
+        except KeyboardInterrupt:
+            print()
+            print("  正在停止服务 ...")
+            stop_streamlit(proc)
+            print("  服务已停止。")
+            return 0
+    return proc.returncode
 
 
 if __name__ == "__main__":

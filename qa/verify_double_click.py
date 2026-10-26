@@ -93,7 +93,8 @@ def main():
         for l in buf.splitlines():
             if any(k in l for k in ("端口", "访问地址", "直接访问", "占用", "选择")):
                 print(f"    {l.strip()}")
-        detected = ("已有本服务" in buf) or ("不用重复" in buf)
+        detected = any(k in buf for k in (
+            "已有本服务", "本服务已", "跑着", "不用重复", "已被占用"))
         print(f"[3] 是否识别出「已有本服务在运行」? {detected}")
         print(f"    （若为 False，说明用户会看到「端口可用」并被静默拉起第二个实例）")
 

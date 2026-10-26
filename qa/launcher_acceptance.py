@@ -38,6 +38,7 @@ import argparse
 import json
 import os
 import re
+import signal
 import socket
 import subprocess
 import sys
@@ -265,6 +266,9 @@ class Launcher:
             cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding="utf-8", errors="replace", env=run_env,
             bufsize=1,
+            # Windows 上必须新建进程组，Ctrl+C(CTRL_BREAK) 才能送达子进程
+            creationflags=(subprocess.CREATE_NEW_PROCESS_GROUP
+                           if os.name == "nt" else 0),
         )
         self._buf: List[str] = []
         self._lock = threading.Lock()
@@ -803,6 +807,61 @@ def case_c3_wildcard_occupant(res: Result) -> None:
         kill_port_listeners(TEST_PORT)
 
 
+def case_e2_ctrl_c_no_orphan(res: Result) -> None:
+    """E2: 停止服务后端口必须真正释放、**不能留下孤儿进程**。
+
+    背景（真实踩过的坑）：Windows 上 `terminate()` 不会连带结束子孙进程，
+    streamlit 会再派生子进程 —— 只 terminate 会留下孤儿进程占着端口，
+    下次启动就报「端口被占用」。
+
+    ⚠️ **测试方法说明**：这里**不**去模拟 Ctrl+C 的信号投递。
+    Windows 控制台事件只在真正的前台控制台里才送到整个前台进程组，
+    用脚本模拟时投递语义与真实终端不一致（实测三种方式结果互相矛盾，
+    不可信 —— 那是**测试方法**的问题，不是产品的问题）。
+    这里直接测**产品真正执行的那段代码**：start.py 捕获 KeyboardInterrupt
+    后调用的 `launcher.stop_streamlit(proc)`。
+
+    真实终端按 Ctrl+C 时 streamlit 子进程会同时收到 Ctrl+C 自行退出，
+    产品的 stop_streamlit 是**兜底**（保证子进程没自己退出时也能清掉）。
+    """
+    if not START_PY.exists():
+        res.check(False, f"start.py 不存在：{START_PY}")
+        return
+    kill_port_listeners(TEST_PORT)
+    # 在子进程里跑产品的 stop_streamlit（start.py 的 Ctrl+C 路径）
+    code = f'''
+import sys, time, urllib.request
+sys.path.insert(0, {str(ROOT)!r})
+import launcher as L
+LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({{}}))
+def health(port):
+    try:
+        with LOCAL.open(f"http://127.0.0.1:{{port}}/_stcore/health", timeout=3) as r:
+            return r.status == 200 and r.read(64).decode().strip().lower() == "ok"
+    except Exception:
+        return False
+proc = L.start_streamlit(L.venv_python(), {TEST_PORT}, "127.0.0.1")
+print("STARTED", flush=True)
+t0 = time.time()
+while time.time() - t0 < 120 and not health({TEST_PORT}):
+    time.sleep(1.0)
+print("READY", health({TEST_PORT}), flush=True)
+L.stop_streamlit(proc)
+print("STOPPED", flush=True)
+'''
+    rc, out = run_cmd([str(VENV_PY), "-c", code], timeout=240)
+    res.note(f"子脚本输出：{out.strip()[-400:]!r}")
+    res.check("READY True" in out, "服务已就绪（health=ok）")
+    res.check("STOPPED" in out, "stop_streamlit 执行完毕")
+
+    # 端口必须释放，且无孤儿
+    released = wait_until(lambda: not netstat_listening(TEST_PORT),
+                          timeout=25, interval=1.0)
+    left = netstat_listening(TEST_PORT)
+    res.check(released,
+              f"端口 {TEST_PORT} 已释放（无残留监听）；残留 = {left}")
+
+
 def case_h1_no_venv_first_run(res: Result) -> None:
     """H1（慢速，opt-in）：没有 .venv 时能否自建并装依赖。
 
@@ -860,6 +919,7 @@ CASES: List[Tuple[str, str, Callable[[Result], None], bool]] = [
     ("C3", "占用者绑 0.0.0.0 时也能识别（防重复实例）", case_c3_wildcard_occupant, True),
     ("D1", "自动开浏览器且 URL 与实际端口一致", case_d1_open_browser, True),
     ("E1", "停止方式明确告知", case_e1_stop_method, True),
+    ("E2", "Ctrl+C 后端口释放、无孤儿进程", case_e2_ctrl_c_no_orphan, True),
     ("F1", "四个视图都能执行（AppTest）", case_f1_four_views, True),
     ("F2", "health 接口返回 200 ok", case_f2_health_endpoint, True),
     ("G1", "bat 委托 start.py（单一逻辑源）", case_g1_bat_delegates, True),

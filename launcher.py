@@ -253,12 +253,8 @@ def ensure_dependencies(python: Path) -> None:
 # ==========================================================
 # 端口
 # ==========================================================
-def port_is_free(port: int, host: str = "127.0.0.1") -> bool:
-    """端口是否可以被绑定。
-
-    Windows 上 **不能** 设置 SO_REUSEADDR —— 那会让本机出现
-    "两个进程绑同一个端口" 的怪现象，导致误判端口空闲。
-    """
+def _bind_succeeds(port: int, host: str) -> bool:
+    """尝试绑定端口；成功说明「至少没有独占型占用者」。"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         if os.name != "nt":
@@ -271,12 +267,64 @@ def port_is_free(port: int, host: str = "127.0.0.1") -> bool:
         sock.close()
 
 
+def _listening_ports_windows() -> set:
+    """Windows：列出所有处于 LISTENING 状态的 TCP 端口。
+
+    为什么需要它：Windows 上**绑在 0.0.0.0 的服务不阻止别的进程
+    bind 127.0.0.1**（只 bind 一次会误判「端口可用」→ 静默拉起
+    第二个实例，旧实例变僵尸）。而 ``streamlit run main.py`` 默认
+    绑的就是 0.0.0.0 —— 这是真实会踩到的场景。
+
+    所以 Windows 上必须用「有没有进程在 LISTEN 这个端口」来判定，
+    不能只靠 bind 试探。netstat 输出是 GBK 编码，要按 gbk 解码。
+    """
+    try:
+        proc = subprocess.run(
+            ["cmd", "/c", "netstat", "-ano", "-p", "TCP"],
+            capture_output=True, text=True, encoding="gbk", errors="replace",
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    ports = set()
+    for line in proc.stdout.splitlines():
+        if "LISTENING" not in line:
+            continue
+        parts = line.split()
+        if len(parts) < 2 or ":" not in parts[1]:
+            continue
+        try:
+            ports.add(int(parts[1].rsplit(":", 1)[1]))
+        except ValueError:
+            continue
+    return ports
+
+
+def port_is_free(port: int, host: str = "127.0.0.1") -> bool:
+    """端口是否真的空闲（可以被本服务使用）。
+
+    Windows 上不能只靠 bind 试探：
+      * 设了 SO_REUSEADDR 的占用者，别的进程照样能 bind 成功；
+      * 绑在 0.0.0.0 的占用者，不阻止别人 bind 127.0.0.1。
+    因此 Windows 上额外用 netstat 核对「有没有进程在 LISTEN 这个端口」。
+    """
+    if not _bind_succeeds(port, host):
+        return False
+    if os.name == "nt" and port in _listening_ports_windows():
+        return False
+    return True
+
+
 def find_free_port(preferred: int, host: str = "127.0.0.1") -> int:
     """从 preferred 开始往后找第一个空闲端口。"""
+    listening = _listening_ports_windows() if os.name == "nt" else set()
     for offset in range(PORT_SCAN_COUNT):
         candidate = preferred + offset
-        if port_is_free(candidate, host):
-            return candidate
+        if not _bind_succeeds(candidate, host):
+            continue
+        if os.name == "nt" and candidate in listening:
+            continue
+        return candidate
     raise LauncherError(
         f"{preferred} 到 {preferred + PORT_SCAN_COUNT - 1} 端口都被占用了，"
         "请先关掉一些程序后重试。"
