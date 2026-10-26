@@ -198,6 +198,10 @@ def _install_stop_handlers(proc) -> None:
        Windows 的 ``terminate()`` 不杀子孙进程，streamlit 派生的子进程会
        变成孤儿继续占着端口。
 
+    ⚠️ **必须在子进程起来后立刻装**（见调用处注释）：服务冷启动要 10-30 秒，
+    这期间 handler 没装的话，用户的 Ctrl+C 会被 OS 按默认动作终止进程
+    （3221225786），Python 清理代码一行都不执行 → 端口一直被占。
+
     顺带：``CTRL_BREAK_EVENT`` 在 Python 里映射成 ``SIGBREAK``，其默认动作
     是直接终止进程（不抛 KeyboardInterrupt），所以必须显式接管，
     否则上面的清理逻辑同样不会执行。
@@ -321,6 +325,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         fail(str(exc))
         return 1
 
+    # 🔴 信号处理器必须**在子进程起来的第一时间**装上，不能等到服务就绪之后：
+    #   ① 子进程在独立进程组里，**收不到 Ctrl+C**（见 _install_stop_handlers）；
+    #   ② 服务冷启动要 10-30 秒，这期间 handler 还没装的话，用户的 Ctrl+C
+    #      会被 OS 按默认动作处理（退出码 3221225786 = STATUS_CONTROL_C_EXIT），
+    #      Python 的清理代码**一行都不会执行** → streamlit 变孤儿 → 端口一直被占；
+    #   ③ 外部探针（浏览器、验收脚本）可能比 start.py 自己更早看到「服务就绪」，
+    #      那一刻 handler 还没装，同样会漏。
+    # 装 handler 只依赖 proc 本身，早装没有任何副作用。
+    _install_stop_handlers(proc)
+
     ready = wait_until_ready(proc, port, args.timeout)
     if not ready:
         if proc.poll() is not None:
@@ -343,7 +357,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     print()
 
     # ---------- 保持前台运行 ----------
-    _install_stop_handlers(proc)
     # 用轮询而不是 proc.wait()：Windows 上 Popen.wait() 阻塞在不可中断的
     # WaitForSingleObject 上，装了信号处理后 OS 不再默认终止进程，
     # 两者一叠加就成了「Ctrl+C 后进程卡住不退、端口一直被占」。
