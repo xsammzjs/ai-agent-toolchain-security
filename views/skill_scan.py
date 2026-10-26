@@ -5,15 +5,13 @@
 32 条规则覆盖 8 类威胁，每条结论都带原文行号和命中规则名，可当场核验。
 """
 import re
-import subprocess
 import sys
 import os
 
 import pandas as pd
 import streamlit as st
 
-from views.common import (esc, run_skill_scan, metric_card, section_title,
-                          severity_badge, evidence_table)
+from views.common import esc, run_skill_scan, metric_card, section_title
 
 
 def _build_markdown_report(sr: dict) -> str:

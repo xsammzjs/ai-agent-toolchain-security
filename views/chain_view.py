@@ -15,7 +15,7 @@ import tempfile
 import pandas as pd
 import streamlit as st
 
-from views.common import esc, extract_skill_zip, metric_card, section_title
+from views.common import esc, extract_skill_zip
 
 
 def render():
@@ -105,7 +105,6 @@ def render():
 
     # ---- 攻击链结果展示 ----
     if st.session_state.chain_result:
-        from modules import attack_chain as ac_mod
 
         cr = st.session_state.chain_result
         chains = cr["chains"]
@@ -350,8 +349,10 @@ def render():
     with st.expander("📎 依赖侧证据：该项目的传统依赖漏洞（可选附加）",
                      expanded=bool(st.session_state.get("scan_done"))):
         if st.session_state.get("scan_done") and st.session_state.get("result"):
-            _render_dep_evidence()
+            # 复用依赖视图的结果渲染，避免两处代码各写一份
+            from views.dep_scan import render_results
+            render_results()
         else:
-            st.info("尚未扫描依赖侧证据。在左侧「📎 依赖侧证据（可选）」中"
-                    "上传项目包并点击「开始安全扫描」，结果会显示在这里。")
+            st.info("尚未扫描依赖侧证据。请切到「📦 依赖漏洞检测」上传项目包并"
+                    "扫描，扫描结果会显示在这里，并作为资产图谱的依赖侧节点。")
 

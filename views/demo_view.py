@@ -7,7 +7,6 @@
 import pandas as pd
 import streamlit as st
 
-from views.common import metric_card, section_title
 
 
 def render():

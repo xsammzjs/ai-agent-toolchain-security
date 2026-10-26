@@ -10,17 +10,9 @@ AI 技能与依赖漏洞检测平台
 本文件只负责三件事：页面配置与样式、侧边栏导航、把请求路由到对应视图。
 所有业务逻辑都在 modules/ 与 views/ 里，不往这里堆。
 """
-import os
-import sys
-import threading
-import time
-from datetime import datetime
-
 import streamlit as st
 
-from modules.engine import ScanEngine
 from views import chain_view, dep_scan, demo_view, skill_scan
-from views.common import esc
 
 # ==========================================
 # 页面配置
@@ -377,19 +369,33 @@ st.session_state.session_id = _sid
 
 @st.fragment(run_every=1.2)
 def _scan_progress_ui():
+    """只负责画进度条。结果交接由主脚本负责（见下方 _collect_scan_result）。"""
     box = _scan_bridge.get(_sid, {})
-    if box.get("done"):
-        # 扫描结束：把结果交回主脚本（整页 rerun 一次渲染结果）
-        if box.get("error"):
-            st.session_state.scan_error = box["error"]
-        else:
-            st.session_state.scan_result_pending = box["result"]
-        st.rerun(scope="app")
     percent = box.get("percent", 0)
     stage = box.get("stage", "准备中…")
     st.progress(percent / 100,
                 text=f"正在执行多源漏洞研判… {stage}（{percent}%）")
 
+
+def _collect_scan_result() -> bool:
+    """从进度桥取回扫描结果。幂等 —— 每次 rerun 都可以安全调用。
+
+    🔴 早期版本把交接逻辑放在 fragment 里，结果依赖 fragment 的定时重跑，
+    某些场景下（后台线程已完成但 fragment 未再触发）结果永远回不来，
+    页面一直卡在「扫描中」。改成主脚本每次 rerun 都拉一次，稳。
+    """
+    box = _scan_bridge.get(_sid, {})
+    if not box.get("done"):
+        return False
+    if box.get("error"):
+        st.session_state.scan_error = box["error"]
+    else:
+        st.session_state.scan_result_pending = box["result"]
+    return True
+
+
+# 每次 rerun 先尝试取回结果
+_collect_scan_result()
 
 if st.session_state.scanning:
     if st.session_state.scan_error is not None:

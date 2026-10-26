@@ -9,7 +9,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-from views.common import esc, metric_card, section_title, evidence_table
+from views.common import section_title, build_fixed_requirements
 
 
 def _start_scan(uploaded_file, mode_map_key, do_epss, use_nvd, do_transitive):
@@ -27,7 +27,10 @@ def _start_scan(uploaded_file, mode_map_key, do_epss, use_nvd, do_transitive):
         shutil.rmtree(TEMP_DIR)
     os.makedirs(TEMP_DIR, exist_ok=True)
 
-    file_path = os.path.join(TEMP_DIR, uploaded_file.name)
+    # 🔴 安全：上传文件名可能带路径分隔符或 '..'，必须只取basename，
+    #    否则可以写到 temp_upload 之外的任意位置（路径穿越）。
+    safe_name = os.path.basename(uploaded_file.name.replace("\\", "/")).strip() or "upload.txt"
+    file_path = os.path.join(TEMP_DIR, safe_name)
     with open(file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
 
@@ -50,7 +53,7 @@ def _start_scan(uploaded_file, mode_map_key, do_epss, use_nvd, do_transitive):
             r = engine.run_full_scan(
                 uploaded_file_path=file_path,
                 upload_mode=mode,
-                project_name=uploaded_file.name.rsplit(".", 1)[0],
+                project_name=safe_name.rsplit(".", 1)[0],
                 include_transitive=do_transitive,
                 use_nvd=use_nvd,
                 do_epss=do_epss,
@@ -118,10 +121,18 @@ def render():
 
     _render_upload()
 
+    render_results()
+
+
+def render_results():
+    """渲染依赖漏洞扫描结果。
+
+    被「依赖漏洞检测」视图和「资产关联分析」视图的依赖侧面板共用，
+    保证两处展示完全一致。
+    """
     if not (st.session_state.scan_done and st.session_state.result):
-        if not st.session_state.scanning:
-            st.info("👆 上传项目文件后点击「开始安全扫描」")
         return
+
 
     result = st.session_state.result
     summary = result["summary"]
@@ -561,7 +572,7 @@ def render():
 
                 # 生成修改后的 requirements.txt
                 req_path = st.session_state.get("req_file_path")
-                fixed_content = _build_fixed_requirements(req_path, fix_map, dep_list)
+                fixed_content = build_fixed_requirements(req_path, fix_map, dep_list)
 
                 st.markdown("#### 📥 下载修改后的 requirements.txt")
                 st.caption("直接依赖已按修复版本升级（`>=修复版本`），间接依赖版本为推断值、不写入生成文件。")

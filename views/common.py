@@ -24,6 +24,53 @@ def esc(text) -> str:
              .replace('"', "&quot;").replace("'", "&#39;"))
 
 
+def build_fixed_requirements(req_path: str | None, fix_map: dict,
+                             dep_list: list[dict]) -> str:
+    """
+    根据修复方案生成修改后的 requirements.txt 内容。
+
+    - 上传的是 requirements.txt：逐行替换有修复版本的包（保留注释和其他行）
+    - 其他上传模式：按依赖清单生成（仅直接依赖，间接依赖为推断值不写入）
+    """
+    import re as _re
+
+    lines = []
+    if req_path and os.path.exists(req_path):
+        with open(req_path, encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                stripped = line.strip()
+                # 注释、空行、pip 指令行（-r / --index 等）原样保留
+                if not stripped or stripped.startswith(("#", "-", "--")):
+                    lines.append(line.rstrip("\n"))
+                    continue
+                m = _re.match(r"^([A-Za-z0-9_.-]+)", stripped)
+                pkg = m.group(1).lower() if m else None
+                if pkg and pkg in fix_map:
+                    info = fix_map[pkg]
+                    cves = ", ".join(info["cve_ids"][:3])
+                    lines.append(f"{pkg}>={info['target']}  # 修复: {cves}")
+                else:
+                    lines.append(line.rstrip("\n"))
+    else:
+        lines.append("# 由 AI 技能与依赖漏洞检测平台自动生成（已包含修复版本）")
+        for dep in dep_list:
+            if dep.get("is_transitive"):
+                continue  # 间接依赖版本为推断值，不写入
+            pkg = dep["package"]
+            if pkg in fix_map:
+                info = fix_map[pkg]
+                lines.append(f"{pkg}>={info['target']}  # 修复: {', '.join(info['cve_ids'][:3])}")
+            else:
+                ver = dep.get("version", "")
+                if not ver:
+                    lines.append(pkg)
+                elif ver.startswith((">", "<", "=", "~", "!")):
+                    lines.append(f"{pkg}{ver}")
+                else:
+                    lines.append(f"{pkg}=={ver}")
+    return "\n".join(lines) + "\n"
+
+
 def extract_skill_zip(zip_bytes: bytes, dest: str) -> str:
     """安全解压技能包 zip：拒绝路径穿越（zip slip），返回技能包根目录"""
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
@@ -56,7 +103,7 @@ def run_skill_scan(zip_bytes: bytes | None = None, text: str | None = None,
             result = ss.scan_skill_package(root)
             skill_md = os.path.join(root, "SKILL.md")
             with open(skill_md, encoding="utf-8", errors="ignore") as f:
-                skill_text = f.read()
+                skill_text = f.read()  # noqa: F841 — 保留以维持 with 块结构
         elif zip_bytes is not None:
             root = extract_skill_zip(zip_bytes, tmp_dir)
             result = ss.scan_skill_package(root)
@@ -64,10 +111,9 @@ def run_skill_scan(zip_bytes: bytes | None = None, text: str | None = None,
             skill_md = os.path.join(root, "SKILL.md")
             if os.path.isfile(skill_md):
                 with open(skill_md, encoding="utf-8", errors="ignore") as f:
-                    skill_text = f.read()
+                    skill_text = f.read()  # noqa: F841 — 保留以维持 with 块结构
         else:
             result = ss.scan_skill_text("", text or "")
-            skill_text = text or ""
     except Exception as e:
         st.error(f"❌ Skill 检测失败：{e}")
         return
