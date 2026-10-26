@@ -196,7 +196,13 @@ def case_a1_bat_encoding(res: Result) -> None:
 
 
 def case_a2_bat_cmd_parse(res: Result) -> None:
-    """A2: .bat 能否被 cmd.exe 正常解析（无 BOM 语法错）。"""
+    """A2: .bat 能否被 cmd.exe 正常解析（无 BOM 语法错）。
+
+    注意：**不能直接跑原 .bat** —— 它会真的拉起服务、开浏览器、还可能
+    卡在交互式 set /p 上。这里做一份「净化副本」：只把有副作用的三处
+    （拉服务 / 开浏览器 / 交互输入 / pause）换成无害的 echo，
+    其余全部原样保留，从而真实检验 cmd.exe 对该文件的解析结果。
+    """
     if not BAT.exists():
         res.check(False, f"文件不存在：{BAT}")
         return
@@ -205,13 +211,46 @@ def case_a2_bat_cmd_parse(res: Result) -> None:
         res.check(False, "含 BOM —— cmd.exe 第一行会报 "
                          "'xxx 不是内部或外部命令'，双击必然出乱码错误")
         return
-    # 用 cmd /c 解析一遍，截取前若干行输出看有无语法错误
-    rc, out = run_cmd(["cmd", "/c", str(BAT)], timeout=20)
-    bad = [ln for ln in out.splitlines()
-           if "不是内部或外部命令" in ln or "不是可识别的" in ln]
-    res.check(not bad, f"cmd.exe 解析无语法错误（捕获到 {len(bad)} 条）")
-    for ln in bad[:3]:
-        res.note(f"语法错误行：{ln.strip()}")
+
+    text = data.decode("utf-8-sig", errors="replace")
+    lines = text.splitlines()
+    patched: List[str] = []
+    for line in lines:
+        low = line.lower().strip()
+        if low.startswith('"%pyexe%" -m streamlit run'):
+            patched.append('echo [SANITIZED] streamlit run (skipped by QA)')
+        elif low.startswith("start \"\" /b cmd /c"):
+            patched.append('echo [SANITIZED] open browser (skipped by QA)')
+        elif low.startswith("pause"):
+            patched.append('echo [SANITIZED] pause (skipped by QA)')
+        elif "set /p" in low and "choice" in low:
+            patched.append('set "CHOICE=0"')
+        else:
+            patched.append(line)
+
+    tmp_dir = ROOT / "temp_upload" / "_qa_bat_probe"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    probe = tmp_dir / "probe.bat"
+    probe.write_bytes(("\r\n".join(patched) + "\r\n").encode("utf-8"))
+
+    try:
+        rc, out = run_cmd(["cmd", "/c", str(probe)], cwd=ROOT, timeout=60)
+        bad = [ln for ln in out.splitlines()
+               if "不是内部或外部命令" in ln or "不是可识别的" in ln
+               or "命令语法不正确" in ln or "unexpected" in ln.lower()]
+        res.check(not bad,
+                  f"cmd.exe 解析无语法错误（捕获到 {len(bad)} 条语法错）")
+        for ln in bad[:5]:
+            res.note(f"语法错误行：{ln.strip()}")
+        # 净化副本应能跑到端口检测阶段
+        reached = any(k in out for k in ("端口", "PORT", "1/5", "2/5", "3/5"))
+        res.check(reached, "批处理能实际执行到端口检测阶段（不只是解析通过）")
+        res.note(f"输出片段：{out.strip()[:400]!r}")
+    finally:
+        try:
+            probe.unlink()
+        except OSError:
+            pass
 
 
 def case_a3_bat_codepage(res: Result) -> None:
@@ -505,6 +544,13 @@ CASES: List[Tuple[str, str, Callable[[Result], None], bool]] = [
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    # 输出重定向到文件时必须实时刷新，否则中途被 kill 会一个字都看不到
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(line_buffering=True)      # type: ignore[union-attr]
+        except (AttributeError, OSError, ValueError):
+            pass
+
     parser = argparse.ArgumentParser(description="启动方式验收工具箱")
     parser.add_argument("--list", action="store_true", help="只列用例清单")
     parser.add_argument("--only", nargs="*", help="只跑指定编号，如 A1 C2")

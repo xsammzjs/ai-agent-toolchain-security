@@ -320,6 +320,20 @@ def open_browser(url: str) -> bool:
         return False
 
 
+def lan_ip() -> Optional[str]:
+    """取本机在局域网里的 IPv4 地址（用于 --host 0.0.0.0 时提示手机访问）。"""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # UDP connect 不会真的发包，只是让系统选一个出口网卡
+        sock.connect(("10.255.255.255", 1))
+        ip = sock.getsockname()[0]
+        return ip if not ip.startswith("127.") else None
+    except OSError:
+        return None
+    finally:
+        sock.close()
+
+
 # ==========================================================
 # 启动服务
 # ==========================================================
@@ -477,6 +491,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 1
 
     show_url(url)
+    if args.host in ("0.0.0.0", "::"):
+        ip = lan_ip()
+        if ip:
+            print(f"  >>> 手机/其它设备访问： http://{ip}:{port}")
+            print("      （需在同一 WiFi 下；若打不开，检查 Windows 防火墙是否放行 Python）")
+            print()
     print(f"      服务已就绪，停止方式：按 Ctrl+C，或直接关闭本终端窗口。")
     if not args.no_browser:
         print("      正在打开浏览器 ...")
