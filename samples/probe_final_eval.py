@@ -498,13 +498,23 @@ def main():
     print(f"  组合分析额外产出的链路：{len(real_chains)} 条")
     print()
     print("  场景语料上的对照（更直观）：")
+    # 🔴 口径修正（2026-10-27）：此前这里用 107 语料的 rule_hits 表去查
+    #    **场景技能名**，而两者零交集 → 永远返回 0 → 打印出误导性的
+    #    「13 个场景单点全 0」。现改为对每个场景技能**现算**单点命中。
     for s in scenarios:
         sid = s["scenario_id"]
         names = list(s["skill_texts"].keys())
-        single_here = [n for n in names if rule_hits.get(n, 0) > 0]
+        sc_hits = {n: len(ss.scan_skill_text(n, s["skill_texts"][n])["findings"])
+                   for n in names}
+        single_here = [n for n in names if sc_hits[n] > 0]
         chains = build_chains(names, sc_caps[sid], judgements)
         print(f"    {sid:32s} 单点报警 {len(single_here)} 个技能"
+              f"（{sum(sc_hits.values())} 处）"
               f" | 组合链路 {len(chains)} 条 | 期望 {s['label']}")
+    print()
+    print("  说明：单点报警数 ≠ 组合风险判定。单点给出的是「这个技能有多少条"
+          "可疑规则命中」（中危~高危），组合给出的是「这些技能凑在一起会"
+          "造成什么后果」的链路严重度与元凶定位——两者回答的不是同一个问题。")
     print()
 
     print("=" * 86)
