@@ -40,7 +40,7 @@
   <!-- ================= 中：Agent 边界 ================= -->
   <text x="440" y="84" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#1a3a5c">② Agent 边界</text>
 
-  <rect x="356" y="94" width="168" height="184" rx="10" fill="#eef4fa" stroke="#1a3a5c" stroke-width="2" stroke-dasharray="7 4"/>
+  <rect x="356" y="94" width="168" height="196" rx="10" fill="#eef4fa" stroke="#1a3a5c" stroke-width="2" stroke-dasharray="7 4"/>
   <text x="440" y="114" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#1a3a5c">同一个 Agent</text>
   <text x="440" y="130" text-anchor="middle" font-size="10" fill="#5a6f85">共享上下文 / 共享工具</text>
 
@@ -55,8 +55,8 @@
   <text x="440" y="224" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#1e8449">snippet-uploader</text>
   <text x="440" y="239" text-anchor="middle" font-size="9.5" fill="#33475b">EXFIL</text>
 
-  <text x="440" y="264" text-anchor="middle" font-size="9" fill="#33475b">A 读到的凭据进入共享上下文</text>
-  <text x="440" y="279" text-anchor="middle" font-size="9" fill="#33475b">B 发送时把上下文一并打包带走</text>
+  <text x="440" y="266" text-anchor="middle" font-size="9" fill="#33475b">A 读到的凭据进入共享上下文</text>
+  <text x="440" y="281" text-anchor="middle" font-size="9" fill="#33475b">B 发送时把上下文一并打包带走</text>
 
   <!-- 箭头进入 Agent -->
   <line x1="334" y1="152" x2="366" y2="152" stroke="#5a6f85" stroke-width="2" marker-end="url(#arr6)"/>
