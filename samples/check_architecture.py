@@ -37,6 +37,9 @@ SKIP_DIR_NAMES = {
 SKIP_DIR_PATHS = {
     "samples/real_corpus", "temp_shots", "data_store",
     "trivy_cache", "temp_upload", "docs",
+    # 第三方开源源码的只读副本（CompoSkill 官方实现），仅用于方法论对标，
+    # 不属于本项目交付代码，也已加入 .gitignore 不随作品分发。
+    "samples/public_bench/_ref",
 }
 # 注：qa/ 早期因 launcher_acceptance.py 单文件 900+ 行被排除；
 #     现已拆成 9 个模块（最大 296 行），前提不存在，故纳入体检范围。

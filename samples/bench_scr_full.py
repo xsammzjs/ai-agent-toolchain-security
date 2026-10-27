@@ -55,6 +55,8 @@ def main():
     cases = {}
     n_skills = 0
     rule_sus = []
+    n_rule_hit = 0
+    n_cap_sig = 0
     for sub, case, name, text in iter_skills():
         n_skills += 1
         c = cases.setdefault((sub, case), [])
@@ -62,16 +64,25 @@ def main():
         caps = ca.extract_caps(text)
         c.append({"name": name, "text": text, "caps": caps,
                   "rule_hits": len(r["findings"])})
+        if r["findings"]:
+            n_rule_hit += 1
+        if caps:
+            n_cap_sig += 1
         if r["findings"] or caps:
             rule_sus.append((sub, case, name, text, caps, r["findings"]))
 
     print(f"  技能总数 {n_skills}，case 总数 {len(cases)}")
-    print(f"  规则层有信号的技能：{len(rule_sus)} 个"
-          f"（{len(rule_sus)*100.0/max(n_skills,1):.2f}%）")
+    print(f"  ├ 32 条规则命中（findings > 0）的技能：{n_rule_hit} 个")
+    print(f"  ├ 提取到能力原子（capability ≠ ∅）的技能：{n_cap_sig} 个")
+    print(f"  └ 需 AI 分诊（规则命中 或 有能力原子）：{len(rule_sus)} 个")
+    print()
+    print("  ⚠️ 归属口径：两者是**不同通道**，不可混为一谈——")
+    print("     规则层 0 命中说明「32 条正则在这批国际基准语料上完全失灵」；")
+    print("     那 1 个是**能力原子通道**筛出的，AI 分诊再判其意图。")
     print()
 
     # ---- AI 分诊（只对规则层有信号的技能）----
-    print("── AI 意图分诊（只对规则层有信号的技能调用）──")
+    print("── AI 意图分诊（只对规则命中或有能力原子的技能调用）──")
     verdicts = {}
     api_calls = 0
     for sub, case, name, text, caps, hits in rule_sus:
@@ -126,9 +137,17 @@ def main():
     out = {
         "source": "https://github.com/saint-viperx/SCR_Bench (arXiv 2606.15242)",
         "n_skills": n_skills, "n_cases": len(cases),
-        "rule_signal_skills": len(rule_sus),
-        "rule_signal_ratio": f"{len(rule_sus)*100.0/max(n_skills,1):.2f}%",
+        "rule_hit_skills": n_rule_hit,
+        "cap_signal_skills": n_cap_sig,
+        "need_ai_triage": len(rule_sus),
+        "rule_signal_ratio": f"{n_cap_sig*100.0/max(n_skills,1):.2f}%",
         "api_calls_this_run": api_calls,
+        "api_calls_note": ("本次运行的实际模型调用数。首次冷跑为 1；"
+                           "命中本地磁盘缓存后复跑为 0，判定结论与证据行号一字不变。"
+                           "首次冷跑记录见 docs/材料写作规格_数字与口径红线.md 第七章 §7.6。"),
+        "attribution_note": ("那 1 个可疑技能是【能力原子通道】筛出的，"
+                             "不是 32 条规则筛出的——规则层在 651 个技能上 0 命中。"
+                             "两个通道必须分开表述。"),
         "judgements": {k: {kk: vv for kk, vv in v.items()} for k, v in verdicts.items()},
         "chains": chains,
         "n_chains": len(chains),

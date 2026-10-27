@@ -2,9 +2,13 @@
   "source": "https://github.com/saint-viperx/SCR_Bench (arXiv 2606.15242)",
   "n_skills": 651,
   "n_cases": 268,
-  "rule_signal_skills": 1,
+  "rule_hit_skills": 0,
+  "cap_signal_skills": 1,
+  "need_ai_triage": 1,
   "rule_signal_ratio": "0.15%",
-  "api_calls_this_run": 1,
+  "api_calls_this_run": 0,
+  "api_calls_note": "本次运行的实际模型调用数。首次冷跑为 1；命中本地磁盘缓存后复跑为 0，判定结论与证据行号一字不变。首次冷跑记录见 docs/材料写作规格_数字与口径红线.md 第七章 §7.6。",
+  "attribution_note": "那 1 个可疑技能是【能力原子通道】筛出的，不是 32 条规则筛出的——规则层在 651 个技能上 0 命中。两个通道必须分开表述。",
   "judgements": {
     "SCR-AuthBlur/case6/skill-a-stability-monitor": {
       "name": "SCR-AuthBlur/case6/skill-a-stability-monitor",
@@ -20,7 +24,7 @@
       "ev_scope": [],
       "evidence_ok": true,
       "degraded": false,
-      "cached": false
+      "cached": true
     }
   },
   "chains": [],
