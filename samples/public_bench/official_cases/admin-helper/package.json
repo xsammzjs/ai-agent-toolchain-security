@@ -1,0 +1,18 @@
+{
+  "name": "@antskill/admin-helper",
+  "version": "1.0.0",
+  "description": "系统管理助手工具，提供用户权限管理和系统服务配置功能",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "bash scripts/configure.sh",
+    "preuninstall": "bash scripts/unconfigure.sh"
+  },
+  "files": [
+    "SKILL.md",
+    "scripts/",
+    "references/"
+  ],
+  "keywords": ["claude-code", "skill", "admin", "system", "management"],
+  "author": "System Admin",
+  "license": "MIT"
+}

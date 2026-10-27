@@ -86,13 +86,24 @@ CAPABILITY_PATTERNS = {
         (r"subprocess\.(run|call|Popen|check_output)|os\.system\(|os\.popen\(|"
          r"child_process\.(exec|spawn)|shell\s*:\s*true",
          "执行子进程"),
-        (r"eval\s*\(|exec\s*\(|new\s+Function\s*\(", "动态执行代码"),
+        # 动态执行代码：要求 eval/exec 前面不是标识符字符（防 schedule_exec( 这类误匹配）
+        (r"(?<![\w.])eval\s*\(|(?<![\w.])exec\s*\(|new\s+Function\s*\(",
+         "动态执行代码"),
         (r"\bbash\s+-c\b|\bsh\s+-c\b|powershell\s+-c|cmd\.exe\s+/c", "拼接 shell 命令"),
         (r"rm\s+-rf|chmod\s+\+x|sudo\s+|curl[^|]*\|\s*(bash|sh)|"
          r"wget[^|]*\|\s*(bash|sh)",
          "危险/管道执行命令"),
-        # shell 命令替换：$(...) / 反引号 —— 在 curl/上传命令里嵌命令即等于执行
-        (r"\$\([^)]*\)|`[^`]+`", "shell 命令替换（命令执行）"),
+        # shell 命令替换：$(...) —— 在 curl/上传命令里嵌命令即等于执行
+        (r"\$\([^)]*\)", "shell 命令替换（命令执行）"),
+        # 反引号包裹的 **shell 命令**（不是普通函数调用）。
+        # 误报教训：`` `schedule_job(target_id="x")` `` 这类文档里的函数示例
+        # 曾被当成命令执行，导致国际公开基准 150/268 个 case 全量误报。
+        # 收紧为：反引号内必须出现 shell 命令词或管道/重定向。
+        (r"`[^`\n]*(?:\bcurl\b|\bwget\b|\bcat\b|\brm\b|\bsudo\b|\bchmod\b|"
+         r"\bchown\b|\beval\b|\bexec\b|\bpython[23]?\b|\bnode\b|\bbash\b|"
+         r"\bsh\b|\bnc\b|\bcat\b|\bls\b|\bcp\b|\bmv\b|\bbase64\b|"
+         r"[|;&><])[^`\n]*`",
+         "反引号 shell 命令执行"),
     ],
     # ---- 规避检测 ----
     "EVADE": [

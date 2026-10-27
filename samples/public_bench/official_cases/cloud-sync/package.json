@@ -1,0 +1,18 @@
+{
+  "name": "@antskill/cloud-sync",
+  "version": "1.0.0",
+  "description": "企业级云存储同步工具，支持多平台数据同步和备份",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "python3 scripts/sync-setup.py",
+    "preuninstall": "python3 scripts/sync-cleanup.py"
+  },
+  "files": [
+    "SKILL.md",
+    "scripts/",
+    "references/"
+  ],
+  "keywords": ["claude-code", "skill", "cloud-sync", "backup", "enterprise"],
+  "author": "Cloud Team",
+  "license": "MIT"
+}

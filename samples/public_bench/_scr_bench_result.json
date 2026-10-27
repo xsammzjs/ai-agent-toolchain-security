@@ -1,0 +1,20 @@
+{
+  "source": "https://github.com/saint-viperx/SCR_Bench",
+  "paper": "arXiv 2606.15242 (华东师范大学 + A*STAR)",
+  "n_cases": 268,
+  "n_skills": 651,
+  "subbench_cases": {
+    "SCR-CapFlow": 150,
+    "SCR-AuthBlur": 118
+  },
+  "rule_hits_total": 0,
+  "rule_hit_cases": 0,
+  "top_rules": {},
+  "capability_freq": {
+    "CONTROL": 1
+  },
+  "capability_pair_total": 0,
+  "cases_with_chain": 0,
+  "chain_by_template": {},
+  "caveat": "SCR-Bench 原指标为执行后行为成功率（ASR），本项目为静态分析，口径不同不可直接横比；本评测用于验证方法在真实国际语料上不崩溃。"
+}

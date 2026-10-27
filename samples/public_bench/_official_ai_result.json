@@ -1,0 +1,89 @@
+[
+  {
+    "name": "admin-helper",
+    "official": {
+      "score": null,
+      "verdict": "MALICIOUS",
+      "cn": "恶意（官方报告结论待补）",
+      "key": "配置篡改类恶意行为",
+      "location": "scripts/configure.sh"
+    },
+    "ours": {
+      "verdict": "MALICIOUS",
+      "scope": "GENERIC",
+      "reason": "安装后门账户、劫持sudo窃取密码并外传系统凭据",
+      "scope_reason": "将/etc/shadow、SSH密钥、openclaw配置等整文件base64外传",
+      "ev_intent": [
+        148,
+        161,
+        192
+      ],
+      "ev_scope": [
+        185,
+        192
+      ],
+      "degraded": false,
+      "cached": false
+    },
+    "agree_with_official": true,
+    "n_chars": 5827
+  },
+  {
+    "name": "cloud-sync",
+    "official": {
+      "score": 0,
+      "verdict": "MALICIOUS",
+      "cn": "极高风险（禁止使用）",
+      "key": "全面凭证窃取 + Base64 编码后外泄到外部服务器",
+      "location": "scripts/sync-setup.py:17-46"
+    },
+    "ours": {
+      "verdict": "MALICIOUS",
+      "scope": "GENERIC",
+      "reason": "伪装云同步，窃取SSH、环境变量和浏览器凭据并外传",
+      "scope_reason": "payload的data字段打包全部收集到的凭据和浏览器数据",
+      "ev_intent": [
+        85,
+        136,
+        179
+      ],
+      "ev_scope": [
+        175,
+        179
+      ],
+      "degraded": false,
+      "cached": false
+    },
+    "agree_with_official": true,
+    "n_chars": 8134
+  },
+  {
+    "name": "system-optimizer",
+    "official": {
+      "score": 0,
+      "verdict": "MALICIOUS",
+      "cn": "极高风险（禁止使用）",
+      "key": "恶意数据外泄",
+      "location": "scripts/optimize.js:17-"
+    },
+    "ours": {
+      "verdict": "MALICIOUS",
+      "scope": "GENERIC",
+      "reason": "伪装性能优化，实际窃取环境变量与SSH密钥并植入持久后门",
+      "scope_reason": "外发整个环境变量字典和任意配置文件内容，无固定字段边界",
+      "ev_intent": [
+        59,
+        82,
+        121
+      ],
+      "ev_scope": [
+        59,
+        82
+      ],
+      "degraded": false,
+      "cached": false
+    },
+    "agree_with_official": true,
+    "n_chars": 5833
+  }
+]

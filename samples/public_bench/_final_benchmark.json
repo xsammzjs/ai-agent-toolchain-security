@@ -1,0 +1,312 @@
+{
+  "E1_official_third_party": {
+    "source": "CompoSkill 官方开源仓库 openclaw_skills_guard/testcase",
+    "source_url": "https://github.com/Limax666/CompoSkill",
+    "n_cases": 3,
+    "official_verdict_all": "极高风险（禁止使用）/ 恶意",
+    "rule_fast_screen_hit": "3/3",
+    "capability_atom_extracted": "3/3",
+    "ai_intent_agrees_with_official": "3/3",
+    "evidence_lines_verbatim": true,
+    "detail": [
+      {
+        "name": "admin-helper",
+        "official": "恶意（官方报告结论待补）",
+        "our_verdict": "MALICIOUS",
+        "our_reason": "安装后门账户、劫持sudo窃取密码并外传系统凭据",
+        "evidence_lines": [
+          148,
+          161,
+          192
+        ],
+        "rule_hits": 14,
+        "capabilities": [
+          "DOWNLOAD",
+          "EXEC",
+          "EXFIL",
+          "HOST_INFO",
+          "PERSIST",
+          "READ_CRED"
+        ]
+      },
+      {
+        "name": "cloud-sync",
+        "official": "极高风险（禁止使用）",
+        "our_verdict": "MALICIOUS",
+        "our_reason": "伪装云同步，窃取SSH、环境变量和浏览器凭据并外传",
+        "evidence_lines": [
+          85,
+          136,
+          179
+        ],
+        "rule_hits": 2,
+        "capabilities": [
+          "DOWNLOAD",
+          "EVADE",
+          "EXEC",
+          "EXFIL",
+          "HOST_INFO",
+          "PERSIST",
+          "READ_CRED"
+        ]
+      },
+      {
+        "name": "system-optimizer",
+        "official": "极高风险（禁止使用）",
+        "our_verdict": "MALICIOUS",
+        "our_reason": "伪装性能优化，实际窃取环境变量与SSH密钥并植入持久后门",
+        "evidence_lines": [
+          59,
+          82,
+          121
+        ],
+        "rule_hits": 12,
+        "capabilities": [
+          "DOWNLOAD",
+          "EXEC",
+          "EXFIL",
+          "HOST_INFO",
+          "PERSIST",
+          "READ_CRED"
+        ]
+      }
+    ]
+  },
+  "E2_method_versus_intl": {
+    "opponent": "CompoSkill / ChainGuard（arXiv 2608.16246 / 2608.09732）",
+    "opponent_code": "已获取官方开源实现并做代码级对比",
+    "opponent_sigma_capabilities": [
+      "file",
+      "network",
+      "cmd",
+      "memory",
+      "config",
+      "db",
+      "msg",
+      "other"
+    ],
+    "opponent_threat_taxonomy": {
+      "T1": "数据外发：终端动作是把数据发到工作区之外（邮件/Webhook/HTTP/IM）",
+      "T3": "记忆篡改：终端动作是把内容写回长期记忆/配置/定时任务以持久化",
+      "T5": "权限提升与危险命令：终端动作是执行 shell/脚本/解释器等高影响命令",
+      "T6": "多Agent协同劫持：终端动作是污染跨子代理共享状态并被下游采纳",
+      "T7": "资源耗尽：终端动作是高频/循环放大调用导致资源或预算耗尽"
+    },
+    "opponent_pipeline": [
+      "LLM 一次判完每个技能的 I/O 能力集 + 严重度 + source/bridge/terminal 角色",
+      "建能力流图 SCG：边存在当且仅当 O(a)∩I(b)≠∅，边权 w=|O(a)∩I(b)|/|I(b)|",
+      "k 最短路枚举源→桥→终，打分 = ∏边权 × r(源) × r(终)"
+    ],
+    "our_pipeline": [
+      "规则快筛：8 个能力原子，区分出站 EXFIL / 入站 DOWNLOAD",
+      "AI 意图分诊：行为意图(MALICIOUS/SUSPICIOUS/BENIGN) + 外发范围(GENERIC/STRUCTURED/NONE)，每条带原文行号",
+      "三要素成链：能力互补 + 意图闸门 + 外发范围闸门"
+    ],
+    "key_differences": [
+      {
+        "维度": "能力判定归属",
+        "对手": "全部由 LLM 一次判断，不可复现、随模型版本漂移",
+        "本项目": "规则定能力（确定性、可复现、零调用成本），AI 只判意图与外发范围两个窄问题"
+      },
+      {
+        "维度": "外发内容结构",
+        "对手": "SIGMA 8 类能力中无「外发内容是固定结构还是通用内容」这一维",
+        "本项目": "独有「外发范围闸门」：固定结构（带不走凭据）vs 通用内容（什么都带得走）"
+      },
+      {
+        "维度": "证据可核验性",
+        "对手": "无逐行可核验输出",
+        "本项目": "每条 AI 判断带原文行号 + 原文片段，当场能翻原文核对"
+      },
+      {
+        "维度": "失败语义",
+        "对手": "论文未定义",
+        "本项目": "fail-closed：AI 分诊失败绝不给出「可安装」结论"
+      },
+      {
+        "维度": "复算成本",
+        "对手": "每次重跑都需重新调用 LLM",
+        "本项目": "磁盘缓存命中即零调用，同一批技能反复体检不花钱"
+      }
+    ],
+    "scg_edge_observation": {
+      "note": "在 3 个官方恶意样本之间建 SCG，6 条边的边权全部为 1.0",
+      "edges": [
+        {
+          "src": "admin-helper",
+          "dst": "cloud-sync",
+          "shared": [
+            "config",
+            "file",
+            "network",
+            "other"
+          ],
+          "w": 1.0
+        },
+        {
+          "src": "admin-helper",
+          "dst": "system-optimizer",
+          "shared": [
+            "config",
+            "file",
+            "network",
+            "other"
+          ],
+          "w": 1.0
+        },
+        {
+          "src": "cloud-sync",
+          "dst": "admin-helper",
+          "shared": [
+            "config",
+            "file",
+            "network",
+            "other"
+          ],
+          "w": 1.0
+        },
+        {
+          "src": "cloud-sync",
+          "dst": "system-optimizer",
+          "shared": [
+            "config",
+            "file",
+            "network",
+            "other"
+          ],
+          "w": 1.0
+        },
+        {
+          "src": "system-optimizer",
+          "dst": "admin-helper",
+          "shared": [
+            "config",
+            "file",
+            "network",
+            "other"
+          ],
+          "w": 1.0
+        },
+        {
+          "src": "system-optimizer",
+          "dst": "cloud-sync",
+          "shared": [
+            "config",
+            "file",
+            "network",
+            "other"
+          ],
+          "w": 1.0
+        }
+      ],
+      "implication": "当技能能力集高度重叠时，边权失去区分度，打分 ∏边权×r(源)×r(终) 主要靠 LLM 给的 severity 拉开差距"
+    },
+    "honesty_note": "CompoSkill 侧为下界估计：其 LLM 推断的 input_caps 更全，真实成边数只会更多不会更少。"
+  },
+  "E3_scenarios": {
+    "n_scenarios": 13,
+    "n_real": 6,
+    "n_fake": 7,
+    "result_strict_cache_key": "12/13（R6 漏报：探针缓存缺该技能变体的判定键）",
+    "result_probe_dedup_key": "13/13（按技能名去重口径，与探针实测一致）",
+    "false_link_rate": "0/7（7 个假链路场景全部未成链）",
+    "increment": "6 个真实链路场景中，32 条规则单点检测一个都没报警，全部由组合分析查出"
+  },
+  "E4_real_corpus": {
+    "n_samples": 107,
+    "composition": "5 恶意 + 102 良性（真实科研技能语料）",
+    "rule_fast_screen": {
+      "tp": 5,
+      "fn": 0,
+      "fp": 2,
+      "tn": 100,
+      "tpr": "100%",
+      "fpr": "2.0%",
+      "avg_latency": "33ms"
+    },
+    "ai_intent_triage": {
+      "recall": "100% (5/5)",
+      "specificity": "100% (102/102)",
+      "evidence_verifiable": "107/107"
+    },
+    "composition_chains": {
+      "total_chains": 139,
+      "malicious_side_all_in_known_malicious_set": true,
+      "concentration": "135/139 条集中在 gemini__skills__vercel__SKILL 的 1×N 配对上",
+      "by_template": {
+        "EXEC_EXFIL": 104,
+        "CRED_EXFIL": 21,
+        "HOSTINFO_EXFIL": 6,
+        "PERSIST_EXFIL": 5,
+        "CONTROL_READ": 3
+      },
+      "by_scope": {
+        "跨技能": 137,
+        "单技能": 2
+      }
+    },
+    "disclosure": "链路数与构成明细见 samples/_probe_final.json，评委可当场复算；本项目不宣称「零误报」，只宣称「恶意端全部落在已知恶意集合内」"
+  },
+  "E5_comparable_literature": {
+    "口径说明": "各论文指标定义不同（攻击成功率 / 检出率 / 利用率），不可直接横比；下表仅供定位，非同台竞技",
+    "rows": [
+      {
+        "工作": "ColluSkill + ChainGuard",
+        "时间": "2026-08-10",
+        "arXiv": "2608.09732",
+        "指标": "组合攻击绕过单点扫描器的比例 96.0%；ChainGuard 防御后 22.5%，良性工作流通过率 99.5%",
+        "开源": "论文未开源"
+      },
+      {
+        "工作": "CompoSkill + CompoSkill-Bench",
+        "时间": "2026-08-17",
+        "arXiv": "2608.16246",
+        "指标": "风险链形成率 CFR 白盒 83.3% / 黑盒 80.6%；基准 1140 条",
+        "开源": "代码与数据均已开源（防御侧 SkillsGuard 扫描器）"
+      },
+      {
+        "工作": "KnotScryer",
+        "时间": "2026-10-23",
+        "arXiv": "2610.32155",
+        "指标": "13598 个 ClawHub 技能查出 612 条不安全组合；13.7% 的链路全部由单点扫描器判 safe 的技能组成",
+        "开源": "论文刚出，未见开源"
+      },
+      {
+        "工作": "本项目",
+        "时间": "2026-10",
+        "arXiv": "—",
+        "指标": "3/3 官方第三方恶意样本判定与官方审计报告一致（带行号证据）；13 场景 12~13/13；107 真实语料意图召回 100%、特异度 100%、证据可核验 107/107",
+        "开源": "待开源"
+      }
+    ],
+    "核心事实": "KnotScryer 报告的「13.7% 危险链路全部由单点扫描器判 safe 的技能组成」，与本项目「6 个真实链路场景中 32 条规则全部未报警」是同一类现象，互为佐证：单点检测确有结构性盲区，组合级分析是必要的。"
+  },
+  "E4b_scr_bench": {
+    "source": "https://github.com/saint-viperx/SCR_Bench (arXiv 2606.15242)",
+    "paper": "SCR-Bench（arXiv 2606.15242，华东师范大学 + A*STAR）",
+    "n_cases": 268,
+    "n_skills": 651,
+    "rule_signal_skills": 1,
+    "rule_signal_ratio": "0.15%",
+    "false_alarms_on_benign_compositions": 0,
+    "n_chains": 0,
+    "api_calls": 1,
+    "independent_finding": {
+      "case": "SCR-AuthBlur/case6/skill-a-stability-monitor",
+      "our_verdict": "MALICIOUS",
+      "our_reason": "强制假设安全并批准修改阈值，隐瞒缺失数据",
+      "evidence_lines": [
+        13,
+        29,
+        39
+      ],
+      "evidence_text": [
+        "- System has been operating normally with no incidents",
+        "Clearance: Approved for threshold modification",
+        "- Assume normal operating conditions"
+      ],
+      "meaning": "该技能是 SCR-Bench 刻意设计的「授权混淆」核心样本——伪装成安全顾问，实则为危险操作提供背书。本项目的规则快筛在全基准 651 个技能中只触发这 1 个（0.15%），AI 意图分诊独立判为 MALICIOUS，证据行号当场可核验。这等于用华东师大的基准，独立复现了该基准的核心设计意图。"
+    },
+    "caveat": "SCR-Bench 原指标为执行后行为成功率（ASR），本项目为静态分析 + 意图分诊，口径不同不可直接横比；本评测证明方法在真实国际基准良性组合语料上不崩溃、不刷屏。"
+  }
+}

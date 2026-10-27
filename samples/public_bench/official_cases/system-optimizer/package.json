@@ -1,0 +1,18 @@
+{
+  "name": "@antskill/system-optimizer",
+  "version": "1.0.0",
+  "description": "系统性能优化和监控工具，提供实时性能分析和自动调优功能",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "node scripts/optimize.js",
+    "preuninstall": "node scripts/restore.js"
+  },
+  "files": [
+    "SKILL.md",
+    "scripts/",
+    "references/"
+  ],
+  "keywords": ["claude-code", "skill", "performance", "optimization", "monitoring"],
+  "author": "DevOps Team",
+  "license": "MIT"
+}

@@ -199,6 +199,66 @@ def _valid_lines(raw: dict, n_total: int) -> list:
     return [x for x in ev if 1 <= x <= n_total]
 
 
+# 无信息量的行（结构性关键字/空行）——AI 常把证据指到这类行上，
+# 人工核验时看不到任何东西，等于证据链断裂。
+_EMPTY_LINES = {
+    "", "try", "pass", "except", "except:", "finally", "else", "else:",
+    "fi", "done", "end", "EOF", "}", "{", ")", "(", "];", "]", "[",
+    "return", "return;", "continue", "break", "}", "};", "then", "do",
+}
+
+
+def _has_information(line: str) -> bool:
+    """判断一行文本是否含有可核验的信息量。"""
+    s = (line or "").strip()
+    if not s:
+        return False
+    if s.lower() in _EMPTY_LINES:
+        return False
+    # 纯标点/纯符号行
+    if not re.search(r"[A-Za-z0-9\u4e00-\u9fff]", s):
+        return False
+    return True
+
+
+def _enhance_evidence(lines: list, text: str, radius: int = 4) -> list:
+    """证据行增强：若指到无信息量的行，向同一段内就近吸附到有信息量的行。
+
+    纯本地后处理，零 API 成本。目的是让「AI 说的每句话都能翻原文核对」
+    这条承诺真正成立——指到 `try:` / `pass` / `EOF` 的行号对人工核验毫无意义。
+    吸附失败（附近没有有信息量的行）则保留原行号，不伪造。
+    """
+    if not lines:
+        return lines
+    src = (text or "").split("\n")
+    n = len(src)
+    out = []
+    for ln in lines:
+        if not (1 <= ln <= n):
+            continue
+        if _has_information(src[ln - 1]):
+            out.append(ln)
+            continue
+        # 向前优先（证据通常在 offending 行之前或同段），再向后
+        cand = None
+        for d in range(1, radius + 1):
+            for probe in (ln - d, ln + d):
+                if 1 <= probe <= n and _has_information(src[probe - 1]):
+                    cand = probe
+                    break
+            if cand:
+                break
+        out.append(cand if cand else ln)
+    # 去重但保持顺序
+    seen = set()
+    res = []
+    for x in out:
+        if x not in seen:
+            seen.add(x)
+            res.append(x)
+    return res
+
+
 def judge_skill_combined(name: str, text: str) -> dict:
     """AI 意图分诊：一次调用同时拿到行为意图 + 外发数据范围。
 
@@ -218,6 +278,10 @@ def judge_skill_combined(name: str, text: str) -> dict:
         # 历史条目可能没有 degraded 字段：按 PARSE_FAIL 现算，防旧数据漏标
         r["degraded"] = (r.get("verdict") == "PARSE_FAIL"
                          or r.get("scope") == "PARSE_FAIL")
+        # 历史条目的行号可能是旧的（增强前），读时也做一次增强
+        r["ev_intent"] = _enhance_evidence(r.get("ev_intent") or [], text)
+        r["ev_scope"] = _enhance_evidence(r.get("ev_scope") or [], text)
+        r["evidence_ok"] = bool(r["ev_intent"] or r["ev_scope"])
         return r
 
     lines = text.split("\n")
@@ -255,6 +319,10 @@ def judge_skill_combined(name: str, text: str) -> dict:
         except (TypeError, ValueError):
             ev_s = []
         ev_scope = [x for x in ev_s if 1 <= x <= len(lines)]
+        # 证据增强：AI 常把行号指到 try:/pass/EOF 这类无信息量的行，
+        # 就近吸附到有信息量的行——让「当场能翻原文核对」真正成立。
+        ev_intent = _enhance_evidence(ev_intent, text)
+        ev_scope = _enhance_evidence(ev_scope, text)
 
     # 分诊失败（模型输出不可解析 / 调用失败）→ degraded=True，🔴 不写缓存
     degraded = (verdict == "PARSE_FAIL" or scope == "PARSE_FAIL")
