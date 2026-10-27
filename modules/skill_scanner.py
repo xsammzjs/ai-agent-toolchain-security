@@ -540,7 +540,12 @@ def _summarize(skill_name: str, files: int, findings: list) -> dict:
         "findings": findings,
         "verdict": verdict,
         "stats": {"by_sev": by_sev, "by_cat": by_cat,
-                  "rule_count": len(RULE_TABLE) + 3},
+                  # 对外口径 = RULE_TABLE 30 条正则 + 1 条隐藏字符检测通道
+                  #            + 1 条跨行组合规则（凭证窃取完整链路）= 32 条。
+                  # 🔴 这里的 "+2" 是对外承诺的数字，材料/脚本/复现校验全用 32，
+                  #    改成 "+3" 会让界面与导出的 Markdown 报告写成 33，与材料对不上。
+                  #    口径与 samples/verify_reproduction.py 的 len(RULE_TABLE) + 2 保持一致。
+                  "rule_count": len(RULE_TABLE) + 2},
     }
 
 

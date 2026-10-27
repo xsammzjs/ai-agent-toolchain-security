@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""视图 2：依赖漏洞检测
+"""视图 3：依赖漏洞检测
 
-上传项目包，解析出全部依赖，用 OSV / NVD / GitHub Advisory 四个权威漏洞库
+上传项目包，解析出全部依赖，用 OSV / NVD / GitHub Advisory / EPSS 四个权威漏洞库
 交叉验证，给出带置信度评级和修复优先级的漏洞清单，并可生成 SBOM 与审计报告。
 """
 import os

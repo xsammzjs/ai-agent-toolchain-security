@@ -3,7 +3,7 @@
 
   E1 停止方式明确告知
   E2 停止后端口释放、无孤儿进程
-  F1 四个视图都能执行（AppTest）
+  F1 五个视图都能执行（AppTest）
   F2 health 接口返回 200 ok
 """
 
@@ -109,13 +109,19 @@ print("STOPPED", flush=True)
 
 
 
-def case_f1_four_views(res: Result) -> None:
-    """F1: 四个视图都能真正执行（AppTest，curl 测不出脚本执行）。"""
+def case_f1_five_views(res: Result) -> None:
+    """F1: 五个视图都能真正执行（AppTest，curl 测不出脚本执行）。
+
+    🔴 2026-10-28 修正：原先只切了 4 个 radio 值，独缺「🧬 组合体检」——
+       也就是本项目改版后的**主线视图**反而没有 AppTest 冒烟覆盖。
+       侧边栏共 5 个入口（见 main.py 的 VIEW_* 常量），这里必须全测到。
+    """
     code = r'''
 import os, sys, time
 sys.path.insert(0, %r)
 from streamlit.testing.v1 import AppTest
-VIEWS = ["🛡️ AI 技能安全检测", "📦 依赖漏洞检测", "🔗 资产关联分析", "🎬 离线演示"]
+VIEWS = ["🛡️ AI 技能安全检测", "🧬 组合体检", "📦 依赖漏洞检测",
+         "🔗 资产关联分析", "🎬 离线演示"]
 bad = []
 for v in VIEWS:
     at = AppTest.from_file("main.py", default_timeout=90)
@@ -134,7 +140,7 @@ print("RESULT", "OK" if not bad else bad)
     if line:
         verdict = line[-1]
         res.check(verdict.endswith("OK"),
-                  f"四视图均无异常：{verdict[len('RESULT '):]}")
+                  f"五视图均无异常：{verdict[len('RESULT '):]}")
 
 
 
@@ -269,7 +275,7 @@ def case_g7_signal_exit_port_released(res: Result) -> None:
 CASES: List[Case] = [
     ("E1", "停止方式明确告知", case_e1_stop_method, True),
     ("E2", "Ctrl+C 后端口释放、无孤儿进程", case_e2_ctrl_c_no_orphan, True),
-    ("F1", "四个视图都能执行（AppTest）", case_f1_four_views, True),
+    ("F1", "五个视图都能执行（AppTest）", case_f1_five_views, True),
     ("F2", "health 接口返回 200 ok", case_f2_health_endpoint, True),
     ("G7", "信号退出后端口被释放", case_g7_signal_exit_port_released, True),
 ]

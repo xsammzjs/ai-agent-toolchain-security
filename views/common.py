@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """共享 UI 组件与工具函数。
 
-拆出这一层的原因：四个视图都要用同一批组件（指标卡、证据溯源表格、
+拆出这一层的原因：五个视图都要用同一批组件（指标卡、证据溯源表格、
 HTML 转义、文件上传），散在各自视图里会重复十几遍。
 """
 import io
@@ -129,7 +129,7 @@ def run_skill_scan(zip_bytes: bytes | None = None, text: str | None = None,
 # 复用 UI 组件
 # ==========================================
 def metric_card(value, label, color="", icon=""):
-    """指标卡：四个视图通用"""
+    """指标卡：五个视图通用"""
     cls = f"metric-card {color}".strip()
     icon_html = f'<div class="metric-icon">{icon}</div>' if icon else ""
     st.markdown(f"""
@@ -142,7 +142,7 @@ def metric_card(value, label, color="", icon=""):
 
 
 def section_title(title: str, anchor: str = ""):
-    """分区标题：四个视图通用"""
+    """分区标题：五个视图通用"""
     div = f'<div id="{anchor}"></div>' if anchor else ""
     st.markdown(f'{div}<div class="section-title">{title}</div>',
                 unsafe_allow_html=True)

@@ -142,8 +142,13 @@ def render():
 
     if st.session_state.skill_benchmark:
         import subprocess
-        _bench_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                   "samples", "run_skill_benchmark.py")
+        # 🔴 基准脚本在**项目根**的 samples/ 下，不在 views/ 下。
+        #    这里必须 dirname 两次才能从 views/ 回到项目根；
+        #    原来只 dirname 一次，拼出 views/samples/…（该目录不存在），
+        #    导致「运行样本检测率测试」按钮 100% 报「samples 目录不完整」。
+        #    正确写法参照 views/combo_view.py 的 _SCENARIO_DIR。
+        _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        _bench_path = os.path.join(_ROOT, "samples", "run_skill_benchmark.py")
         try:
             _bench_out = subprocess.run(
                 [sys.executable, _bench_path], capture_output=True,

@@ -82,8 +82,8 @@ KEY_NUMBERS = [
 # 例：讲「第一版误报 58.6%」「早期 7 样本时误报 0%」是真实历史，应该保留。
 BANNED = [
     (r"FPR\s*0%", "FPR 0%（正确值是 2.0%）", []),
-    (r"6,722\s*行|6722\s*行", "6,722 行（实测全交付 10,307）", []),
-    (r"6,900\s*行|6900\s*行", "6,900 行（实测全交付 10,307）", []),
+    (r"6,722\s*行|6722\s*行", "6,722 行（实测全交付 10,328）", []),
+    (r"6,900\s*行|6900\s*行", "6,900 行（实测全交付 10,328）", []),
     (r"121\s*条回归|121\s*条断言", "121 条断言（实测 151 条）", []),
     (r"国奖无同类实现|国奖同类作品里没人做过",
      "「国奖无同类实现」——应限定调研范围",
@@ -195,6 +195,51 @@ def measure_code_size():
     return stats["deliver_total"], stats["test_total"], stats["total"]
 
 
+def measure_runtime_values():
+    """实测「代码运行时会算出来的对外数字」，与材料承诺的口径对撞。
+
+    返回 ``[(标签, 实测值, 对外口径, 不一致时的说明), ...]``。
+
+    【为什么要单独做这一项】
+    本脚本的 ①②③④ 只看**文字**——文档里写了 32 条规则，文档里就通过了；
+    但代码里 ``len(RULE_TABLE) + 3`` 算出来是 33，浏览器和导出的报告里
+    显示的是 33，**文字检查完全发现不了**。2026-10-27 就这样漏过一次
+    （`modules/skill_scanner.py` 的 rule_count 写成了 +3）。
+
+    这里把同一批数字的**运行时实测值**取出来跟对外口径直接对撞：
+    对不上就 [WARN] + 退出码置 1，跟现有的守卫保持同一套严格度。
+
+    口径一旦要改，这里也要同步改 —— 这正是它该有的成本：改数字必须两处一起改。
+    """
+    # 规则条数：RULE_TABLE 30 条正则 + 隐藏字符检测通道 1 + 跨行组合规则 1 = 32
+    rule_count = ss.scan_skill_text("t", "hello")["stats"]["rule_count"]
+    # 威胁类别：表内 7 类 + 隐藏字符注入 1 类 = 8
+    cats = len(Counter(r[0] for r in ss.RULE_TABLE)) + 1
+    # 能力原子 / 链路模板：新主线的两个对外数字
+    from modules import combo_analysis as _ca
+    caps = len(_ca.CAPABILITY_PATTERNS)
+    templates = len(_ca.PAIR_TEMPLATES)
+
+    return [
+        ("检测规则数", rule_count, 32,
+         "modules/skill_scanner.py 的 stats.rule_count 算成了 "
+         f"{rule_count}（对外口径 32 = RULE_TABLE 30 + 隐藏字符通道 1 + 跨行组合规则 1）。"
+         "界面「检测规则数」指标卡与导出的 Markdown 报告都会写这个值，"
+         "会与材料的 32 条对不上。"),
+        ("RULE_TABLE 条数", len(ss.RULE_TABLE), 30,
+         "modules/skill_scanner.py 的 RULE_TABLE 条数变了，"
+         "对外口径 32 条规则（30 正则 + 2 条模块级）需同步核对。"),
+        ("威胁类别数", cats, 8,
+         "对外口径 8 类威胁（表内 7 类 + 隐藏字符注入 1 类）需同步核对。"),
+        ("能力原子数", caps, 8,
+         "对外口径 8 个能力原子（modules/combo_analysis.py 的 CAPABILITY_PATTERNS）"
+         "需同步核对。"),
+        ("链路模板数", templates, 7,
+         "对外口径 7 类链路模板（modules/combo_analysis.py 的 PAIR_TEMPLATES）"
+         "需同步核对。"),
+    ]
+
+
 def main():
     print("=" * 76)
     print("对外材料数字一致性检查")
@@ -304,11 +349,31 @@ def main():
             print(f"         {where}")
             size_bad += 1
 
+    # ---------- ⑥ 运行时口径断言（防「界面显示 ≠ 材料口径」） ----------
+    # 🔴 2026-10-28 新增。之前本脚本只扫**文档文字**，扫不到**运行时值**，
+    #    于是 `modules/skill_scanner.py` 里把 rule_count 写成 len(RULE_TABLE)+3
+    #    （运行时 = 33）时，材料全部写 32、脚本全部报 [OK]，**没有任何一处报警**。
+    #    结果：浏览器里的「检测规则数」指标卡显示 33、导出的 Markdown 报告写 33，
+    #    评委下载的报告与材料对不上 —— 官方要求「验证效果与答辩材料呈现结果不符」
+    #    即取消资格，这类漂移是致命的。
+    #    本项把「代码实际算出来的数」与「对外承诺的数」直接对撞，值不同就退出码置 1。
+    print("\n⑥ 运行时口径断言（代码实测值 vs 对外承诺值）")
+    print("-" * 76)
+    runtime_bad = 0
+    for label, actual, expected, why in measure_runtime_values():
+        if actual == expected:
+            print(f"  [OK]   {label:22s} {actual:>6} （对外口径 {expected}）")
+        else:
+            print(f"  [WARN] {label:22s} {actual:>6} ≠ 对外口径 {expected}")
+            print(f"         {why}")
+            runtime_bad += 1
+
     # ---------- 汇总 ----------
     print("\n" + "=" * 76)
-    if miss_count or bad_count or ui_bad or size_bad:
+    if miss_count or bad_count or ui_bad or size_bad or runtime_bad:
         print(f"发现 {miss_count} 项缺失、{bad_count} 处过时表述、"
-              f"{ui_bad} 处 UI 过时、{size_bad} 处代码规模不符")
+              f"{ui_bad} 处 UI 过时、{size_bad} 处代码规模不符、"
+              f"{runtime_bad} 处运行时口径不符")
         print("=" * 76)
         return 1
     print("✅ 对外材料数字全部一致，无过时表述")
