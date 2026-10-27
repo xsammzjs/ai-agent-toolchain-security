@@ -1,5 +1,4 @@
 """校验 SVG：XML 合法性 + text 坐标是否超出 viewBox + 文本估算宽度是否超出所在矩形。"""
-import re
 import sys
 import unicodedata
 import xml.etree.ElementTree as ET
