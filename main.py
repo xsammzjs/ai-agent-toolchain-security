@@ -375,6 +375,13 @@ def _scan_progress_ui():
     stage = box.get("stage", "准备中…")
     st.progress(percent / 100,
                 text=f"正在执行多源漏洞研判… {stage}（{percent}%）")
+    # 🔴 扫描完成必须主动触发整页 rerun。
+    #    fragment 的定时重跑只刷新自己这一小块，主脚本不会跟着跑；
+    #    而结果交接（_collect_scan_result）在主脚本里 —— 后台线程早就完成了，
+    #    页面却永远停在最后一条进度消息上，用户以为「卡死」。
+    #    （2026-10-27 修复：用户扫 22KB 的项目等了 6 分钟，实际 37 秒就扫完了。）
+    if box.get("done"):
+        st.rerun(scope="app")
 
 
 def _collect_scan_result() -> bool:
