@@ -223,10 +223,19 @@ def check_rules():
            f"{EXPECT['threat_categories']} 类", f"{total_cats} 类",
            f"表内 {len(cats)} 类 + 隐藏字符注入 1 类")
 
-    total_rules = len(ss.RULE_TABLE) + 2  # 隐藏字符注入 + 凭证窃取完整链路
+    # 🔴 2026-10-28：口径收敛到**单一真源**。
+    #    原来这里自己重算 len(ss.RULE_TABLE) + 2，等于「对外口径 32」在仓库里有
+    #    两份独立实现：这里一份、modules/skill_scanner.py 的 stats["rule_count"]
+    #    一份。后果是实测把 skill_scanner.py 篡改成 +3 之后，**本脚本仍然报
+    #    14/14 全 PASS**（它读不到被篡改的那个值），只有 check_doc_consistency.py
+    #    的第⑥项运行时断言能发现 —— 守卫有盲区。
+    #    现在直接读运行时的 stats["rule_count"]，与界面「检测规则数」指标卡、
+    #    samples/run_corpus_eval.py 完全同源：改一处，四个地方一起变。
+    total_rules = ss.scan_skill_text("", "")["stats"]["rule_count"]
     record("规则总数（对外口径）", total_rules == EXPECT["rule_count"],
            f"{EXPECT['rule_count']} 条", f"{total_rules} 条",
-           "30 条正则 + 1 条隐藏字符检测 + 1 条跨行组合规则")
+           "30 条正则 + 1 条隐藏字符检测 + 1 条跨行组合规则"
+           "（取自 modules/skill_scanner.py 的 stats['rule_count']，单一真源）")
 
 
 # ==========================================================

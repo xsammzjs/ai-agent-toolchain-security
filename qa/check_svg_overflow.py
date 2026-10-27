@@ -6,8 +6,20 @@ import xml.etree.ElementTree as ET
 
 SVG_NS = "{http://www.w3.org/2000/svg}"
 FIGS = [
+    # 现行口径图（对外材料用）
     "docs/figures/05_三段式流水线架构图.svg",
     "docs/figures/06_组合风险原理图.svg",
+    # 🔴 2026-10-28：旧口径存档图（01~04）也纳入检查。
+    #    这 4 张图从 2026-10-28 起在 SVG 内部加了存档水印
+    #    「⚠️ 旧口径存档图 · 仅供对照 · 不得插入对外材料」，
+    #    水印是 <text> 元素，同样可能溢出 viewBox —— 只检查 05/06 的话，
+    #    水印写坏了也不会有人发现（守卫有盲区）。
+    #    同时它们各自带一个**先前就存在**的越界文本（见 04 的「SBOM · …」行，
+    #    原文 y=486 而 viewBox 高 480，渲染时会被裁掉），一并修正。
+    "docs/figures/01_系统架构图.svg",
+    "docs/figures/02_攻击链原理图.svg",
+    "docs/figures/03_资产图谱示意图.svg",
+    "docs/figures/04_扫描流程图.svg",
 ]
 
 

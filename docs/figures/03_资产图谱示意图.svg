@@ -122,4 +122,8 @@
   <text x="60" y="526" font-size="11" fill="#34495e">
     • 该图谱模型即RDS 中的 asset_node / asset_edge 表结构，云端部署时可直接落库
   </text>
+  <!-- ⚠️ 存档水印（2026-10-28 加）：本图是**改版前**的旧口径图，
+       内部数字（项目名 / 规则条数 / 加速比等）均已过时，仅供对照，
+       不得插入对外材料。现行口径见 docs/figures/README.md。 -->
+  <text x="986" y="554" text-anchor="end" font-size="11" fill="#b0b8c0">⚠️ 旧口径存档图 · 仅供对照 · 不得插入对外材料</text>
 </svg>

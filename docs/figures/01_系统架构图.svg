@@ -99,4 +99,8 @@
   <text x="500" y="610" text-anchor="middle" font-size="11" fill="#5a6f85">
     降级原则同离线演示模式：宁可明确告知降级，也不伪装成正常结果
   </text>
+  <!-- ⚠️ 存档水印（2026-10-28 加）：本图是**改版前**的旧口径图，
+       内部数字（项目名 / 规则条数 / 加速比等）均已过时，仅供对照，
+       不得插入对外材料。现行口径见 docs/figures/README.md。 -->
+  <text x="986" y="628" text-anchor="end" font-size="11" fill="#b0b8c0">⚠️ 旧口径存档图 · 仅供对照 · 不得插入对外材料</text>
 </svg>
