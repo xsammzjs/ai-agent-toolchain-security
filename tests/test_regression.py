@@ -271,6 +271,13 @@ G = "7-AI"
 
 from modules import adjudicator as adj
 
+# 🔴 强制离线（2026-10-28）：本组用例是在「MaaS 未配置」的假设下写的降级验证。
+# 后来 .env 里配置了 MAAS_*，导致这些用例会真实调用大模型 API——
+# 既花真金白银，结论又不可复现。回归测试必须零网络，这里强制清空配置。
+adj.MAAS_BASE_URL = ""
+adj.MAAS_API_KEY = ""
+adj.MAAS_MODEL = ""
+
 # 未配置 MaaS 时应自动降级，且明确标注降级（不伪装成 AI 输出）
 check(G, "MaaS 未配置时不可用", adj.is_available(), False)
 
@@ -517,38 +524,52 @@ check(G, "真实窃取链路命中组合规则",
 
 
 # ==========================================
+# pytest 入口（2026-10-28 新增）
+# ==========================================
+# 直接运行本文件时走下方脚本入口（打印汇总并按退出码判成败）；
+# 被 pytest 收集时执行 test_regressions()，语义与脚本入口一致：
+# 行为锁定组必须全绿，第 5 组（待修 Bug）允许暂红。
+def test_regressions():
+    lock_fail = [f for f in FAIL if not f[0].startswith("5-")]
+    assert not lock_fail, (
+        "行为锁定组出现失败（改动破坏了原有功能）："
+        + "; ".join(f"[{g}] {n}" for g, n, _got, _want in lock_fail))
+
+
+# ==========================================
 # 汇总
 # ==========================================
-groups = {}
-for g, n in PASS:
-    groups.setdefault(g, [0, 0])[0] += 1
-for item in FAIL:
-    groups.setdefault(item[0], [0, 0])[1] += 1
+if __name__ == "__main__":
+    groups = {}
+    for g, n in PASS:
+        groups.setdefault(g, [0, 0])[0] += 1
+    for item in FAIL:
+        groups.setdefault(item[0], [0, 0])[1] += 1
 
-print("=" * 68)
-print("回归测试结果")
-print("=" * 68)
-for g in sorted(groups):
-    ok, bad = groups[g]
-    flag = "全绿" if bad == 0 else f"{bad} 项红"
-    print(f"  {g:12s}  通过 {ok:3d}    {flag}")
-print("-" * 68)
-print(f"  合计：通过 {len(PASS)}，失败 {len(FAIL)}")
+    print("=" * 68)
+    print("回归测试结果")
+    print("=" * 68)
+    for g in sorted(groups):
+        ok, bad = groups[g]
+        flag = "全绿" if bad == 0 else f"{bad} 项红"
+        print(f"  {g:12s}  通过 {ok:3d}    {flag}")
+    print("-" * 68)
+    print(f"  合计：通过 {len(PASS)}，失败 {len(FAIL)}")
 
-if FAIL:
+    if FAIL:
+        print()
+        print("  失败明细（第 5 组为「待修 Bug」，其余组变红=改动破坏功能）：")
+        for g, n, got, want in FAIL:
+            print(f"    [{g}] {n}")
+            print(f"        实际: {got!r}")
+            print(f"        期望: {want!r}")
+        print()
+        lock_fail = [f for f in FAIL if not f[0].startswith("5-")]
+        if lock_fail:
+            print("  ⚠️ 行为锁定组出现失败 —— 改动破坏了原有功能！")
+            sys.exit(1)
+        print("  ✅ 行为锁定组全绿；仅第 5 组为待修 Bug，属预期。")
+        sys.exit(0)
     print()
-    print("  失败明细（第 5 组为「待修 Bug」，其余组变红=改动破坏功能）：")
-    for g, n, got, want in FAIL:
-        print(f"    [{g}] {n}")
-        print(f"        实际: {got!r}")
-        print(f"        期望: {want!r}")
-    print()
-    lock_fail = [f for f in FAIL if not f[0].startswith("5-")]
-    if lock_fail:
-        print("  ⚠️ 行为锁定组出现失败 —— 改动破坏了原有功能！")
-        sys.exit(1)
-    print("  ✅ 行为锁定组全绿；仅第 5 组为待修 Bug，属预期。")
+    print("  ✅ 全部通过")
     sys.exit(0)
-print()
-print("  ✅ 全部通过")
-sys.exit(0)

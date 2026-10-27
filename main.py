@@ -3,16 +3,17 @@
 
 AI 技能与依赖漏洞检测平台
 ├── 视图 1：AI 技能安全检测    views/skill_scan.py
-├── 视图 2：依赖漏洞检测        views/dep_scan.py
-├── 视图 3：资产关联分析        views/chain_view.py
-└── 视图 4：离线演示模式        views/demo_view.py
+├── 视图 2：组合体检            views/combo_view.py
+├── 视图 3：依赖漏洞检测        views/dep_scan.py
+├── 视图 4：资产关联分析        views/chain_view.py
+└── 视图 5：离线演示模式        views/demo_view.py
 
 本文件只负责三件事：页面配置与样式、侧边栏导航、把请求路由到对应视图。
 所有业务逻辑都在 modules/ 与 views/ 里，不往这里堆。
 """
 import streamlit as st
 
-from views import chain_view, dep_scan, demo_view, skill_scan
+from views import chain_view, combo_view, dep_scan, demo_view, skill_scan
 
 # ==========================================
 # 页面配置
@@ -281,6 +282,7 @@ div[data-testid="stAlertContainer"] p { color: var(--text) !important; }
 # 侧边栏（只做导航，不放表单控件）
 # ==========================================
 VIEW_SKILL = "🛡️ AI 技能安全检测"
+VIEW_COMBO = "🧬 组合体检"
 VIEW_DEP = "📦 依赖漏洞检测"
 VIEW_CHAIN = "🔗 资产关联分析"
 VIEW_DEMO = "🎬 离线演示"
@@ -297,14 +299,14 @@ with st.sidebar:
 
     current_view = st.radio(
         "功能选择",
-        [VIEW_SKILL, VIEW_DEP, VIEW_CHAIN, VIEW_DEMO],
+        [VIEW_SKILL, VIEW_COMBO, VIEW_DEP, VIEW_CHAIN, VIEW_DEMO],
         label_visibility="collapsed",
         key="main_view",
     )
 
     st.divider()
     st.caption("💡 所有结论均可追溯到原文行号，当场可核验")
-    st.caption("🔒 纯离线运行，零调用成本")
+    st.caption("🔒 规则检测纯离线；AI 研判可选启用，命中本地缓存零调用")
 
 # ==========================================
 # 会话状态
@@ -335,7 +337,7 @@ st.markdown("""
     <div class="hero-badges">
         <span class="hero-chip">OWASP Agentic Skills Top10</span>
         <span class="hero-chip">真实样本 TPR 100% / FPR 2.0%</span>
-        <span class="hero-chip">纯离线 · 33ms</span>
+        <span class="hero-chip">规则检测纯离线 · 33ms</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -430,6 +432,8 @@ if st.session_state.scanning:
 # ==========================================
 if current_view == VIEW_SKILL:
     skill_scan.render()
+elif current_view == VIEW_COMBO:
+    combo_view.render()
 elif current_view == VIEW_DEP:
     dep_scan.render()
 elif current_view == VIEW_CHAIN:
