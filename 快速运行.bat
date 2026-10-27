@@ -7,7 +7,7 @@ exit /b
 :__main__
 set "SB_MAIN="
 setlocal enabledelayedexpansion
-title AI 技能与依赖漏洞检测平台 - 一键启动
+title AI 技能组合风险体检站 - 一键启动
 cd /d "%~dp0"
 
 REM ==========================================================

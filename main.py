@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """main.py —— 应用入口
 
-AI 技能与依赖漏洞检测平台
+AI 技能组合风险体检站
 ├── 视图 1：AI 技能安全检测    views/skill_scan.py
 ├── 视图 2：组合体检            views/combo_view.py
 ├── 视图 3：依赖漏洞检测        views/dep_scan.py
@@ -19,7 +19,7 @@ from views import chain_view, combo_view, dep_scan, demo_view, skill_scan
 # 页面配置
 # ==========================================
 st.set_page_config(
-    page_title="AI 技能与依赖漏洞检测平台",
+    page_title="AI 技能组合风险体检站",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -31,7 +31,7 @@ st.set_page_config(
 st.markdown("""
 <style>
 /* ==========================================================
-   AI 技能与依赖漏洞检测平台 · 界面样式
+   AI 技能组合风险体检站 · 界面样式
    ========================================================== */
 :root {
     --bg: #f6f8fb;
@@ -290,8 +290,8 @@ VIEW_DEMO = "🎬 离线演示"
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand">
-        <div class="sidebar-brand-title">AI 技能与依赖漏洞检测平台</div>
-        <div class="sidebar-brand-sub">Skill 安全 · 依赖漏洞 · 资产关联</div>
+        <div class="sidebar-brand-title">AI 技能组合风险体检站</div>
+        <div class="sidebar-brand-sub">组合风险 · 可核验分诊 · 离线可复算</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -332,8 +332,8 @@ if "scan_error" not in st.session_state:
 # ==========================================
 st.markdown("""
 <div id="top" class="hero-banner">
-    <div class="hero-title">AI 技能与依赖漏洞检测平台</div>
-    <div class="hero-sub">AI 技能安全检测 · 依赖漏洞检测 · <b>资产关联分析</b> · 权威置信度评级 · 证据溯源</div>
+    <div class="hero-title">AI 技能组合风险体检站</div>
+    <div class="hero-sub">多技能组合风险关联分析 · <b>可核验 AI 分诊</b> · 单点规则快筛 · 依赖漏洞交叉验证 · 证据溯源</div>
     <div class="hero-badges">
         <span class="hero-chip">OWASP Agentic Skills Top10</span>
         <span class="hero-chip">真实样本 TPR 100% / FPR 2.0%</span>

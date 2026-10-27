@@ -52,7 +52,7 @@ def build_fixed_requirements(req_path: str | None, fix_map: dict,
                 else:
                     lines.append(line.rstrip("\n"))
     else:
-        lines.append("# 由 AI 技能与依赖漏洞检测平台自动生成（已包含修复版本）")
+        lines.append("# 由 AI 技能组合风险体检站自动生成（已包含修复版本）")
         for dep in dep_list:
             if dep.get("is_transitive"):
                 continue  # 间接依赖版本为推断值，不写入
@@ -92,7 +92,8 @@ def run_skill_scan(zip_bytes: bytes | None = None, text: str | None = None,
                    demo: bool = False):
     """静态规则引擎检测技能包，结果写入 session_state 后刷新页面。
 
-    注意：判定完全来自确定性规则，不调用任何大模型。
+    注意：本函数只跑确定性规则、不调用任何大模型（AI 意图分诊在 views/combo_view.py
+    的组合体检链路中，是意图闸门与外发闸门的来源）。
     """
     from modules import skill_scanner as ss
 

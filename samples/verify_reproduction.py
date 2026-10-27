@@ -63,9 +63,9 @@ EXPECT = {
     "benign_samples": 100,     # 真实科研良性样本数
     "malicious_samples": 5,    # 真实恶意样本数
     "regression_assertions": 151,
-    "core_lines": 6514,         # modules/ + main.py + config.py
-    "test_lines": 554,          # tests/test_regression.py
-    "total_lines": 7070,        # 对外口径 ≈ 7,070 行
+    "core_lines": 9211,         # modules/ + views/ + launcher/ + main.py + config.py + start.py
+    "test_lines": 575,          # tests/test_regression.py
+    "total_lines": 9786,        # 对外口径 9,786 行
     "total_samples": 107,       # 5 恶意 + 102 良性
 }
 
@@ -247,21 +247,25 @@ def check_code_size():
     print("⑥ 代码规模")
     print("=" * 74)
 
-    mod_dir = os.path.join(ROOT, "modules")
+    # 对外口径：交付代码 = modules/ + views/ + launcher/ + main.py + config.py + start.py
+    # 口径说明写在 docs/项目说明书.md 的「代码规模」一行，评委可按此原样复算
     core_files = []
-    for dirpath, dirnames, filenames in os.walk(mod_dir):
-        dirnames[:] = [d for d in dirnames if d != "__pycache__"]
-        for fn in filenames:
-            if fn.endswith(".py"):
-                core_files.append(os.path.join(dirpath, fn))
-    core_files += [os.path.join(ROOT, "main.py"), os.path.join(ROOT, "config.py")]
+    for sub in ("modules", "views", "launcher"):
+        for dirpath, dirnames, filenames in os.walk(os.path.join(ROOT, sub)):
+            dirnames[:] = [d for d in dirnames if d != "__pycache__"]
+            for fn in filenames:
+                if fn.endswith(".py"):
+                    core_files.append(os.path.join(dirpath, fn))
+    core_files += [os.path.join(ROOT, "main.py"),
+                   os.path.join(ROOT, "config.py"),
+                   os.path.join(ROOT, "start.py")]
 
     core = _count_lines(core_files)
     test = _count_lines([os.path.join(ROOT, "tests", "test_regression.py")])
     total = core + test
 
     # 行数会随开发变动，只做提示不作为 FAIL 项（避免每次改代码都红）
-    print(f"  核心代码（modules + main.py + config.py）：{core} 行"
+    print(f"  交付代码（modules + views + launcher + main.py + config.py + start.py）：{core} 行"
           f"（材料口径 {EXPECT['core_lines']}）")
     print(f"  回归测试：{test} 行（材料口径 {EXPECT['test_lines']}）")
     print(f"  合计：{total} 行（材料口径 ≈ {EXPECT['total_lines']}）")

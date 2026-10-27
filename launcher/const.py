@@ -23,7 +23,7 @@ REQUIREMENTS = LAUNCHER_ROOT / "requirements.txt"
 # ==========================================================
 # 运行参数
 # ==========================================================
-APP_TITLE = "AI 技能与依赖漏洞检测平台"
+APP_TITLE = "AI 技能组合风险体检站"
 DEFAULT_PORT = 8501
 PORT_SCAN_COUNT = 60              # 端口被占时，最多往后找 60 个
 HEALTH_PATH = "/_stcore/health"

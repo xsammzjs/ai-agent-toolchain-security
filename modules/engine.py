@@ -268,7 +268,7 @@ def generate_sbom(dep_list: list[dict]) -> dict:
         "metadata": {
             "timestamp": datetime.now().isoformat(),
             "tools": [{
-                "name": "AI 技能与依赖漏洞检测平台",
+                "name": "AI 技能组合风险体检站",
                 "version": "3.1.0",
             }],
         },

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""start.py —— 一键启动器（AI 技能与依赖漏洞检测平台）
+"""start.py —— 一键启动器（AI 技能组合风险体检站）
 
 用法（在项目根目录执行）::
 

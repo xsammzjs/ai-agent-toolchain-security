@@ -58,7 +58,7 @@ KEY_NUMBERS = [
     ("样本总数", 107, [r"107\s*个", r"107个"]),
     ("回归断言", 151, [r"151\s*条", r"151条"]),
     ("扫描耗时", 33, [r"33\s*毫秒", r"33ms"]),
-    ("代码规模", 7070, [r"7[,.]?0[0-9]0\s*行"]),
+    ("代码规模", 9786, [r"9[,.]?78[0-9]\s*行"]),
     ("初始误报率", 58.6, [r"58\.6%"]),
     ("攻击链模板", 7, [r"7\s*(?:类|个)\s*链路", r"7\s*类链路"]),
     ("能力原子", 8, [r"8\s*(?:个|类)\s*能力", r"8\s*个能力"]),
@@ -150,6 +150,36 @@ def read_doc(rel):
     return io.open(p, encoding="utf-8").read()
 
 
+def measure_code_size():
+    """按对外口径实测代码行数。
+
+    口径（与 ``docs/项目说明书.md`` 的「代码规模」一行一致，评委可原样复算）::
+
+        交付代码 = modules/ + views/ + launcher/ + main.py + config.py + start.py
+        回归测试 = tests/test_regression.py
+
+    返回 ``(交付代码行数, 回归测试行数, 合计)``。
+    """
+    def count(paths):
+        total = 0
+        for p in paths:
+            full = os.path.join(ROOT, p)
+            if os.path.isfile(full):
+                total += sum(1 for _ in io.open(full, encoding="utf-8", errors="ignore"))
+            elif os.path.isdir(full):
+                for dp, dn, fns in os.walk(full):
+                    dn[:] = [d for d in dn if d != "__pycache__"]
+                    for fn in fns:
+                        if fn.endswith(".py"):
+                            total += sum(1 for _ in io.open(os.path.join(dp, fn),
+                                                            encoding="utf-8", errors="ignore"))
+        return total
+
+    core = count(["modules", "views", "launcher", "main.py", "config.py", "start.py"])
+    test = count([os.path.join("tests", "test_regression.py")])
+    return core, test, core + test
+
+
 def main():
     print("=" * 76)
     print("对外材料数字一致性检查")
@@ -233,10 +263,37 @@ def main():
     print(f"  表内威胁类别：{len(cats)}（对外口径 8 = 表内 7 + 隐藏字符注入 1）")
     print(f"  严重度分布：{dict(Counter(r[1] for r in ss.RULE_TABLE))}")
 
+    # ---------- ⑤ 代码规模：材料声明 vs 实测（防「材料数字 ≠ 实际」） ----------
+    print("\n⑤ 代码规模（材料声明 vs 实测）")
+    print("-" * 76)
+    core, test, total = measure_code_size()
+    print(f"  实测交付代码：{core} 行｜回归测试：{test} 行｜合计：{total} 行")
+    claimed = {}
+    for rel, s in docs.items():
+        for m in re.finditer(r"([\d][\d,]*)\s*行", s):
+            v = int(m.group(1).replace(",", ""))
+            if 5000 <= v <= 20000:          # 只认代码规模量级的数字，避开「第 15 行」等
+                claimed.setdefault(v, set()).add(rel)
+    size_bad = 0
+    if not claimed:
+        print("  [WARN] 材料里找不到可校验的代码规模数字")
+        size_bad += 1
+    for v in sorted(claimed):
+        best = min((core, total), key=lambda t: abs(v - t) / t)
+        drift = abs(v - best) / best
+        where = "、".join(sorted(claimed[v])[:3])
+        if drift <= 0.03:
+            print(f"  [OK]   材料写 {v:,} 行，与实测（{best:,} 行）偏差 {drift * 100:.1f}%　{where}")
+        else:
+            print(f"  [WARN] 材料写 {v:,} 行，与实测（{best:,} 行）偏差 {drift * 100:.1f}%，超 3%")
+            print(f"         {where}")
+            size_bad += 1
+
     # ---------- 汇总 ----------
     print("\n" + "=" * 76)
-    if miss_count or bad_count or ui_bad:
-        print(f"发现 {miss_count} 项缺失、{bad_count} 处过时表述")
+    if miss_count or bad_count or ui_bad or size_bad:
+        print(f"发现 {miss_count} 项缺失、{bad_count} 处过时表述、"
+              f"{ui_bad} 处 UI 过时、{size_bad} 处代码规模不符")
         print("=" * 76)
         return 1
     print("✅ 对外材料数字全部一致，无过时表述")
