@@ -14,7 +14,7 @@
   <rect x="330" y="52" width="340" height="50" rx="8" fill="#fff" stroke="#cfd9e5" stroke-width="1.5"/>
   <text x="350" y="74" font-size="12.5" font-weight="bold" fill="#1a3a5c">① 接收输入</text>
   <text x="350" y="92" font-size="10" fill="#5a6f85">ZIP/RAR 解压 · requirements.txt · package.json</text>
-  <text x="660" y="82" text-anchor="middle" font-size="9.5" fill="#8a97a8">engine._prepare_files()</text>
+  <text x="666" y="74" text-anchor="end" font-size="9.5" fill="#8a97a8">engine._prepare_files()</text>
 
   <line x1="500" y1="104" x2="500" y2="124" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
 
@@ -22,7 +22,7 @@
   <rect x="330" y="126" width="340" height="50" rx="8" fill="#fff" stroke="#cfd9e5" stroke-width="1.5"/>
   <text x="350" y="148" font-size="12.5" font-weight="bold" fill="#1a3a5c">② 依赖解析与去重</text>
   <text x="350" y="166" font-size="10" fill="#5a6f85">支持 7 种格式 · PEP503 名称归一化 · 可选一层间接依赖推断</text>
-  <text x="660" y="156" text-anchor="middle" font-size="9.5" fill="#8a97a8">parser.*</text>
+  <text x="666" y="148" text-anchor="end" font-size="9.5" fill="#8a97a8">parser.*</text>
 
   <line x1="500" y1="178" x2="500" y2="198" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
 
@@ -31,7 +31,7 @@
   <text x="350" y="222" font-size="12.5" font-weight="bold" fill="#a93226">③ 并发四源漏洞研判</text>
   <text x="350" y="240" font-size="10" fill="#7d241a">OSV → NVD → GitHub → EPSS　线程池并发（实测 5.75×加速）</text>
   <text x="350" y="255" font-size="10" fill="#7d241a">权威加权置信度评级 + 源间分歧降档 + 修复优先级</text>
-  <text x="660" y="234" text-anchor="middle" font-size="9.5" fill="#a93226">detect_vulnerabilities_concurrent()</text>
+  <text x="666" y="222" text-anchor="end" font-size="9.5" fill="#a93226">detect_vulnerabilities_concurrent()</text>
 
   <line x1="500" y1="264" x2="500" y2="284" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
 
@@ -40,7 +40,7 @@
   <text x="350" y="308" font-size="12.5" font-weight="bold" fill="#a93226">④ Skill 静态检测 + 攻击链分析</text>
   <text x="350" y="326" font-size="10" fill="#7d241a">25 条规则 · 隐藏 Unicode · 跨行组合规则</text>
   <text x="350" y="341" font-size="10" fill="#7d241a">能力图 → 6 类链路模板路径搜索（核心创新）</text>
-  <text x="660" y="320" text-anchor="middle" font-size="9.5" fill="#a93226">skill_scanner + attack_chain</text>
+  <text x="666" y="308" text-anchor="end" font-size="9.5" fill="#a93226">skill_scanner + attack_chain</text>
 
   <line x1="500" y1="350" x2="500" y2="370" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
 
@@ -48,7 +48,7 @@
   <rect x="330" y="372" width="340" height="50" rx="8" fill="#eaf4fb" stroke="#1a6fa8" stroke-width="1.5"/>
   <text x="350" y="394" font-size="12.5" font-weight="bold" fill="#134b73">⑤ AI 研判（可选）</text>
   <text x="350" y="412" font-size="10" fill="#1a6fa8">基于已判定证据做汇总与处置建议 · 未配置 MaaS 时降级本地模板</text>
-  <text x="660" y="402" text-anchor="middle" font-size="9.5" fill="#1a6fa8">adjudicator.*</text>
+  <text x="666" y="394" text-anchor="end" font-size="9.5" fill="#1a6fa8">adjudicator.*</text>
 
   <line x1="500" y1="424" x2="500" y2="444" stroke="#5a6f85" stroke-width="2" marker-end="url(#a4)"/>
 

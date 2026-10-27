@@ -1,15 +1,51 @@
-"""校验 SVG：XML 合法性 + text 坐标是否超出 viewBox + 文本估算宽度是否超出所在矩形。"""
+"""校验 SVG：XML 合法性 + 四类几何缺陷。
+
+四项检查（每项都会报出问题并让退出码置 1）：
+  ① text 超出 viewBox（画布）
+  ② text 越过「逻辑所在框」的边线（正文/标注跑出自己那个盒子）
+  ③ text 与 text 互相压字（y 方向重叠 ≥ 30% × 较小字号）
+  ④ 连线（<line>）被后画的不透明矩形盖住而消失
+
+【守卫设计的核心原则】用结果判，不用位置猜
+------------------------------------------------
+「边注」不是缺陷的判据，「边注造成压字」才是。
+
+2026-10-28 之前，本脚本用「锚点是否落在框的右侧 15%」来区分「边注标注」
+与「正文越框」——结果它**豁免的正是肇事者**：04 图里那 5 条灰色代码引用标注
+（锚点全在 x=660）本就越框 + 压正文，却因为落在豁免区而全部被放过，
+于是守卫对一张肉眼可见有 2 处压字的图报 RESULT: PASS —— 制造假安全感。
+而且同一段溢出文本，锚点 615 报、620 不报，1px 的位移就能翻转结论。
+
+现在改成**用结果判**：
+  · ② 用「锚点落在哪个最小非背景框里」定位逻辑所在框，看文字有没有越过它的边线；
+  · ③ 直接量文字与文字的实际重叠面积占比。
+两者都不需要猜意图，也就不需要豁免。
+
+【字符宽度模型的标定】
+------------------------------------------------
+text_width() 用的是**估算模型**（脚本要保持零第三方依赖，不能靠浏览器）。
+这组系数不是拍脑袋，是用 headless Edge 的 `getComputedTextLength()`
+对 6 张图全部 280 条 text 实测后最小二乘标定出来的：
+  相对误差 平均 3.3% / 最大 24.9%（标定前是 平均 3.6% / 最大 30.0%）。
+关键的一条是 **lower 0.4985**（原 0.55）—— 小写字母原来被高估最多，
+正是 04 图那批代码标注（detect_vulnerabilities_concurrent() 等）被算宽的原因。
+判据阈值都按「相对字号的比例」定，不贴着估算误差走。
+"""
 import sys
 import unicodedata
 import xml.etree.ElementTree as ET
 
 SVG_NS = "{http://www.w3.org/2000/svg}"
+
 # 箭头 marker 的高度约 9、锚点在连线端点 → 端点外扩约 3.5px，取 4 保守
 MARKER_EXT = 4.0
 # 连线被后画矩形遮住 ≥ 这个比例就算「视觉上消失」
 OCCLUSION_THRESHOLD = 0.90
-# 锚点落在框右侧这个比例以内 → 视为「贴在框右边距上的标注」，不按越框处理
-ANNOTATION_MARGIN = 0.15
+# 两段文字 y 方向重叠 ≥ 较小字号的这个比例，就算「真的压字了」
+# （标定：≥10% ~ ≥50% 结果完全稳定，都是 04 那 2 处真碰撞；
+#   03 那对 y 重叠仅 5.6%、04 那两对上下错开的 10.0%/9.2% 都被正确排除）
+TEXT_OVERLAP_THRESHOLD = 0.30
+
 FIGS = [
     # 现行口径图（对外材料用）
     "docs/figures/05_三段式流水线架构图.svg",
@@ -19,63 +55,69 @@ FIGS = [
     #    「⚠️ 旧口径存档图 · 仅供对照 · 不得插入对外材料」，
     #    水印是 <text> 元素，同样可能溢出 viewBox —— 只检查 05/06 的话，
     #    水印写坏了也不会有人发现（守卫有盲区）。
-    #    同时它们各自带一个**先前就存在**的越界文本（见 04 的「SBOM · …」行，
-    #    原文 y=486 而 viewBox 高 480，渲染时会被裁掉），一并修正。
     "docs/figures/01_系统架构图.svg",
     "docs/figures/02_攻击链原理图.svg",
     "docs/figures/03_资产图谱示意图.svg",
     "docs/figures/04_扫描流程图.svg",
 ]
 
+# 字符宽度系数（单位：× font-size），由浏览器 getComputedTextLength() 标定
+_CHAR_WIDTH = {
+    "cjk": 1.0056,     # 全角/宽字符（含中文、全角标点）
+    "space": 0.3784,
+    "digit": 0.5788,
+    "upper": 0.6340,
+    "lower": 0.4985,
+    "punct": 0.3885,
+}
+
+
+def _char_class(ch: str) -> str:
+    """把字符分到 6 类宽度系数里。"""
+    if unicodedata.east_asian_width(ch) in ("W", "F"):
+        return "cjk"
+    if ch == " ":
+        return "space"
+    if ch.isdigit():
+        return "digit"
+    if ch.isupper():
+        return "upper"
+    if ch.islower():
+        return "lower"
+    return "punct"
+
 
 def char_width(ch: str) -> float:
-    """估算字符宽度（以 font-size 为单位的倍数）。"""
-    if unicodedata.east_asian_width(ch) in ("W", "F"):
-        return 1.0
-    if ch == " ":
-        return 0.30
-    if ch in ".,:;'|!":
-        return 0.28
-    if ch.isdigit():
-        return 0.55
-    if ch.isupper():
-        return 0.66
-    return 0.55
+    """估算字符宽度（以 font-size 为单位的倍数）。
+
+    系数由 headless Edge 的 getComputedTextLength() 对 6 张图全部 280 条
+    text 实测后最小二乘标定（相对误差 平均 3.3% / 最大 24.9%）。
+    """
+    return _CHAR_WIDTH[_char_class(ch)]
 
 
 def text_width(text: str, font_size: float) -> float:
     return sum(char_width(c) for c in text) * font_size
 
 
-def check(path: str) -> bool:
-    ok = True
-    tree = ET.parse(path)
-    root = tree.getroot()
-    vb = [float(v) for v in root.get("viewBox").split()]
-    vx, vy, vw, vh = vb
-    print(f"\n=== {path} ===")
-    print(f"viewBox = {vb}  width={root.get('width')} height={root.get('height')}")
+def _logical_box(rects, tx, ty):
+    """找出锚点 (tx, ty) 落在的**最小非背景矩形**（文本的逻辑所在框）。
 
-    # 收集所有矩形（含 <rect> 与嵌套），供 text 归属判定
-    rects = []
-    for el in root.iter():
-        if el.tag == SVG_NS + "rect":
-            try:
-                rx = float(el.get("x", 0))
-                ry = float(el.get("y", 0))
-                rw = float(el.get("width", 0))
-                rh = float(el.get("height", 0))
-            except ValueError:
-                continue
-            rects.append((rx, ry, rw, rh, el.get("fill", "")))
-    # 背景整幅画布视作可容纳区域
-    rects.append((vx, vy, vw, vh, "#bg"))
+    背景（整幅画布）不参与：任何画布内的锚点都会落进背景，
+    那样就分不出文本「属于哪个盒子」了。找不到就是不属于任何框，返回 None。
+    """
+    cands = [r for r in rects
+             if r[4] != "#bg" and r[0] <= tx < r[0] + r[2] and r[1] <= ty < r[1] + r[3]]
+    if not cands:
+        return None
+    b = min(cands, key=lambda r: r[2] * r[3])
+    return (b[0], b[1], b[2], b[3])
 
-    texts = list(root.iter(SVG_NS + "text"))
-    print(f"text 元素数 = {len(texts)}, rect 元素数 = {len(rects) - 1}")
 
-    problems = []
-    for t in texts:
+def _text_boxes(root):
+    """取出所有 <text> 的包围盒与元信息，供 ② ③ 两项检查共用。"""
+    out = []
+    for t in root.iter(SVG_NS + "text"):
         content = "".join(t.itertext()).strip()
         if not content:
             continue
@@ -83,7 +125,6 @@ def check(path: str) -> bool:
             tx = float(t.get("x", 0))
             ty = float(t.get("y", 0))
         except ValueError:
-            problems.append(f"坐标非法: {content!r}")
             continue
         fs = float(t.get("font-size", 12))
         anchor = t.get("text-anchor", "start")
@@ -94,101 +135,85 @@ def check(path: str) -> bool:
             x0, x1 = tx - w, tx
         else:
             x0, x1 = tx, tx + w
-        y0, y1 = ty - fs * 0.85, ty + fs * 0.25
-
-        # 1) 是否超出 viewBox
-        if x0 < vx - 0.5 or x1 > vx + vw + 0.5:
-            problems.append(
-                f"超出 viewBox 水平范围: {content!r} x=[{x0:.1f},{x1:.1f}] (允许 {vx}..{vx+vw})"
-            )
-        if y0 < vy - 0.5 or y1 > vy + vh + 0.5:
-            problems.append(
-                f"超出 viewBox 垂直范围: {content!r} y=[{y0:.1f},{y1:.1f}] (允许 {vy}..{vy+vh})"
-            )
-
-        # 2) 是否溢出其所属矩形（找所有能"合理包含"该文本的矩形，取最紧的一个）
-        best = None
-        for rx, ry, rw, rh, fill in rects:
-            if rx <= x0 + 1 and x1 <= rx + rw - 1 and ry <= y0 + 1 and y1 <= ry + rh - 1:
-                area = rw * rh
-                if best is None or area < best[0]:
-                    best = (area, rx, ry, rw, rh, fill)
-        # 未找到容纳矩形时，退而检查是否与某个矩形明显相交
-        if best is None:
-            over = 0.0          # 🔴 2026-10-28：必须先初始化。
-            #    这行原本被误 dedent 到了内层 if 之外（b0cd0bc 里是正确的嵌套），
-            #    于是当**没有任何矩形包含该文本锚点**（= 文本冲出画布）时，
-            #    `over` 从未被赋值 → UnboundLocalError 崩溃。
-            #    守卫的价值恰恰在于「图坏掉时能报警」，在自己最该响的时候
-            #    崩给人家看，比不检查还糟。QA 与 team-lead 各复现了一次。
-            for rx, ry, rw, rh, fill in rects:
-                if rx <= x0 < rx + rw and ry <= ty < ry + rh:
-                    over = max(0.0, (x1 - (rx + rw)))
-                    if over > 1.0:
-                        problems.append(
-                            f"文本疑似溢出矩形: {content!r} 右溢出 {over:.1f}px "
-                            f"(rect x={rx} w={rw}, 文本 x=[{x0:.1f},{x1:.1f}])"
-                        )
-                    break
-
-        # 3) 是否越过「逻辑所在框」的右边线（2026-10-28 新增）
-        #    【为什么需要这一项】上面第 2 项在结构上**抓不到**「正文越过框边线」：
-        #    背景整幅画布被当作候选容器，任何**画布内**的文本都能被它「包含」，
-        #    于是 best 永远不是 None，第 2 项的兜底分支根本不会走。
-        #    结果就是：正文文本冲出自己那个框、被右边线穿过，守卫一声不吭。
-        #    （04_扫描流程图 的 ③ 框就出现过这种情形。）
-        #    这里改用「锚点落在哪个最小非背景框里」来定位文本的**逻辑所在框**，
-        #    再看它的右端有没有越过该框的右边线。
-        #    【边注标注的豁免】锚点位于框右侧 15% 内的文本视为「贴在框右边距上的
-        #    标注」（如 04 图里 x=660 的灰色代码引用标注 engine._prepare_files() 等，
-        #    它们本来就设计成跨在框线上），不按溢出处理；正文（锚点在框左侧）
-        #    越过右边线则一律报错。
-        logical = _logical_box(rects, tx, ty)
-        if logical is not None:
-            lx, ly, lw, lh = logical
-            margin_zone = lx + lw * (1.0 - ANNOTATION_MARGIN)
-            if tx <= margin_zone and x1 > lx + lw + 1.0:
-                problems.append(
-                    f"文本越过所在框的右边线: {content!r} 右端 {x1:.1f} 越过 "
-                    f"{lx + lw:.1f} 达 {x1 - (lx + lw):.1f}px "
-                    f"(框 x=[{lx:.1f},{lx + lw:.1f}] y=[{ly:.1f},{ly + lh:.1f}])"
-                )
-
-    problems.extend(check_occlusion(root, vb))
-    if problems:
-        ok = False
-        print(f"发现 {len(problems)} 个问题:")
-        for p in problems:
-            print("  - " + p)
-    else:
-        print("检查通过：无 text 越界 / 无文本溢出 / 无文字越框 / 无连线被遮挡")
-    return ok
+        out.append({
+            "text": content, "tx": tx, "ty": ty, "fs": fs,
+            "x0": x0, "x1": x1,
+            "y0": ty - fs * 0.85, "y1": ty + fs * 0.25,
+        })
+    return out
 
 
-def _logical_box(rects, tx, ty):
-    """找出锚点 (tx, ty) 落在的**最小非背景矩形**（文本的逻辑所在框）。
+def check_out_of_box(texts, rects) -> list:
+    """② 检查文字是否越过「逻辑所在框」的边线。
 
-    背景（fill == "#bg"，即整幅画布）不参与：任何画布内的锚点都会落进背景，
-    那样就分不出文本「属于哪个框」了。找不到就是不属于任何框，返回 None。
+    语义：**锚点落在某个框里**（说明它「属于」这个框），但文字本身伸出了
+    那个框的边线 → 报。锚点不落在任何框里的文字（05/06 那种故意放在框外的
+    支线说明、图例）不属于任何框，不按越框处理。
+
+    ⚠️ 背景整幅画布**不参与**归属判定。它只参与 ① 的 viewBox 检查。
+    （早期版本把背景也当候选容器，于是任何画布内的文字都能被它「包含」，
+      越框检测形同虚设 —— 这正是 04 图那批文字缺陷长期存活的原因。）
     """
-    cands = [r for r in rects
-             if r[4] != "#bg" and r[0] <= tx < r[0] + r[2] and r[1] <= ty < r[1] + r[3]]
-    if not cands:
-        return None
-    b = min(cands, key=lambda r: r[2] * r[3])
-    return (b[0], b[1], b[2], b[3])
+    problems = []
+    for t in texts:
+        box = _logical_box(rects, t["tx"], t["ty"])
+        if box is None:
+            continue
+        lx, ly, lw, lh = box
+        over_r = t["x1"] - (lx + lw)
+        over_l = lx - t["x0"]
+        if over_r > 1.0:
+            problems.append(
+                f"文字越过所在框的右边线: {t['text']!r} 右端 {t['x1']:.1f} 越过 "
+                f"{lx + lw:.1f} 达 {over_r:.1f}px "
+                f"(框 x=[{lx:.1f},{lx + lw:.1f}] y=[{ly:.1f},{ly + lh:.1f}])"
+            )
+        if over_l > 1.0:
+            problems.append(
+                f"文字越过所在框的左边线: {t['text']!r} 左端 {t['x0']:.1f} 越过 "
+                f"{lx:.1f} 达 {over_l:.1f}px "
+                f"(框 x=[{lx:.1f},{lx + lw:.1f}] y=[{ly:.1f},{ly + lh:.1f}])"
+            )
+    return problems
+
+
+def check_text_overlap(texts) -> list:
+    """③ 检查两段文字是否真的「压字」。
+
+    判据：x 方向有重叠，且 **y 方向重叠 ≥ 较小字号的 30%**。
+    用相对字号的比例而不是绝对像素，是因为估算模型有百分之几的误差，
+    绝对阈值会紧贴误差边界（实测同一对文字用绝对阈值会在 0.5px/0.9px 上误报）。
+
+    这项检查**不需要任何豁免**：它量的是「结果」（有没有真的压在一起），
+    而不是「位置像不像边注」。
+    """
+    problems = []
+    for i in range(len(texts)):
+        for j in range(i + 1, len(texts)):
+            a, b = texts[i], texts[j]
+            ox = min(a["x1"], b["x1"]) - max(a["x0"], b["x0"])
+            oy = min(a["y1"], b["y1"]) - max(a["y0"], b["y0"])
+            if ox <= 0 or oy <= 0:
+                continue
+            smaller = min(a["fs"], b["fs"])
+            ratio = oy / smaller
+            if ratio >= TEXT_OVERLAP_THRESHOLD:
+                problems.append(
+                    f"文字互相压字: {a['text']!r} × {b['text']!r} "
+                    f"(x 重叠 {ox:.1f}px, y 重叠 {oy:.1f}px = 较小字号的 {ratio * 100:.0f}%)"
+                )
+    return problems
 
 
 def check_occlusion(root, vb) -> list:
-    """检查连线（<line>）是否被**后画的不透明矩形**遮住而消失。
+    """④ 检查连线（<line>）是否被**后画的不透明矩形**遮住而消失。
 
-    🔴 2026-10-28 新增（QA 复验发现）：前两项检查只看「text vs viewBox /
-    text vs rect」，**查不出元素之间的遮挡**。于是出现过一次真实回归：
-    04_扫描流程图 里 ⑥ 产出盒从 y=446 上移到 y=424 后，⑤→⑥ 的连接箭头
-    （<line y1=424 y2=444>）正好落在盒子范围内，而盒子是不透明填充、
-    又排在 line 之后 → 箭头被整个盖住，渲染出来两盒直接贴在一起，
-    「箭头消失」。当时 check_svg_overflow.py 报的是 RESULT: PASS
-    —— 守卫有盲区。
+    🔴 2026-10-28 新增（QA 复验发现）：前几项检查只看「text vs viewBox /
+    text vs rect / text vs text」，**查不出元素之间的遮挡**。于是出现过一次
+    真实回归：04_扫描流程图 里 ⑥ 产出盒从 y=446 上移到 y=424 后，⑤→⑥ 的
+    连接箭头正好落在盒子范围内，而盒子是不透明填充、排在 line 之后 →
+    箭头被整个盖住，渲染出来两盒直接贴在一起、「箭头消失」。
+    当时本脚本报的是 RESULT: PASS —— 守卫有盲区。
 
     判据：把连线算成细长 bbox（含描边宽度与箭头 marker 的外扩量），
     若某个**在它之后绘制**的矩形（背景整幅除外）盖住了它 bbox 面积的
@@ -229,6 +254,62 @@ def check_occlusion(root, vb) -> list:
                     f"遮住 {ratio * 100:.0f}%"
                 )
     return problems
+
+
+def check(path: str) -> bool:
+    ok = True
+    tree = ET.parse(path)
+    root = tree.getroot()
+    vb = [float(v) for v in root.get("viewBox").split()]
+    vx, vy, vw, vh = vb
+    print(f"\n=== {path} ===")
+    print(f"viewBox = {vb}  width={root.get('width')} height={root.get('height')}")
+
+    # 收集所有矩形（含 <rect> 与嵌套），供 text 归属判定
+    rects = []
+    for el in root.iter():
+        if el.tag == SVG_NS + "rect":
+            try:
+                rx = float(el.get("x", 0))
+                ry = float(el.get("y", 0))
+                rw = float(el.get("width", 0))
+                rh = float(el.get("height", 0))
+            except ValueError:
+                continue
+            rects.append((rx, ry, rw, rh, el.get("fill", "")))
+    # 背景整幅画布视作可容纳区域（只参与 viewBox 判定，不参与「属于哪个框」）
+    rects.append((vx, vy, vw, vh, "#bg"))
+
+    texts = _text_boxes(root)
+    print(f"text 元素数 = {len(texts)}, rect 元素数 = {len(rects) - 1}")
+
+    problems = []
+
+    # ① text 是否超出 viewBox
+    for t in texts:
+        if t["x0"] < vx - 0.5 or t["x1"] > vx + vw + 0.5:
+            problems.append(
+                f"超出 viewBox 水平范围: {t['text']!r} "
+                f"x=[{t['x0']:.1f},{t['x1']:.1f}] (允许 {vx}..{vx + vw})"
+            )
+        if t["y0"] < vy - 0.5 or t["y1"] > vy + vh + 0.5:
+            problems.append(
+                f"超出 viewBox 垂直范围: {t['text']!r} "
+                f"y=[{t['y0']:.1f},{t['y1']:.1f}] (允许 {vy}..{vy + vh})"
+            )
+
+    problems.extend(check_out_of_box(texts, rects))
+    problems.extend(check_text_overlap(texts))
+    problems.extend(check_occlusion(root, vb))
+
+    if problems:
+        ok = False
+        print(f"发现 {len(problems)} 个问题:")
+        for p in problems:
+            print("  - " + p)
+    else:
+        print("检查通过：无 text 越界 / 无文字越框 / 无文字压字 / 无连线被遮挡")
+    return ok
 
 
 if __name__ == "__main__":
