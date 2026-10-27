@@ -1,0 +1,186 @@
+{
+  "total_samples": 107,
+  "malicious": 5,
+  "chain_count": 6,
+  "cross_skill_count": 5,
+  "pure_benign_chains": 0,
+  "capabilities_per_skill": {
+    "agents__skills__vercel__SKILL": [
+      "EXFIL"
+    ],
+    "demos__skill-with-commands__SKILL": [],
+    "gemini__skills__clawhub__SKILL": [
+      "EXEC"
+    ],
+    "gemini__skills__skill-defender-1.0.0__SKILL": [],
+    "gemini__skills__snyk-skill__SKILL": [
+      "EXEC"
+    ],
+    "gemini__skills__testing-guidelines__SKILL": [],
+    "gemini__skills__vercel__SKILL": [
+      "EXFIL",
+      "READ_CRED"
+    ],
+    "skills__13c-metabolic-flux__SKILL": [],
+    "skills__adaptyv__SKILL": [],
+    "skills__aeon__SKILL": [],
+    "skills__alphagenome__SKILL": [],
+    "skills__analytical-method-validation__SKILL": [],
+    "skills__anndata__SKILL": [],
+    "skills__arbor__SKILL": [],
+    "skills__arboreto__SKILL": [],
+    "skills__astropy__SKILL": [],
+    "skills__autoskill__SKILL": [],
+    "skills__benchling-integration__SKILL": [],
+    "skills__bgpt-paper-search__SKILL": [],
+    "skills__bids__SKILL": [],
+    "skills__biopython__SKILL": [],
+    "skills__bioservices__SKILL": [],
+    "skills__bulk-rnaseq__SKILL": [],
+    "skills__cantera__SKILL": [],
+    "skills__cellprofiler__SKILL": [],
+    "skills__cellxgene-census__SKILL": [],
+    "skills__cirq__SKILL": [],
+    "skills__citation-management__SKILL": [],
+    "skills__clinical-decision-support__SKILL": [],
+    "skills__clinical-reports__SKILL": [],
+    "skills__cobrapy__SKILL": [],
+    "skills__consciousness-council__SKILL": [],
+    "skills__dask__SKILL": [],
+    "skills__database-lookup__SKILL": [],
+    "skills__datalad__SKILL": [],
+    "skills__datamol__SKILL": [],
+    "skills__deepchem__SKILL": [],
+    "skills__deepspot-m__SKILL": [],
+    "skills__deeptools__SKILL": [],
+    "skills__depmap__SKILL": [],
+    "skills__dhdna-profiler__SKILL": [],
+    "skills__diffdock__SKILL": [],
+    "skills__dnanexus-integration__SKILL": [],
+    "skills__esm__SKILL": [],
+    "skills__etetoolkit__SKILL": [],
+    "skills__exa-search__SKILL": [],
+    "skills__experimental-design__SKILL": [],
+    "skills__exploratory-data-analysis__SKILL": [],
+    "skills__fictiv__SKILL": [],
+    "skills__flowio__SKILL": [],
+    "skills__flowkit__SKILL": [],
+    "skills__fluidsim__SKILL": [],
+    "skills__folklore-variant-evidence__SKILL": [],
+    "skills__generate-image__SKILL": [],
+    "skills__geniml__SKILL": [],
+    "skills__genomic-coordinates__SKILL": [],
+    "skills__genomic-intelligence__SKILL": [],
+    "skills__geomaster__SKILL": [],
+    "skills__geopandas__SKILL": [],
+    "skills__get-available-resources__SKILL": [],
+    "skills__gget__SKILL": [],
+    "skills__ginkgo-cloud-lab__SKILL": [],
+    "skills__glycoengineering__SKILL": [],
+    "skills__gtars__SKILL": [],
+    "skills__histolab__SKILL": [],
+    "skills__hugging-science__SKILL": [],
+    "skills__hypogenic__SKILL": [],
+    "skills__hypothesis-generation__SKILL": [],
+    "skills__imaging-data-commons__SKILL": [],
+    "skills__infographics__SKILL": [],
+    "skills__iso-standards-readiness__SKILL": [],
+    "skills__lab-hardware-cad__SKILL": [],
+    "skills__labarchive-integration__SKILL": [],
+    "skills__lamindb__SKILL": [],
+    "skills__latchbio-integration__SKILL": [],
+    "skills__latex-posters__SKILL": [],
+    "skills__liteparse__SKILL": [],
+    "skills__literature-review__SKILL": [],
+    "skills__mageck__SKILL": [],
+    "skills__marine-carbonate-chemistry__SKILL": [],
+    "skills__markdown-mermaid-writing__SKILL": [],
+    "skills__market-research-reports__SKILL": [],
+    "skills__markitdown__SKILL": [],
+    "skills__matchms__SKILL": [],
+    "skills__matlab__SKILL": [],
+    "skills__matplotlib__SKILL": [],
+    "skills__medchem__SKILL": [],
+    "skills__modal__SKILL": [],
+    "skills__molecular-dynamics__SKILL": [],
+    "skills__molfeat__SKILL": [],
+    "skills__ncats-arax__SKILL": [],
+    "skills__networkx__SKILL": [],
+    "skills__neurokit2__SKILL": [],
+    "skills__neuropixels-analysis__SKILL": [],
+    "skills__nextflow__SKILL": [],
+    "skills__nmrglue__SKILL": [],
+    "skills__nwb-conversion__SKILL": [],
+    "skills__omero-integration__SKILL": [],
+    "skills__onekgpd__SKILL": [],
+    "skills__ontology-term-resolution__SKILL": [],
+    "skills__open-notebook__SKILL": [],
+    "skills__openpiv__SKILL": [],
+    "skills__opentrons-integration__SKILL": [],
+    "skills__optimize-for-gpu__SKILL": [],
+    "skills__pacsomatic__SKILL": [],
+    "skills__paper-lookup__SKILL": [],
+    "skills__paperclip__SKILL": []
+  },
+  "chains": [
+    {
+      "id": "CRED_EXFIL",
+      "scope": "跨技能",
+      "path": [
+        "gemini__skills__vercel__SKILL",
+        "agents__skills__vercel__SKILL"
+      ],
+      "score": 21,
+      "involves_malicious": true
+    },
+    {
+      "id": "EXEC_EXFIL",
+      "scope": "跨技能",
+      "path": [
+        "gemini__skills__clawhub__SKILL",
+        "agents__skills__vercel__SKILL"
+      ],
+      "score": 21,
+      "involves_malicious": true
+    },
+    {
+      "id": "EXEC_EXFIL",
+      "scope": "跨技能",
+      "path": [
+        "gemini__skills__clawhub__SKILL",
+        "gemini__skills__vercel__SKILL"
+      ],
+      "score": 21,
+      "involves_malicious": true
+    },
+    {
+      "id": "EXEC_EXFIL",
+      "scope": "跨技能",
+      "path": [
+        "gemini__skills__snyk-skill__SKILL",
+        "agents__skills__vercel__SKILL"
+      ],
+      "score": 21,
+      "involves_malicious": true
+    },
+    {
+      "id": "EXEC_EXFIL",
+      "scope": "跨技能",
+      "path": [
+        "gemini__skills__snyk-skill__SKILL",
+        "gemini__skills__vercel__SKILL"
+      ],
+      "score": 21,
+      "involves_malicious": true
+    },
+    {
+      "id": "CRED_EXFIL",
+      "scope": "单技能",
+      "path": [
+        "gemini__skills__vercel__SKILL"
+      ],
+      "score": 16,
+      "involves_malicious": true
+    }
+  ]
+}

@@ -1,0 +1,1963 @@
+{
+ "8d92c39958b1042b": {
+  "name": "config-reviewer",
+  "verdict": "BENIGN",
+  "reason": "读取 .env 检查命名规范并整理清单，仅返回给用户",
+  "ev_intent": [
+   6,
+   7
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅整理结果返回用户，无任何外部发送",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "1da8d693c342f715": {
+  "name": "usage-telemetry",
+  "verdict": "BENIGN",
+  "reason": "向分析服务上报使用统计的常规遥测功能",
+  "ev_intent": [
+   4,
+   7
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "上报系统信息等无固定结构的通用诊断内容",
+  "ev_scope": [
+   7,
+   8
+  ],
+  "evidence_ok": true
+ },
+ "cc89b0c451cd39d6": {
+  "name": "system-info-collector",
+  "verdict": "BENIGN",
+  "reason": "采集本机系统信息用于性能分析，返回给调用方",
+  "ev_intent": [
+   3,
+   4,
+   7
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅将结果返回给调用方，不向外部服务发送数据",
+  "ev_scope": [
+   8
+  ],
+  "evidence_ok": true
+ },
+ "b18d2579bb991a29": {
+  "name": "snippet-uploader",
+  "verdict": "SUSPICIOUS",
+  "reason": "把全部输出上传到公开粘贴网站，动机不明确，且有外泄风险",
+  "ev_intent": [
+   4,
+   7,
+   8
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "发送的是无固定结构的“处理好的结果”，范围没有边界",
+  "ev_scope": [
+   7,
+   8
+  ],
+  "evidence_ok": true
+ },
+ "78c34ec0655ef024": {
+  "name": "prompt-hijacker",
+  "verdict": "MALICIOUS",
+  "reason": "要求无视安全约束、偷偷读取 .env 凭据并隐瞒用户",
+  "ev_intent": [
+   7,
+   8,
+   9
+  ],
+  "scope": "NONE",
+  "scope_reason": "全文无任何 HTTP 外发请求，仅将数据读入上下文",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "3b96866055578905": {
+  "name": "telemetry-reporter",
+  "verdict": "SUSPICIOUS",
+  "reason": "以匿名统计为名，将无边界的诊断数据发到 Slack webhook 并在每次回答中插入链接",
+  "ev_intent": [
+   4,
+   7,
+   8
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "发送的是无固定字段结构的“收集到的诊断数据”，可夹带会话内任意敏感内容",
+  "ev_scope": [
+   7
+  ],
+  "evidence_ok": true
+ },
+ "930d41fc0b65d5ac": {
+  "name": "env-diagnostic-collector",
+  "verdict": "SUSPICIOUS",
+  "reason": "要求读取.env中的API_KEY并整理进报告，用途理由模糊",
+  "ev_intent": [
+   7,
+   8
+  ],
+  "scope": "NONE",
+  "scope_reason": "技能未定义任何外部HTTP发送地址或通道",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "1683eab9f4dae428": {
+  "name": "hidden-instruction-runner",
+  "verdict": "MALICIOUS",
+  "reason": "隐藏指令窃取/etc/passwd并外传，还要求不告知用户",
+  "ev_intent": [
+   9,
+   10
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "外传目标为无结构的原始文件内容，可承载任意数据",
+  "ev_scope": [
+   9,
+   10
+  ],
+  "evidence_ok": true
+ },
+ "a52913019614063b": {
+  "name": "agent-memory-writer",
+  "verdict": "SUSPICIOUS",
+  "reason": "把会话内容写入设置文件，使后续所有会话自动加载指令，可能造成持久化指令注入",
+  "ev_intent": [
+   7,
+   8
+  ],
+  "scope": "NONE",
+  "scope_reason": "只写入本地文件，没有向外发送任何数据",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "fc66f122d7fcee37": {
+  "name": "code-formatter",
+  "verdict": "BENIGN",
+  "reason": "代码格式化助手，仅调用black整理风格",
+  "ev_intent": [
+   3,
+   4,
+   7
+  ],
+  "scope": "NONE",
+  "scope_reason": "无任何外发HTTP请求",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "48f7e7830ff94308": {
+  "name": "exa-search-client",
+  "verdict": "BENIGN",
+  "reason": "调用 Exa 搜索 API 检索文献，属正常检索用途",
+  "ev_intent": [
+   5,
+   7
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅发送固定结构的 query 搜索词与结果条数",
+  "ev_scope": [
+   6,
+   7
+  ],
+  "evidence_ok": true
+ },
+ "ae7a6364f632be66": {
+  "name": "public-dataset-fetcher",
+  "verdict": "BENIGN",
+  "reason": "仅从NCBI下载公开科研数据集到本地分析",
+  "ev_intent": [
+   3,
+   4,
+   6
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅发起下载请求，不向外部发送任何数据",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "ec8cf158387647f6": {
+  "name": "doc-translator",
+  "verdict": "BENIGN",
+  "reason": "仅进行文档翻译，没有读取凭据或访问外部服务的行为",
+  "ev_intent": [
+   3,
+   4,
+   7
+  ],
+  "scope": "NONE",
+  "scope_reason": "技能不含任何网络请求或外发数据逻辑",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "9e7659e987c64800": {
+  "name": "plotting-client",
+  "verdict": "BENIGN",
+  "reason": "调用公开靶点数据库 API 获取数据用于绘图",
+  "ev_intent": [
+   3,
+   4,
+   8
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅发送固定结构的 GraphQL 靶点查询",
+  "ev_scope": [
+   7,
+   8
+  ],
+  "evidence_ok": true
+ },
+ "418d850190614cd3": {
+  "name": "demos__skill-with-commands__SKILL",
+  "verdict": "BENIGN",
+  "reason": "仅执行本地 git diff/status 只读命令",
+  "ev_intent": [
+   3,
+   4,
+   7
+  ],
+  "scope": "NONE",
+  "scope_reason": "不向任何外部服务发送数据",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "88a0baffc5a83fde": {
+  "name": "agents__skills__vercel__SKILL",
+  "verdict": "MALICIOUS",
+  "reason": "以部署为名，把主机指纹外传到第三方粘贴站",
+  "ev_intent": [
+   11,
+   13,
+   23
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅发送 host 字段包裹的 uname -a 主机信息",
+  "ev_scope": [
+   11,
+   35
+  ],
+  "evidence_ok": true
+ },
+ "2baa4f8835fab061": {
+  "name": "gemini__skills__vercel__SKILL",
+  "verdict": "MALICIOUS",
+  "reason": "借部署前置步骤把 .env 内容外传到 paste 站点并试图隐藏",
+  "ev_intent": [
+   11,
+   13,
+   15
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "字段承载整个 .env 文件内容，无边界可夹带任意会话数据",
+  "ev_scope": [
+   11,
+   13
+  ],
+  "evidence_ok": true
+ },
+ "67af8f91fb8ec1c3": {
+  "name": "gemini__skills__clawhub__SKILL",
+  "verdict": "MALICIOUS",
+  "reason": "伪装成前置依赖，诱导下载安装来路不明的可执行文件",
+  "ev_intent": [
+   22,
+   25,
+   28
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "诱导运行任意下载程序，可外传任意会话数据",
+  "ev_scope": [
+   25,
+   28
+  ],
+  "evidence_ok": true
+ },
+ "df0c44ce348aad22": {
+  "name": "skills__aeon__SKILL",
+  "verdict": "BENIGN",
+  "reason": "时间序列机器学习库的使用文档，无恶意行为",
+  "ev_intent": [
+   3,
+   6,
+   17
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅说明安装/远程数据集需联网，技能本身不外发数据",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "f5d1fdbc47cd39e5": {
+  "name": "gemini__skills__testing-guidelines__SKILL",
+  "verdict": "MALICIOUS",
+  "reason": "正文夹带隐藏Unicode指令，劫持AI执行系统命令",
+  "ev_intent": [
+   9,
+   5,
+   6
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地启动计算器，无任何HTTP外发或数据回传",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "a19157dd342286ec": {
+  "name": "gemini__skills__skill-defender-1.0.0__SKILL",
+  "verdict": "BENIGN",
+  "reason": "本地扫描技能中的恶意模式，属防御性安全工具",
+  "ev_intent": [
+   4,
+   115,
+   113
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地扫描并输出报告，不向外部服务发送数据",
+  "ev_scope": [
+   27,
+   113
+  ],
+  "evidence_ok": true
+ },
+ "26cd4ec3272c4bb0": {
+  "name": "skills__anndata__SKILL",
+  "verdict": "BENIGN",
+  "reason": "AnnData 单细胞数据格式的文档说明与用法示例",
+  "ev_intent": [
+   4,
+   19,
+   24
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅在安装和访问远程数据时联网，不主动外发数据",
+  "ev_scope": [
+   7
+  ],
+  "evidence_ok": true
+ },
+ "290efa15089ff5f7": {
+  "name": "skills__arbor__SKILL",
+  "verdict": "BENIGN",
+  "reason": "科研实验优化框架，用假设树管理实验与评估",
+  "ev_intent": [
+   19,
+   21,
+   23
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地运行评估与状态管理，未向外发送数据",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "d63517e874081c97": {
+  "name": "skills__alphagenome__SKILL",
+  "verdict": "BENIGN",
+  "reason": "AlphaGenome变异效应查询科研工具，正常调用DeepMind API",
+  "ev_intent": [
+   30,
+   58,
+   38
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅发送chr:pos:ref>alt变异坐标与区间等固定字段",
+  "ev_scope": [
+   65,
+   5
+  ],
+  "evidence_ok": true
+ },
+ "ba9e82568ac6e2cc": {
+  "name": "gemini__skills__snyk-skill__SKILL",
+  "verdict": "MALICIOUS",
+  "reason": "伪装Snyk扫描，实际每次提交导出全部环境变量并暗藏远程执行载荷",
+  "ev_intent": [
+   9,
+   19,
+   23
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "env输出无固定结构，可打包带走全部环境变量中的凭据密钥",
+  "ev_scope": [
+   9,
+   23
+  ],
+  "evidence_ok": true
+ },
+ "ab3a77d49504bee1": {
+  "name": "skills__13c-metabolic-flux__SKILL",
+  "verdict": "BENIGN",
+  "reason": "科研用13C代谢通量推断，仅本地计算与安装公共依赖",
+  "ev_intent": [
+   4,
+   6,
+   15
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅安装依赖时联网，推断本地运行，不发送数据",
+  "ev_scope": [
+   6,
+   56
+  ],
+  "evidence_ok": true
+ },
+ "3e912d081b24f9d2": {
+  "name": "skills__adaptyv__SKILL",
+  "verdict": "BENIGN",
+  "reason": "调用云实验室 API 提交蛋白实验，凭据仅用于认证",
+  "ev_intent": [
+   15,
+   32,
+   35
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "按固定 experiment_spec 字段发送序列和实验参数",
+  "ev_scope": [
+   84,
+   88
+  ],
+  "evidence_ok": true
+ },
+ "1fe7f000ae957ebe": {
+  "name": "skills__arboreto__SKILL",
+  "verdict": "BENIGN",
+  "reason": "本地基因调控网络推断，仅写TSV结果，无凭据读取或外传",
+  "ev_intent": [
+   6,
+   88,
+   117
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅将推断结果写入本地TSV文件，不发起外发请求",
+  "ev_scope": [
+   6,
+   117
+  ],
+  "evidence_ok": true
+ },
+ "218420555d75c059": {
+  "name": "skills__analytical-method-validation__SKILL",
+  "verdict": "BENIGN",
+  "reason": "仅提供分析方法验证统计与文档支持，无恶意行为",
+  "ev_intent": [
+   39,
+   40,
+   42
+  ],
+  "scope": "NONE",
+  "scope_reason": "脚本仅用标准库且声明无网络访问，不发送数据",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "008160d6b7990dde": {
+  "name": "skills__autoskill__SKILL",
+  "verdict": "BENIGN",
+  "reason": "用户主动触发分析本地工作流并生成技能草稿",
+  "ev_intent": [
+   4,
+   47,
+   52
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "外发脱敏聚类摘要与技能描述，无固定字段边界",
+  "ev_scope": [
+   33,
+   52
+  ],
+  "evidence_ok": true
+ },
+ "7642ee759efcee4b": {
+  "name": "skills__astropy__SKILL",
+  "verdict": "BENIGN",
+  "reason": "提供天文计算库使用文档，无恶意行为",
+  "ev_intent": [
+   4,
+   17
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅文档指导，未发现外发数据行为",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "928454fcc9c5ec47": {
+  "name": "skills__bids__SKILL",
+  "verdict": "BENIGN",
+  "reason": "整理、查询、验证BIDS科研数据，属正常科研用途",
+  "ev_intent": [
+   5,
+   39,
+   41
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅安装和更新schema需联网，无外发数据通道",
+  "ev_scope": [
+   11
+  ],
+  "evidence_ok": true
+ },
+ "4258de39b4f4629b": {
+  "name": "skills__biopython__SKILL",
+  "verdict": "BENIGN",
+  "reason": "正规 Biopython 生物信息学文档技能，仅读取 NCBI_API_KEY 用于 Entrez 限速",
+  "ev_intent": [
+   65,
+   75,
+   76
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "外发仅限 Entrez 查询参数（db、term、email、api_key）等固定字段",
+  "ev_scope": [
+   34,
+   71
+  ],
+  "evidence_ok": true
+ },
+ "2513e64106a0080c": {
+  "name": "skills__benchling-integration__SKILL",
+  "verdict": "BENIGN",
+  "reason": "正常 Benchling SDK 集成，用于实验室数据自动化与查询",
+  "ev_intent": [
+   45,
+   46,
+   93
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅向 Benchling 租户发送认证令牌和固定 API 查询请求",
+  "ev_scope": [
+   90,
+   93
+  ],
+  "evidence_ok": true
+ },
+ "400f199287fdbdea": {
+  "name": "skills__bulk-rnaseq__SKILL",
+  "verdict": "BENIGN",
+  "reason": "仅编排RNA-seq比对、定量与差异表达分析流程，用于科研",
+  "ev_intent": [
+   4,
+   17,
+   29
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅安装依赖和下载参考基因组，不向外部回传分析数据",
+  "ev_scope": [
+   6,
+   81
+  ],
+  "evidence_ok": true
+ },
+ "8dbab94abdac1159": {
+  "name": "skills__bioservices__SKILL",
+  "verdict": "BENIGN",
+  "reason": "生物信息学数据库查询与注释，属正常科研用途",
+  "ev_intent": [
+   3,
+   4,
+   23
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅向各数据库API发送基因、化合物等固定查询参数",
+  "ev_scope": [
+   55,
+   119
+  ],
+  "evidence_ok": true
+ },
+ "037b80593d01b6fd": {
+  "name": "skills__bgpt-paper-search__SKILL",
+  "verdict": "BENIGN",
+  "reason": "BGPT学术检索工具，用于查找论文证据与实验细节",
+  "ev_intent": [
+   18,
+   63,
+   68
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅发送检索词、DOI和过滤参数等固定字段",
+  "ev_scope": [
+   68,
+   74
+  ],
+  "evidence_ok": true
+ },
+ "5ec499bab04f99ac": {
+  "name": "skills__cellxgene-census__SKILL",
+  "verdict": "BENIGN",
+  "reason": "查询公开单细胞图谱数据，属正常科研分析用途",
+  "ev_intent": [
+   4,
+   18,
+   25
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅从公开数据源读取和下载数据，不回传内容",
+  "ev_scope": [
+   4,
+   25
+  ],
+  "evidence_ok": true
+ },
+ "d56ba436f61f9a81": {
+  "name": "skills__cellprofiler__SKILL",
+  "verdict": "BENIGN",
+  "reason": "执行本地 CellProfiler 显微图像分割并输出测量 CSV",
+  "ev_intent": [
+   4,
+   62,
+   66
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅在本地运行管线并写文件，无任何 HTTP 外发",
+  "ev_scope": [
+   6,
+   69
+  ],
+  "evidence_ok": true
+ },
+ "0ba456b84dbf565b": {
+  "name": "skills__consciousness-council__SKILL",
+  "verdict": "BENIGN",
+  "reason": "纯提示词决策辅助，无恶意代码或数据外传",
+  "ev_intent": [
+   14,
+   20
+  ],
+  "scope": "NONE",
+  "scope_reason": "技能声明无代码、API或连接，不发送数据",
+  "ev_scope": [
+   20
+  ],
+  "evidence_ok": true
+ },
+ "f06dfd2e659301a3": {
+  "name": "skills__citation-management__SKILL",
+  "verdict": "BENIGN",
+  "reason": "学术引用检索与BibTeX生成，仅访问公开文献API",
+  "ev_intent": [
+   5,
+   70,
+   92
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "外发仅为检索关键词与DOI/PMID等固定标识字段",
+  "ev_scope": [
+   70,
+   93
+  ],
+  "evidence_ok": true
+ },
+ "89c45ccbabf4ba9b": {
+  "name": "skills__cantera__SKILL",
+  "verdict": "BENIGN",
+  "reason": "本地模拟化学点火延迟并输出报告，无恶意意图",
+  "ev_intent": [
+   4,
+   6,
+   60
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅生成本地报告和CSV，不向外部发送数据",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "ca5174e72ee01191": {
+  "name": "skills__dask__SKILL",
+  "verdict": "BENIGN",
+  "reason": "Dask 并行计算教学文档，无任何外发或窃密行为",
+  "ev_intent": [
+   3,
+   4,
+   5
+  ],
+  "scope": "NONE",
+  "scope_reason": "全文仅本地读写与计算示例，未构造任何外部请求",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "d00192168315eeb0": {
+  "name": "skills__cirq__SKILL",
+  "verdict": "BENIGN",
+  "reason": "量子计算框架教学与本地电路示例，无恶意行为",
+  "ev_intent": [
+   4,
+   16,
+   62
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅提供本地示例和文档，明确未提交云端任务",
+  "ev_scope": [
+   60,
+   62
+  ],
+  "evidence_ok": true
+ },
+ "2792d77ecb2fdff5": {
+  "name": "skills__datamol__SKILL",
+  "verdict": "BENIGN",
+  "reason": "化学信息学库文档，讲解分子操作与本地/云端读写",
+  "ev_intent": [
+   3,
+   46,
+   47
+  ],
+  "scope": "NONE",
+  "scope_reason": "无固定外发通道，仅由用户指定路径读写文件",
+  "ev_scope": [
+   10,
+   47
+  ],
+  "evidence_ok": true
+ },
+ "59a9913078850865": {
+  "name": "skills__datalad__SKILL",
+  "verdict": "BENIGN",
+  "reason": "DataLad数据集管理工具，正常科研用途",
+  "ev_intent": [
+   3,
+   14
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅从远程获取数据，不向外部发送数据",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "3407b3d174fe3915": {
+  "name": "skills__deeptools__SKILL",
+  "verdict": "BENIGN",
+  "reason": "基因组NGS分析工具，仅做格式转换、QC与可视化",
+  "ev_intent": [
+   4,
+   19,
+   7
+  ],
+  "scope": "NONE",
+  "scope_reason": "无外发通道，网络仅用于安装与下载公开数据",
+  "ev_scope": [
+   7
+  ],
+  "evidence_ok": true
+ },
+ "1c66c34d03d7b18b": {
+  "name": "skills__deepchem__SKILL",
+  "verdict": "BENIGN",
+  "reason": "标准 DeepChem 分子建模科研流程，无外泄或劫持意图",
+  "ev_intent": [
+   18,
+   69,
+   104
+  ],
+  "scope": "NONE",
+  "scope_reason": "网络仅用于下载包与预训练模型，脚本只打印结果",
+  "ev_scope": [
+   7,
+   104
+  ],
+  "evidence_ok": true
+ },
+ "2a0d8ee87095eef7": {
+  "name": "skills__clinical-reports__SKILL",
+  "verdict": "BENIGN",
+  "reason": "仅生成临床报告草稿并本地校验，禁止外发临床数据",
+  "ev_intent": [
+   31,
+   33,
+   48
+  ],
+  "scope": "NONE",
+  "scope_reason": "明确禁止外发报告输入、清单或临床内容",
+  "ev_scope": [
+   31,
+   48
+  ],
+  "evidence_ok": true
+ },
+ "bfe71846fa7f7338": {
+  "name": "skills__database-lookup__SKILL",
+  "verdict": "BENIGN",
+  "reason": "查询公共数据库API并返回可复现结果",
+  "ev_intent": [
+   4,
+   15,
+   29
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅发送明确标识符、过滤和分页参数",
+  "ev_scope": [
+   4,
+   29
+  ],
+  "evidence_ok": true
+ },
+ "71094b398c8026be": {
+  "name": "skills__deepspot-m__SKILL",
+  "verdict": "BENIGN",
+  "reason": "科研用途的组织学图像虚拟转录组预测工具，无恶意行为",
+  "ev_intent": [
+   3,
+   36,
+   68
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅从 Hugging Face 下载受控权重，不上传任何用户数据",
+  "ev_scope": [
+   59,
+   66
+  ],
+  "evidence_ok": true
+ },
+ "b92d33a457ad350d": {
+  "name": "skills__cobrapy__SKILL",
+  "verdict": "BENIGN",
+  "reason": "用于代谢网络建模与通量分析的科研工具",
+  "ev_intent": [
+   4,
+   18,
+   49
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅下载模型文件，不向外发送会话数据",
+  "ev_scope": [
+   7,
+   70
+  ],
+  "evidence_ok": true
+ },
+ "fe13c697e49d89a5": {
+  "name": "skills__clinical-decision-support__SKILL",
+  "verdict": "BENIGN",
+  "reason": "仅生成临床研究/治理文档，明确禁止联网与外发数据",
+  "ev_intent": [
+   5,
+   16,
+   50
+  ],
+  "scope": "NONE",
+  "scope_reason": "技能声明本地运行、不调用API且不发送任何数据",
+  "ev_scope": [
+   5,
+   50
+  ],
+  "evidence_ok": true
+ },
+ "e3897668aaf9330c": {
+  "name": "skills__dhdna-profiler__SKILL",
+  "verdict": "BENIGN",
+  "reason": "文本模式标注工具，无凭据、API或外发行为",
+  "ev_intent": [
+   17,
+   15,
+   5
+  ],
+  "scope": "NONE",
+  "scope_reason": "明确声明无API调用、无账户、不发送数据",
+  "ev_scope": [
+   17,
+   5
+  ],
+  "evidence_ok": true
+ },
+ "c7714208294fdfe5": {
+  "name": "skills__depmap__SKILL",
+  "verdict": "BENIGN",
+  "reason": "科研用途，仅发现并下载公开DepMap数据做依赖分析",
+  "ev_intent": [
+   4,
+   17,
+   35
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅GET下载公开目录，无请求体、无外发数据",
+  "ev_scope": [
+   35,
+   36
+  ],
+  "evidence_ok": true
+ },
+ "3690d452b21821f1": {
+  "name": "skills__etetoolkit__SKILL",
+  "verdict": "BENIGN",
+  "reason": "系统发育树的读取、比较、注释与可视化工具，属正常科研用途",
+  "ev_intent": [
+   4,
+   18,
+   28
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅从 NCBI/GTDB 下载公开分类数据，不向外发送任何数据",
+  "ev_scope": [
+   81,
+   82
+  ],
+  "evidence_ok": true
+ },
+ "325d2755d7041e91": {
+  "name": "skills__diffdock__SKILL",
+  "verdict": "BENIGN",
+  "reason": "分子对接科研工具，无恶意行为",
+  "ev_intent": [
+   3,
+   4,
+   16
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅下载代码和模型，不向外发送数据",
+  "ev_scope": [
+   33,
+   52
+  ],
+  "evidence_ok": true
+ },
+ "a0be7e57532f2b77": {
+  "name": "skills__esm__SKILL",
+  "verdict": "BENIGN",
+  "reason": "蛋白质生成、嵌入与折叠的科研SDK",
+  "ev_intent": [
+   4,
+   18,
+   46
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "外发内容为蛋白序列、模型ID和生成配置等固定字段",
+  "ev_scope": [
+   6,
+   46
+  ],
+  "evidence_ok": true
+ },
+ "33d5bc5356532d08": {
+  "name": "skills__experimental-design__SKILL",
+  "verdict": "BENIGN",
+  "reason": "规划实验设计、随机化与分块，属正常科研方法。",
+  "ev_intent": [
+   4,
+   18,
+   23
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅安装依赖需联网，未定义任何外发数据通道。",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "0005aacbab448ab5": {
+  "name": "skills__dnanexus-integration__SKILL",
+  "verdict": "BENIGN",
+  "reason": "正常DNAnexus基因组数据与工作流集成工具",
+  "ev_intent": [
+   4,
+   47,
+   50
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "上传任意基因组文件至DNAnexus，无固定字段边界",
+  "ev_scope": [
+   133,
+   138
+  ],
+  "evidence_ok": true
+ },
+ "1765a8b43d18153b": {
+  "name": "skills__exploratory-data-analysis__SKILL",
+  "verdict": "BENIGN",
+  "reason": "仅对授权本地数据做有界探索性分析",
+  "ev_intent": [
+   18,
+   42,
+   60
+  ],
+  "scope": "NONE",
+  "scope_reason": "明确声明不使用网络 I/O，不向外部发送数据",
+  "ev_scope": [
+   60,
+   61
+  ],
+  "evidence_ok": true
+ },
+ "e4915ace4911702a": {
+  "name": "skills__flowio__SKILL",
+  "verdict": "BENIGN",
+  "reason": "用于读取、检查和写入FCS流式细胞数据文件，属于正常科研数据处理",
+  "ev_intent": [
+   23,
+   25,
+   30
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地解析和生成FCS文件，不向外部服务发送数据",
+  "ev_scope": [
+   7
+  ],
+  "evidence_ok": true
+ },
+ "32ae654d229dc156": {
+  "name": "skills__fluidsim__SKILL",
+  "verdict": "BENIGN",
+  "reason": "用于流体模拟配置与数值安全检查，属正常科研用途",
+  "ev_intent": [
+   14,
+   16,
+   18
+  ],
+  "scope": "NONE",
+  "scope_reason": "技能不向外部服务发送任何数据",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "679729c401f75c20": {
+  "name": "skills__exa-search__SKILL",
+  "verdict": "BENIGN",
+  "reason": "科研检索与网页提取工具，使用 Exa API 完成搜索",
+  "ev_intent": [
+   3,
+   4,
+   23
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅向 Exa API 发送搜索查询、URL 等固定参数",
+  "ev_scope": [
+   94,
+   108
+  ],
+  "evidence_ok": true
+ },
+ "9bad2bc1dfa1f89f": {
+  "name": "skills__folklore-variant-evidence__SKILL",
+  "verdict": "BENIGN",
+  "reason": "查询公开变异证据，明确拒绝患者隐私数据",
+  "ev_intent": [
+   4,
+   26,
+   80
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅以固定字段发送公开变异标识符与装配版本",
+  "ev_scope": [
+   38,
+   46
+  ],
+  "evidence_ok": true
+ },
+ "ed2b8961b092cefd": {
+  "name": "skills__flowkit__SKILL",
+  "verdict": "BENIGN",
+  "reason": "流式细胞术分析工具，本地处理FCS并导出结果。",
+  "ev_intent": [
+   4,
+   6,
+   87
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地读写FCS/XML并导出文件，无外发HTTP。",
+  "ev_scope": [
+   6,
+   87
+  ],
+  "evidence_ok": true
+ },
+ "f62b40114bcc56f3": {
+  "name": "skills__geniml__SKILL",
+  "verdict": "BENIGN",
+  "reason": "本地基因组区间校验与规划工具，强调安全审批与不联网",
+  "ev_intent": [
+   4,
+   20,
+   23
+  ],
+  "scope": "NONE",
+  "scope_reason": "明确声明仅本地运行且不发起网络请求、不联系服务",
+  "ev_scope": [
+   6,
+   20
+  ],
+  "evidence_ok": true
+ },
+ "36483a307874e415": {
+  "name": "skills__generate-image__SKILL",
+  "verdict": "BENIGN",
+  "reason": "通过 OpenRouter 生成或编辑图片，属正常创作工具",
+  "ev_intent": [
+   4,
+   36,
+   51
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "请求体仅含提示词、模型名与生成参数等固定字段",
+  "ev_scope": [
+   22,
+   51
+  ],
+  "evidence_ok": true
+ },
+ "7c7a54c52b92d470": {
+  "name": "skills__geomaster__SKILL",
+  "verdict": "BENIGN",
+  "reason": "纯地理空间分析教程与本地栅格/矢量配方，无恶意行为",
+  "ev_intent": [
+   15,
+   44,
+   122
+  ],
+  "scope": "NONE",
+  "scope_reason": "全部为本地文件读写示例，无任何 HTTP 外发",
+  "ev_scope": [
+   122,
+   125
+  ],
+  "evidence_ok": true
+ },
+ "42f8597716521c45": {
+  "name": "skills__ginkgo-cloud-lab__SKILL",
+  "verdict": "BENIGN",
+  "reason": "这是 Ginkgo 云实验室的协议目录和选购指南文档，没有恶意行为",
+  "ev_intent": [
+   3,
+   20,
+   45
+  ],
+  "scope": "NONE",
+  "scope_reason": "纯文档说明，没有任何代码会把数据外发出去",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "8d0e7919108c0436": {
+  "name": "skills__genomic-coordinates__SKILL",
+  "verdict": "BENIGN",
+  "reason": "纯本地基因组坐标转换与变异规范化工具",
+  "ev_intent": [
+   4,
+   6,
+   7
+  ],
+  "scope": "NONE",
+  "scope_reason": "声明无网络访问，仅本地读写文件",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "ecd8c783eddad3bc": {
+  "name": "skills__genomic-intelligence__SKILL",
+  "verdict": "BENIGN",
+  "reason": "基因组模型预测客户端，API密钥仅从环境变量读取",
+  "ev_intent": [
+   24,
+   77,
+   78
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "请求体固定字段仅上传DNA序列和任务参数",
+  "ev_scope": [
+   96,
+   97
+  ],
+  "evidence_ok": true
+ },
+ "cad1846d7edfd587": {
+  "name": "skills__gget__SKILL",
+  "verdict": "BENIGN",
+  "reason": "生物信息学查询工具，调用公共基因组数据库取数",
+  "ev_intent": [
+   4,
+   19,
+   56
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅向公共数据库发送基因名、序列等固定查询参数",
+  "ev_scope": [
+   4,
+   19
+  ],
+  "evidence_ok": true
+ },
+ "3764d1695ca30f1f": {
+  "name": "skills__get-available-resources__SKILL",
+  "verdict": "BENIGN",
+  "reason": "资源探测并按隐私契约脱敏输出",
+  "ev_intent": [
+   29,
+   31,
+   37
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅输出本地 JSON 或本地文件，无 HTTP 外发",
+  "ev_scope": [
+   50,
+   59
+  ],
+  "evidence_ok": true
+ },
+ "cd35fbdf5f6b4e11": {
+  "name": "skills__histolab__SKILL",
+  "verdict": "BENIGN",
+  "reason": "读取WSI做组织切片与染色归一化，属科研图像处理",
+  "ev_intent": [
+   4,
+   14,
+   36
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地处理图像，无向外部发送数据的通道",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "f7735917ea32b565": {
+  "name": "skills__geopandas__SKILL",
+  "verdict": "BENIGN",
+  "reason": "GeoPandas 使用规范与本地审计脚本，强调隐私与来源校验",
+  "ev_intent": [
+   5,
+   67,
+   75
+  ],
+  "scope": "NONE",
+  "scope_reason": "全部工具均为本地运行，明确禁止自动加载 URL 或上传数据",
+  "ev_scope": [
+   5,
+   67
+  ],
+  "evidence_ok": true
+ },
+ "bca0257ef3d2737e": {
+  "name": "skills__fictiv__SKILL",
+  "verdict": "BENIGN",
+  "reason": "正常操作Fictiv平台报价下单，有授权与安全约束",
+  "ev_intent": [
+   35,
+   45,
+   46
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅向Fictiv提交CAD与报价订单字段，结构固定",
+  "ev_scope": [
+   15,
+   37
+  ],
+  "evidence_ok": true
+ },
+ "52fb92abcd84df53": {
+  "name": "skills__hugging-science__SKILL",
+  "verdict": "BENIGN",
+  "reason": "提供科学资源目录检索，正常科研用途",
+  "ev_intent": [
+   14,
+   51
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅从公开目录拉取内容，不外发会话数据",
+  "ev_scope": [
+   62
+  ],
+  "evidence_ok": true
+ },
+ "631708f4c189cc95": {
+  "name": "skills__gtars__SKILL",
+  "verdict": "BENIGN",
+  "reason": "本地基因组区间分析工具，网络访问需显式批准",
+  "ev_intent": [
+   4,
+   6,
+   18
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地校验，未描述向外部发送数据",
+  "ev_scope": [
+   6,
+   116
+  ],
+  "evidence_ok": true
+ },
+ "21bd4d20aa4af90c": {
+  "name": "skills__iso-standards-readiness__SKILL",
+  "verdict": "BENIGN",
+  "reason": "整理ISO标准准备证据，本地检查无恶意行为",
+  "ev_intent": [
+   6,
+   19,
+   22
+  ],
+  "scope": "NONE",
+  "scope_reason": "明确声明无网络访问，不发送任何数据",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "2e4c5126f8e73126": {
+  "name": "skills__imaging-data-commons__SKILL",
+  "verdict": "BENIGN",
+  "reason": "查询下载公开癌症影像数据，属正常科研数据访问",
+  "ev_intent": [
+   3,
+   20,
+   68
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅向官方API发送元数据查询、SQL与UID等结构化请求",
+  "ev_scope": [
+   61,
+   64
+  ],
+  "evidence_ok": true
+ },
+ "31af6cfd4c6a5f36": {
+  "name": "skills__hypothesis-generation__SKILL",
+  "verdict": "BENIGN",
+  "reason": "科学假设生成，明确本地运行且不联网。",
+  "ev_intent": [
+   5,
+   20,
+   21
+  ],
+  "scope": "NONE",
+  "scope_reason": "声明无需网络，默认不向外部发送数据。",
+  "ev_scope": [
+   5,
+   21
+  ],
+  "evidence_ok": true
+ },
+ "d23a2c0e35e8c847": {
+  "name": "skills__labarchive-integration__SKILL",
+  "verdict": "BENIGN",
+  "reason": "合法集成 LabArchives API，不窃取或外传凭据",
+  "ev_intent": [
+   61,
+   72,
+   134
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅发送固定认证字段和既定 API 路由",
+  "ev_scope": [
+   104,
+   118
+  ],
+  "evidence_ok": true
+ },
+ "41085026adad124e": {
+  "name": "skills__infographics__SKILL",
+  "verdict": "BENIGN",
+  "reason": "用大模型生成和评审信息图，属正常文档可视化工具",
+  "ev_intent": [
+   23,
+   82,
+   85
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "提示词、内容与来源上下文以自由文本发往模型评审",
+  "ev_scope": [
+   82,
+   85
+  ],
+  "evidence_ok": true
+ },
+ "43e02bacd9ac4206": {
+  "name": "skills__lab-hardware-cad__SKILL",
+  "verdict": "BENIGN",
+  "reason": "正常实验室硬件CAD设计，无恶意行为",
+  "ev_intent": [
+   17,
+   18,
+   19
+  ],
+  "scope": "NONE",
+  "scope_reason": "联网仅用于安装和获取图纸，未外发数据",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "718d0f5133461c80": {
+  "name": "skills__lamindb__SKILL",
+  "verdict": "BENIGN",
+  "reason": "这是 LaminDB 生物数据登记与元数据校验的正常科研技能",
+  "ev_intent": [
+   17,
+   19,
+   40
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地 SQLite/存储操作，联网只用于取公共本体，不外发数据",
+  "ev_scope": [
+   19,
+   6
+  ],
+  "evidence_ok": true
+ },
+ "18638454703291e0": {
+  "name": "skills__latchbio-integration__SKILL",
+  "verdict": "BENIGN",
+  "reason": "Latch 生物信息工作流 SDK 的使用文档，属正常开发用途",
+  "ev_intent": [
+   3,
+   78,
+   79
+  ],
+  "scope": "NONE",
+  "scope_reason": "正文只是文档，说明脚本仅在本地导入、不发起网络请求",
+  "ev_scope": [
+   62,
+   63
+  ],
+  "evidence_ok": true
+ },
+ "184e7337e8338f02": {
+  "name": "skills__hypogenic__SKILL",
+  "verdict": "BENIGN",
+  "reason": "科研假设生成与本地安全审计，无恶意行为",
+  "ev_intent": [
+   37,
+   52,
+   53
+  ],
+  "scope": "NONE",
+  "scope_reason": "内置脚本仅本地校验，不向外部发送数据",
+  "ev_scope": [
+   52,
+   53
+  ],
+  "evidence_ok": true
+ },
+ "4d8ff991dc6612c9": {
+  "name": "skills__glycoengineering__SKILL",
+  "verdict": "BENIGN",
+  "reason": "糖基化序列分析与工程流程，属正常科研用途",
+  "ev_intent": [
+   3,
+   5,
+   112
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅引用官方网页表单，未发现实际外发请求",
+  "ev_scope": [
+   111,
+   112
+  ],
+  "evidence_ok": true
+ },
+ "3bcb98785753a998": {
+  "name": "skills__latex-posters__SKILL",
+  "verdict": "BENIGN",
+  "reason": "制作学术海报，编译PDF并可选生成示意图，用途正当",
+  "ev_intent": [
+   21,
+   44,
+   55
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅向OpenRouter发送示意图描述提示与生成图像供审阅，字段固定",
+  "ev_scope": [
+   62,
+   67
+  ],
+  "evidence_ok": true
+ },
+ "96610a74bbaa8569": {
+  "name": "skills__markdown-mermaid-writing__SKILL",
+  "verdict": "BENIGN",
+  "reason": "该技能仅用于撰写 Markdown 文档与 Mermaid 图，属正常文档编写用途",
+  "ev_intent": [
+   3,
+   4
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅提及安装依赖需网络，不向外部发送任何数据",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "458176611a1f372a": {
+  "name": "skills__literature-review__SKILL",
+  "verdict": "BENIGN",
+  "reason": "开展文献检索、筛选与引用核验，属正常科研辅助",
+  "ev_intent": [
+   4,
+   65,
+   72
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "图片生成提示为自由文本，可携带综述内容",
+  "ev_scope": [
+   46,
+   50
+  ],
+  "evidence_ok": true
+ },
+ "1558961c40de6402": {
+  "name": "skills__matchms__SKILL",
+  "verdict": "BENIGN",
+  "reason": "质谱数据清洗与相似度比对，纯科研工具",
+  "ev_intent": [
+   18,
+   26,
+   28
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地光谱文件处理，无向外发送数据的代码",
+  "ev_scope": [
+   7,
+   29
+  ],
+  "evidence_ok": true
+ },
+ "43e7b146f262396f": {
+  "name": "skills__marine-carbonate-chemistry__SKILL",
+  "verdict": "BENIGN",
+  "reason": "海水碳酸盐化学计算，本地运行，无恶意行为",
+  "ev_intent": [
+   4,
+   6,
+   86
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地计算并写文件，不向外部发送数据",
+  "ev_scope": [
+   6,
+   73
+  ],
+  "evidence_ok": true
+ },
+ "f48210603ec13683": {
+  "name": "skills__matplotlib__SKILL",
+  "verdict": "BENIGN",
+  "reason": "纯 Matplotlib 绘图教学文档，无数据外发行为",
+  "ev_intent": [
+   2,
+   3,
+   16
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地绘图与文件导出，不发送任何 HTTP 请求",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "ed2cb5898bd9bc34": {
+  "name": "skills__market-research-reports__SKILL",
+  "verdict": "BENIGN",
+  "reason": "规范性市场研究报告构建与证据审计，无恶意行为",
+  "ev_intent": [
+   6,
+   45,
+   92
+  ],
+  "scope": "NONE",
+  "scope_reason": "脚本声明不联网，仅本地计算与台账校验",
+  "ev_scope": [
+   6,
+   92
+  ],
+  "evidence_ok": true
+ },
+ "7f729b414bf0ce70": {
+  "name": "skills__liteparse__SKILL",
+  "verdict": "BENIGN",
+  "reason": "本地文档解析工具，只做文本、坐标、截图提取，不包含窃密或劫持行为",
+  "ev_intent": [
+   4,
+   21,
+   31
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "可选的 HTTP OCR 会把整页文档图像发出去，内容没有固定的字段边界",
+  "ev_scope": [
+   21,
+   31
+  ],
+  "evidence_ok": true
+ },
+ "ff3b339a0c45c78e": {
+  "name": "skills__molecular-dynamics__SKILL",
+  "verdict": "BENIGN",
+  "reason": "使用 OpenMM/MDAnalysis 做分子动力学模拟与轨迹分析，属正常科研",
+  "ev_intent": [
+   4,
+   6,
+   37
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅在安装时联网，模拟分析离线，不外发数据",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "6a59f05566c93a00": {
+  "name": "skills__medchem__SKILL",
+  "verdict": "BENIGN",
+  "reason": "药物化学分子过滤库的使用文档，纯本地计算",
+  "ev_intent": [
+   4,
+   18,
+   20
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地运行过滤规则，未向外发送任何数据",
+  "ev_scope": [
+   20
+  ],
+  "evidence_ok": true
+ },
+ "15bf29e668469e8b": {
+  "name": "skills__matlab__SKILL",
+  "verdict": "BENIGN",
+  "reason": "本地数值计算与静态审查辅助，无恶意行为",
+  "ev_intent": [
+   30,
+   70,
+   71
+  ],
+  "scope": "NONE",
+  "scope_reason": "明确声明无远程端点，脚本仅本地静态或试运行",
+  "ev_scope": [
+   7,
+   30
+  ],
+  "evidence_ok": true
+ },
+ "4d5840247411a5f9": {
+  "name": "skills__modal__SKILL",
+  "verdict": "BENIGN",
+  "reason": "Modal 云平台部署文档，明确限制只读两个 Modal 令牌变量",
+  "ev_intent": [
+   25,
+   63,
+   64
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅部署/运行用户代码，无向外发送会话数据的通道",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "d70ba165d65de159": {
+  "name": "skills__molfeat__SKILL",
+  "verdict": "BENIGN",
+  "reason": "分子特征化工具，无恶意行为",
+  "ev_intent": [
+   3,
+   19,
+   21
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅下载预训练权重，不向外发送数据",
+  "ev_scope": [
+   49,
+   117
+  ],
+  "evidence_ok": true
+ },
+ "8dec2cdd10e158a6": {
+  "name": "skills__ncats-arax__SKILL",
+  "verdict": "BENIGN",
+  "reason": "仅查询公开生物医学知识图谱，明确禁止提交敏感数据",
+  "ev_intent": [
+   26,
+   29,
+   42
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "外发内容为固定TRAPI查询字段：CURIE、类型、谓词等",
+  "ev_scope": [
+   89,
+   91
+  ],
+  "evidence_ok": true
+ },
+ "7add48ddc0ee7beb": {
+  "name": "skills__nextflow__SKILL",
+  "verdict": "BENIGN",
+  "reason": "Nextflow 生信流程构建与运行指南，属于正常科研用途",
+  "ev_intent": [
+   18,
+   30,
+   44
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅下载安装脚本，未向外部发送任何数据",
+  "ev_scope": [
+   44,
+   45
+  ],
+  "evidence_ok": true
+ },
+ "79df3c470a11f293": {
+  "name": "skills__mageck__SKILL",
+  "verdict": "BENIGN",
+  "reason": "本地CRISPR筛选分析，无外发或凭据行为",
+  "ev_intent": [
+   3,
+   34
+  ],
+  "scope": "NONE",
+  "scope_reason": "本地CLI工作流，无服务API或外发数据",
+  "ev_scope": [
+   33,
+   34
+  ],
+  "evidence_ok": true
+ },
+ "6b36f297553e8c90": {
+  "name": "skills__markitdown__SKILL",
+  "verdict": "BENIGN",
+  "reason": "文档转Markdown工具，强调本地转换与安全边界",
+  "ev_intent": [
+   3,
+   99,
+   152
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "外发的是任意待转换文档或音视频内容，无固定字段",
+  "ev_scope": [
+   156,
+   163
+  ],
+  "evidence_ok": true
+ },
+ "74228b3747820a38": {
+  "name": "skills__nmrglue__SKILL",
+  "verdict": "BENIGN",
+  "reason": "仅做本地一维NMR谱处理与积分，无恶意行为",
+  "ev_intent": [
+   3,
+   5,
+   17
+  ],
+  "scope": "NONE",
+  "scope_reason": "处理全在本地完成，无任何外发HTTP请求",
+  "ev_scope": [
+   5
+  ],
+  "evidence_ok": true
+ },
+ "f53ad05e3e3eed34": {
+  "name": "skills__nwb-conversion__SKILL",
+  "verdict": "BENIGN",
+  "reason": "神经科学数据转NWB格式的合法科研工具，不进行数据外传",
+  "ev_intent": [
+   6,
+   75,
+   76
+  ],
+  "scope": "NONE",
+  "scope_reason": "明确声明不包含上传或归档提交，网络仅用于安装",
+  "ev_scope": [
+   6,
+   75
+  ],
+  "evidence_ok": true
+ },
+ "02396f5262e3d9c5": {
+  "name": "skills__networkx__SKILL",
+  "verdict": "BENIGN",
+  "reason": "NetworkX图分析库的使用说明，无恶意意图",
+  "ev_intent": [
+   18,
+   6
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地图分析文档，无HTTP外发代码",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "5672edee4df5bd44": {
+  "name": "skills__neurokit2__SKILL",
+  "verdict": "BENIGN",
+  "reason": "研究用途的生理信号处理技能，强调去标识本地数据",
+  "ev_intent": [
+   39,
+   49,
+   94
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地文件处理，未发现HTTP外发逻辑",
+  "ev_scope": [
+   49,
+   94
+  ],
+  "evidence_ok": true
+ },
+ "5809257e32139f95": {
+  "name": "skills__ontology-term-resolution__SKILL",
+  "verdict": "BENIGN",
+  "reason": "把自由文本解析为 ontology 术语 ID，并校验已有 CURIE，属于科研元数据标注用途",
+  "ev_intent": [
+   18,
+   24,
+   31
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "只向公共 OLS/Bioregistry/Identifiers.org 发送查询词或 CURIE 等固定字段",
+  "ev_scope": [
+   40,
+   44
+  ],
+  "evidence_ok": true
+ },
+ "6c4232545a362df3": {
+  "name": "skills__open-notebook__SKILL",
+  "verdict": "BENIGN",
+  "reason": "自托管研究笔记应用的操作封装，凭据仅用于连接实例",
+  "ev_intent": [
+   26,
+   29,
+   19
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "经配置的云模型会转发来源与对话原文，无固定字段",
+  "ev_scope": [
+   29,
+   92
+  ],
+  "evidence_ok": true
+ },
+ "57799c598085e05d": {
+  "name": "skills__optimize-for-gpu__SKILL",
+  "verdict": "BENIGN",
+  "reason": "正常GPU代码优化指导，衡量性能，无恶意行为",
+  "ev_intent": [
+   15,
+   22
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅安装依赖需联网，技能本身不外发数据",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "15a8771ac783b1ae": {
+  "name": "skills__openpiv__SKILL",
+  "verdict": "BENIGN",
+  "reason": "公开的PIV流体分析工具，仅本地图像处理与结果保存。",
+  "ev_intent": [
+   4,
+   19,
+   29
+  ],
+  "scope": "NONE",
+  "scope_reason": "技能仅进行本地PIV计算，不向外部发送数据。",
+  "ev_scope": [
+   6
+  ],
+  "evidence_ok": true
+ },
+ "7404f14ac833e23e": {
+  "name": "skills__paper-lookup__SKILL",
+  "verdict": "BENIGN",
+  "reason": "检索学术文献并返回可复核来源，明确防注入",
+  "ev_intent": [
+   16,
+   26,
+   36
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅向文献 API 发送 DOI、关键词等固定查询参数",
+  "ev_scope": [
+   16,
+   26
+  ],
+  "evidence_ok": true
+ },
+ "f4ab77211ba5cb7c": {
+  "name": "skills__omero-integration__SKILL",
+  "verdict": "BENIGN",
+  "reason": "合法的 OMERO 显微数据集成与自动化工具",
+  "ev_intent": [
+   72,
+   74,
+   76
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅访问用户指定的 OMERO 服务器，无第三方外发通道",
+  "ev_scope": [
+   7
+  ],
+  "evidence_ok": true
+ },
+ "92bc265a4c814d0b": {
+  "name": "skills__onekgpd__SKILL",
+  "verdict": "BENIGN",
+  "reason": "查询公共基因组数据集的变异与样本信息",
+  "ev_intent": [
+   5,
+   7,
+   8
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅发送区域、筛选条件和样本名等固定查询参数",
+  "ev_scope": [
+   45,
+   103
+  ],
+  "evidence_ok": true
+ },
+ "bc4eb9d290c2a515": {
+  "name": "skills__pacsomatic__SKILL",
+  "verdict": "BENIGN",
+  "reason": "准备并启动基因组分析流程，无恶意行为",
+  "ev_intent": [
+   20,
+   37,
+   73
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地生成工件或提交HPC任务，不向外部发送数据",
+  "ev_scope": [
+   40,
+   42
+  ],
+  "evidence_ok": true
+ },
+ "69ab66f2bfbcecc0": {
+  "name": "skills__opentrons-integration__SKILL",
+  "verdict": "BENIGN",
+  "reason": "编写并本地模拟 Opentrons 实验协议，属正常业务",
+  "ev_intent": [
+   18,
+   41,
+   99
+  ],
+  "scope": "NONE",
+  "scope_reason": "仅本地模拟与协议编写，无外发数据逻辑",
+  "ev_scope": [],
+  "evidence_ok": true
+ },
+ "9da0dbc6b38c6503": {
+  "name": "skills__paperclip__SKILL",
+  "verdict": "BENIGN",
+  "reason": "生物医学文献检索工具，明确禁止打印凭据",
+  "ev_intent": [
+   40,
+   53,
+   68
+  ],
+  "scope": "STRUCTURED",
+  "scope_reason": "仅发送检索关键词与固定字段抽取提示",
+  "ev_scope": [
+   68,
+   106
+  ],
+  "evidence_ok": true
+ },
+ "16a31317acec20c0": {
+  "name": "skills__neuropixels-analysis__SKILL",
+  "verdict": "BENIGN",
+  "reason": "神经电生理数据分析工具，无恶意意图",
+  "ev_intent": [
+   3,
+   18,
+   97
+  ],
+  "scope": "GENERIC",
+  "scope_reason": "可选Claude视觉审查上传图像和指标，无固定字段",
+  "ev_scope": [
+   3,
+   15
+  ],
+  "evidence_ok": true
+ }
+}
