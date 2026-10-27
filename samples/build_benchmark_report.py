@@ -195,11 +195,16 @@ def main():
         "paper": "SCR-Bench（arXiv 2606.15242，华东师范大学 + A*STAR）",
         "n_cases": scr.get("n_cases"),
         "n_skills": scr.get("n_skills"),
-        "rule_signal_skills": scr.get("rule_signal_skills"),
-        "rule_signal_ratio": scr.get("rule_signal_ratio"),
+        # 🔴 归属口径：规则命中 与 能力原子命中 是两个不同通道，不可混用。
+        # 规则层在 651 个技能上 0 命中；那 1 个可疑技能由能力原子通道筛出。
+        "rule_hit_skills": scr.get("rule_hit_skills"),
+        "cap_signal_skills": scr.get("cap_signal_skills"),
+        "need_ai_triage": scr.get("need_ai_triage"),
+        "cap_signal_ratio": scr.get("rule_signal_ratio"),
         "false_alarms_on_benign_compositions": 0,
         "n_chains": scr.get("n_chains"),
         "api_calls": scr.get("api_calls_this_run"),
+        "api_calls_note": scr.get("api_calls_note", ""),
         "independent_finding": {
             "case": "SCR-AuthBlur/case6/skill-a-stability-monitor",
             "our_verdict": "MALICIOUS",
@@ -212,7 +217,9 @@ def main():
             ],
             "meaning": "该技能是 SCR-Bench 刻意设计的「授权混淆」核心样本——"
                        "伪装成安全顾问，实则为危险操作提供背书。"
-                       "本项目的规则快筛在全基准 651 个技能中只触发这 1 个（0.15%），"
+                       "🔴 归属口径：32 条规则快筛在全基准 651 个技能上 **0 命中**"
+                       "（再次印证单点正则检测在真实国际基准语料上完全失灵），"
+                       "该技能是由**能力原子通道**筛出的唯一 1 个（0.15%，CONTROL 能力），"
                        "AI 意图分诊独立判为 MALICIOUS，证据行号当场可核验。"
                        "这等于用华东师大的基准，独立复现了该基准的核心设计意图。",
         },
@@ -297,17 +304,27 @@ def main():
     A(f"- 来源：{e4b['source']}")
     A(f"- 论文：{e4b['paper']}")
     A(f"- 规模：{e4b['n_cases']} 个组合 case / {e4b['n_skills']} 个技能")
-    A(f"- 规则层有信号的技能：**{e4b['rule_signal_skills']} 个"
-      f"（{e4b['rule_signal_ratio']}）**")
+    A(f"- **32 条规则快筛命中（findings > 0）的技能：{e4b['rule_hit_skills']} 个**")
+    A(f"- **能力原子通道筛出可疑技能：{e4b['cap_signal_skills']} 个"
+      f"（{e4b['cap_signal_ratio']}）**")
+    A(f"- 需 AI 分诊的技能：{e4b['need_ai_triage']} 个")
     A(f"- 组合判定结果：**成链 {e4b['n_chains']} 条**，"
       f"即 {e4b['false_alarms_on_benign_compositions']} 误报")
     A(f"- 本次实际 API 调用：**{e4b['api_calls']} 次**"
-      f"（规则降级为初筛的直接收益）")
+      f"（{e4b.get('api_calls_note', '')}）")
+    A("")
+    A("> 🔴 **归属口径**：那 1 个可疑技能是**能力原子通道**筛出的，**不是 32 条规则筛出的**")
+    A("> ——规则层在 651 个技能上 **0 命中**。写成「规则层精确筛出 1 个」是错的，")
+    A("> 且会被 `samples/bench_scr_bench.py`（输出「规则命中总数 0 处」）当场打脸。")
+    A("> 正确叙事更强：**规则快筛 0 命中（印证单点正则完全失灵）→ 能力原子通道收窄"
+      "→ AI 语义定性 → 组合判定在证据不足时不硬凑链路。**")
     A("")
     A("### 一个独立发现")
     A("")
     f = e4b["independent_finding"]
-    A(f"在 651 个技能中，规则层只触发了 **{f['case']}** 这一个，")
+    A(f"**32 条规则快筛在 651 个技能上 0 命中**（再次印证单点正则检测在真实国际基准"
+      f"语料上完全失灵）；")
+    A(f"由**能力原子通道**筛出唯一 1 个可疑技能 —— `{f['case']}`，")
     A(f"AI 意图分诊独立判定为 **{f['our_verdict']}**，理由：{f['our_reason']}")
     A("")
     A("证据行号当场可核验：")
