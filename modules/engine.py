@@ -195,6 +195,10 @@ class ScanEngine:
             # 查询失败次数：只有它为 0，"零漏洞"这个结论才可信
             "query_errors": stats.get("query_errors", {}),
             "query_error_total": sum(stats.get("query_errors", {}).values()),
+            # 超出每包外部查询上限、未做 NVD/EPSS 交叉验证的条目数
+            # （漏洞本身仍在结果里，只是分数取自 OSV 单源）
+            "external_truncated": stats.get("external_truncated", 0),
+            "lookup_budget": stats.get("lookup_budget_per_package", 0),
             "total_vulnerabilities": total_vulns,
             "critical_count": critical,
             "high_confidence_count": high_confidence,

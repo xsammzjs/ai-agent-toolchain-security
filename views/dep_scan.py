@@ -159,6 +159,19 @@ def render_results():
             f"失败的依赖**未被判定为安全**，漏洞数量可能偏低，请检查网络后重新扫描。"
         )
 
+    # 部分条目未做交叉验证的披露
+    # 一个依赖包可能命中上百条漏洞，逐条查 NVD/EPSS 会让扫描拖到十几分钟。
+    # 现在每个包只对最严重的 N 条做外部核对，其余直接用 OSV 分数 ——
+    # 漏洞一条不少，但要如实说明哪些是单源结论。
+    _trunc = summary.get("external_truncated", 0)
+    if _trunc:
+        st.info(
+            f"ℹ️ 有 **{_trunc} 条漏洞**未做 NVD/EPSS 交叉验证"
+            f"（每个依赖最多核对最严重的 {summary.get('lookup_budget', 8)} 条，"
+            f"避免扫描时间过长）。这些条目**仍然完整列出**，"
+            f"分数取自 OSV 单源，置信度可能低于已核对条目。"
+        )
+
     # 检测覆盖度披露（原实现静默丢弃部分依赖，用户完全看不到，属于隐性漏检）
     if summary.get("skipped_count"):
         with st.expander(

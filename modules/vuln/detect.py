@@ -9,6 +9,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from modules.vuln.common import (_notify, query_errors, cvss_to_risk_level,
                                  severity_str_to_score, nvd_url, github_advisory_url)
+from config import config
 from modules.vuln.sources import (query_osv, query_nvd, query_github, query_epss,
                                   extract_ids_from_osv)
 from modules.vuln.rating import evaluate_confidence, calculate_fix_priority
@@ -93,6 +94,24 @@ def detect_vulnerabilities(dep_list: list[dict], parser_module=None,
         if not osv_vulns:
             continue
 
+        # 🔴 先按 OSV 自报的 CVSS 从高到低排序，再决定给谁做外部交叉验证。
+        #    原因：一个依赖包可能命中上百条漏洞，逐条去 NVD/EPSS/GitHub 查，
+        #    每条几秒 → 整体几分钟到十几分钟，界面表现就是「进度条卡住不动」。
+        #    排序后只对【最严重的 N 条】做外部查询（config.MAX_LOOKUPS_PER_PACKAGE），
+        #    其余条目仍然完整列进结果，只是直接采用 OSV 分数、不做交叉验证，
+        #    并在记录里标 external_verified=False 让界面可以说清。
+        osv_vulns = sorted(osv_vulns, key=lambda v: -_extract_osv_score(v)[0])
+        lookup_budget = config.MAX_LOOKUPS_PER_PACKAGE
+        lookups_used = 0
+
+        # 命中条数超过预算时明说一声，避免用户以为「后面的漏洞被吞了」
+        if len(osv_vulns) > lookup_budget:
+            _notify(progress_cb,
+                    f"{pkg} 命中 {len(osv_vulns)} 条漏洞，"
+                    f"只对最严重的 {lookup_budget} 条做 NVD/EPSS 交叉验证，"
+                    f"其余 {len(osv_vulns) - lookup_budget} 条直接采用 OSV 分数",
+                    percent=15 + int(dep_idx / max(len(dep_list), 1) * 75))
+
         # 依赖内进度：一个依赖可能查出几十条漏洞，逐条 NVD/GitHub/EPSS 查询很耗时，
         # 百分比在依赖粒度基础上按漏洞条目再细分，避免进度条长时间卡住不动
         dep_span = 75 / max(len(dep_list), 1)
@@ -114,18 +133,29 @@ def detect_vulnerabilities(dep_list: list[dict], parser_module=None,
             score_source_parts = ["OSV"] if osv_score > 0 else []
             has_exact = (osv_score > 0)
 
+            # lookups_used 是本包已用掉的外部查询名额。
+            # 超预算后不再请求 NVD / GitHub / EPSS，直接用 OSV 的分数 ——
+            # 漏洞本身不丢，只是少一道交叉验证（记录里会标 external_verified=False）。
+            external_ok = lookups_used < lookup_budget
+
             # ===== Step 2: NVD 交叉验证 =====
             nvd_data = {}
-            if cve_id and use_nvd:
-                _notify(progress_cb, f"正在交叉验证 NVD：{cve_id}", percent=item_pct)
+            if cve_id and use_nvd and external_ok:
+                _notify(progress_cb,
+                        f"正在交叉验证 NVD：{cve_id}"
+                        f"（本包外部查询 {lookups_used + 1}/{lookup_budget}）",
+                        percent=item_pct)
                 nvd_data = query_nvd(cve_id)
                 if nvd_data["cvss_score"] > 0:
                     score_source_parts.append("NVD")
 
             # ===== Step 3: GitHub Advisory =====
             gh_data = {}
-            if ghsa_id:
-                _notify(progress_cb, f"正在查询 GitHub Advisory：{ghsa_id}", percent=item_pct)
+            if ghsa_id and external_ok:
+                _notify(progress_cb,
+                        f"正在查询 GitHub Advisory：{ghsa_id}"
+                        f"（本包外部查询 {lookups_used + 1}/{lookup_budget}）",
+                        percent=item_pct)
                 gh_data = query_github(ghsa_id)
                 if gh_data["cvss_score"] > 0:
                     score_source_parts.append("GitHub")
@@ -178,11 +208,15 @@ def detect_vulnerabilities(dep_list: list[dict], parser_module=None,
 
             # ===== Step 9: EPSS =====
             epss_data = {}
-            if cve_id and final_score > 0 and do_epss:
+            if cve_id and final_score > 0 and do_epss and external_ok:
                 _notify(progress_cb, f"正在查询 EPSS 利用概率：{cve_id}", percent=item_pct)
                 epss_data = query_epss(cve_id)
             if not epss_data:
                 epss_data = {"epss_score": 0.0, "percentile": 0.0, "is_actively_exploited": False}
+
+            # 本条已走完全部外部查询，占用一个名额（超预算的条目不占）
+            if external_ok:
+                lookups_used += 1
 
             # ===== Step 10: 修复优先级 =====
             fix_priority = calculate_fix_priority(final_score, epss_data.get("epss_score", 0), confidence["level"])
@@ -243,6 +277,10 @@ def detect_vulnerabilities(dep_list: list[dict], parser_module=None,
                 "cwe_id": nvd_data.get("cwe_id", "") or gh_data.get("cwe_id", ""),
                 "vuln_source": score_source_str or "OSV",
                 "divergent": divergent,
+                # 本条是否做过外部交叉验证（NVD / GitHub / EPSS）。
+                # False = 超出每包上限（config.MAX_LOOKUPS_PER_PACKAGE），
+                # 分数直接取自 OSV，未做多源核对，界面上应如实标注。
+                "external_verified": external_ok,
             }
 
             vulns_result.append(vuln_record)
@@ -262,6 +300,10 @@ def detect_vulnerabilities(dep_list: list[dict], parser_module=None,
             1 for v in vulns_result if v.get("version_basis") == "lower_bound")
         # 查询失败次数：为 0 才说明"零漏洞"是可信的
         stats["query_errors"] = query_errors()
+        # 超出每包上限、未做外部交叉验证的条目数（界面据此提示"部分条目仅 OSV 单源"）
+        stats["external_truncated"] = sum(
+            1 for v in vulns_result if not v.get("external_verified", True))
+        stats["lookup_budget_per_package"] = config.MAX_LOOKUPS_PER_PACKAGE
 
     return vulns_result
 
@@ -361,5 +403,11 @@ def detect_vulnerabilities_concurrent(dep_list: list[dict], parser_module=None,
         stats["skipped_deps"] = skipped_all
         # 查询失败统计从全局取（四源共享的模块级计数器）
         stats["query_errors"] = query_errors()
+        # 超出每包上限、未做外部交叉验证的条目数。
+        # 串行版在 detect_vulnerabilities 内部自己算；并发版内部传的是 stats=None，
+        # 所以这里按合并后的结果统一统计一次。
+        stats["external_truncated"] = sum(
+            1 for v in merged if not v.get("external_verified", True))
+        stats["lookup_budget_per_package"] = config.MAX_LOOKUPS_PER_PACKAGE
 
     return merged

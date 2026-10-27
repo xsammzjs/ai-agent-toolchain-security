@@ -6,6 +6,7 @@
 import os
 import sys
 import time
+import threading
 import warnings
 
 import requests
@@ -16,6 +17,77 @@ from config import config
 from modules.vuln.common import (_cache_get, _cache_set, _notify, _record_error,
                                  query_errors, cvss_to_risk_level,
                                  severity_str_to_score, nvd_url, github_advisory_url)
+
+
+def _call_with_timeout(fn, timeout: float, *args, **kwargs):
+    """在守护线程里执行 fn，超过 timeout 秒就放弃等待。
+
+    为什么需要它：nvdlib.searchCVE() **不接受 timeout 参数**，
+    config.NVD_TIMEOUT 对它完全无效。NVD 服务端慢或网络抖动时，
+    这个调用会一直挂着 —— 界面进度条停在原地，看起来就是「卡死」。
+
+    返回 (结果, 是否超时)。超时返回 (None, True)，结果异常返回 (None, False)。
+    超时后那个线程仍在后台跑（daemon，不阻塞进程退出），但我们不再等它。
+    """
+    box = {"value": None, "error": None}
+
+    def _worker():
+        try:
+            box["value"] = fn(*args, **kwargs)
+        except BaseException as exc:      # 捕获一切，避免线程静默死掉
+            box["error"] = exc
+
+    th = threading.Thread(target=_worker, daemon=True)
+    th.start()
+    th.join(timeout)
+    if th.is_alive():
+        return None, True
+    if box["error"] is not None:
+        raise box["error"]
+    return box["value"], False
+
+
+class _Breaker:
+    """连续失败熔断器：某个外部源连续失败若干次后，冷却期内直接短路。
+
+    为什么需要：NVD / EPSS 只要有一家不可用，每条漏洞都要白等一个完整超时
+    （NVD 10 秒、EPSS 8 秒）。一个包 8 条就是 60-80 秒，界面看起来又是「卡死」。
+    熔断后只损失前几次的超时，其余立刻跳过，并在 query_errors 里如实记录，
+    界面据此提示「本次扫描有多少次查询失败」—— 不静默吞掉。
+    """
+
+    def __init__(self, name: str, threshold: int, cooldown: float):
+        self.name = name
+        self.threshold = threshold
+        self.cooldown = cooldown
+        self.fails = 0
+        self.open_until = 0.0
+
+    def is_open(self) -> bool:
+        return time.time() < self.open_until
+
+    def ok(self) -> None:
+        self.fails = 0
+
+    def fail(self) -> None:
+        self.fails += 1
+        if self.fails >= self.threshold:
+            self.open_until = time.time() + self.cooldown
+
+    def reset(self) -> None:
+        self.fails = 0
+        self.open_until = 0.0
+
+
+_NVD_BREAKER = _Breaker("nvd", config.LOOKUP_BREAKER_THRESHOLD,
+                        config.LOOKUP_BREAKER_COOLDOWN)
+_EPSS_BREAKER = _Breaker("epss", config.LOOKUP_BREAKER_THRESHOLD,
+                         config.LOOKUP_BREAKER_COOLDOWN)
+
+_EMPTY_NVD = {"cvss_score": 0.0, "severity": "", "vector": "",
+              "description": "", "cwe_id": "", "source": "NVD"}
+_EMPTY_EPSS = {"epss_score": 0.0, "percentile": 0.0,
+               "is_actively_exploited": False}
 
 def query_osv(package_name: str, version: str, ecosystem: str = "PyPI") -> list[dict]:
     """
@@ -88,6 +160,10 @@ def query_nvd(cve_id: str) -> dict:
 
 
 def _query_nvd_uncached(cve_id: str) -> dict:
+    # 熔断中：该源最近连续失败，直接短路，不再白等一个超时
+    if _NVD_BREAKER.is_open():
+        _record_error("nvd")
+        return dict(_EMPTY_NVD)
     try:
         import nvdlib
         # 新版 nvdlib：传 delay 参数必须同时提供 API key
@@ -96,7 +172,19 @@ def _query_nvd_uncached(cve_id: str) -> dict:
         if config.NVD_API_KEY:
             kwargs["key"] = config.NVD_API_KEY
             kwargs["delay"] = 0.7
-        results = nvdlib.searchCVE(**kwargs)
+        # nvdlib.searchCVE 不接受 timeout 参数 —— config.NVD_TIMEOUT 对它无效。
+        # NVD 慢或网络抖动时该调用会长时间挂起，界面就「卡在 95% 不动」。
+        # 这里用守护线程兜底：超过 NVD_TIMEOUT 秒就放弃等待，当作没查到，
+        # 该 CVE 仍会保留在结果里（用 OSV 的分数），只是少了 NVD 的交叉验证。
+        results, timed_out = _call_with_timeout(
+            nvdlib.searchCVE, config.NVD_TIMEOUT, **kwargs)
+        if timed_out:
+            _NVD_BREAKER.fail()
+            _record_error("nvd")
+            return {"cvss_score": 0.0, "severity": "", "vector": "",
+                    "description": "", "cwe_id": "", "source": "NVD",
+                    "timed_out": True}
+        _NVD_BREAKER.ok()
         if results:
             cve = results[0]
             score = 0.0
@@ -145,9 +233,10 @@ def _query_nvd_uncached(cve_id: str) -> dict:
                     "source": "NVD"
                 }
     except Exception:
+        _NVD_BREAKER.fail()
         _record_error("nvd")
 
-    return {"cvss_score": 0.0, "severity": "", "vector": "", "description": "", "cwe_id": "", "source": "NVD"}
+    return dict(_EMPTY_NVD)
 
 
 # ==========================================
@@ -252,10 +341,15 @@ def query_epss(cve_id: str) -> dict:
 
 
 def _query_epss_uncached(cve_id: str) -> dict:
+    # 熔断中：EPSS 服务最近连续失败，直接短路（EPSS 只是补充信息，缺了不影响判定）
+    if _EPSS_BREAKER.is_open():
+        _record_error("epss")
+        return dict(_EMPTY_EPSS)
     try:
         epss_url = f"{config.EPSS_API}?cve={cve_id}"
         resp = requests.get(epss_url, timeout=config.EPSS_TIMEOUT)
         if resp.status_code == 200:
+            _EPSS_BREAKER.ok()
             data = resp.json()
             items = data.get("data", [])
             if items:
@@ -267,8 +361,9 @@ def _query_epss_uncached(cve_id: str) -> dict:
                     "is_actively_exploited": epss_score > config.EPSS_ALERT
                 }
     except Exception:
+        _EPSS_BREAKER.fail()
         _record_error("epss")
-    return {"epss_score": 0.0, "percentile": 0.0, "is_actively_exploited": False}
+    return dict(_EMPTY_EPSS)
 
 
 # ==========================================

@@ -44,6 +44,21 @@ class Config:
     EPSS_TIMEOUT = 8
     PYPI_TIMEOUT = 8
 
+    # ========== 外部查询数量上限（防卡死）==========
+    # 一个依赖包可能命中上百条漏洞，逐条去 NVD/EPSS/GitHub 查会非常慢：
+    # 每条 NVD 约 1-2 秒（无 key 更慢），100 条就是几分钟，界面看起来像「卡死」。
+    # 因此每个包只对【最严重的 N 条】做外部交叉验证，其余条目：
+    #   - 仍会出现在结果里（不丢数据）
+    #   - 直接使用 OSV 自带的 CVSS 分数
+    #   - 标记 external_verified=False，界面可明示「未做 NVD 交叉验证」
+    # 想返回更完整的结果就把它调大（代价是扫描变慢）。
+    MAX_LOOKUPS_PER_PACKAGE = 8
+
+    # 外部源连续失败几次就熔断（该源暂时跳过，不每条都等满超时）
+    LOOKUP_BREAKER_THRESHOLD = 3
+    # 熔断冷却时间（秒）：到点后自动重试该源
+    LOOKUP_BREAKER_COOLDOWN = 120
+
     # ========== 间接依赖推断（v3.1 新增）==========
     MAX_TRANSITIVE_DEPS = 150     # 一层间接依赖收集上限，超出截断
     PYPI_REQUEST_INTERVAL = 0.3   # PyPI 请求间隔（秒），防限流
