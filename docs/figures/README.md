@@ -107,27 +107,40 @@
 
 ```python
 import os
+import tempfile
 from playwright.sync_api import sync_playwright
+
+# ⚠️ 产物一律写进**临时目录**，别写仓库根 —— 否则照抄这段会在仓库里
+#    留下未跟踪的 tmp.html / out.png，与本节「产物不进仓库」自相矛盾。
+_OUT = os.path.join(tempfile.gettempdir(), "svg_check")
+os.makedirs(_OUT, exist_ok=True)
+
+SVG = "docs/figures/04_扫描流程图.svg"
 HTML = ("<!doctype html><html><head><meta charset='utf-8'>"
         "<style>html,body{margin:0;padding:0;background:#fff}</style></head>"
-        "<body>" + open("docs/figures/04_扫描流程图.svg", encoding="utf-8").read() +
+        "<body>" + open(SVG, encoding="utf-8").read() +
         "</body></html>")
-open("tmp.html", "w", encoding="utf-8").write(HTML)
+_html = os.path.join(_OUT, "tmp.html")
+open(_html, "w", encoding="utf-8").write(HTML)
 with sync_playwright() as p:
     b = p.chromium.launch(channel="msedge", headless=True)
     pg = b.new_page(viewport={"width": 1000, "height": 560}, device_scale_factor=2)
-    pg.goto("file:///" + os.path.abspath("tmp.html").replace("\\", "/"))
+    pg.goto("file:///" + os.path.abspath(_html).replace("\\", "/"))
     pg.wait_for_timeout(600)
-    pg.screenshot(path="out.png", clip={"x": 0, "y": 0, "width": 1000, "height": 512})
+    png = os.path.join(_OUT, "out.png")
+    pg.screenshot(path=png, clip={"x": 0, "y": 0, "width": 1000, "height": 512})
     b.close()
+print("渲染完成 →", png)      # 产物在系统临时目录，仓库保持干净
 ```
 
-> ⚠️ **两个坑**（2026-10-28 实测踩过）：
+> ⚠️ **三个坑**（2026-10-28 实测踩过）：
 > 1. **别直接 `file://` 打开 `.svg` 截图** —— Playwright 的 `full_page` 截图会卡在
 >    `waiting for fonts to load` 直到 30s 超时。**把 SVG 内联进一个 HTML 壳**（如上）
 >    就稳定了。
 > 2. `full_page=True` 对裸 SVG 不可靠，用 `clip={"x","y","width","height"}` 显式框，
 >    局部放大也靠 `clip`（配合 `device_scale_factor=2` 能看清 2px 的线）。
+> 3. **产物写临时目录**（`tempfile.gettempdir()`），别写仓库根 —— 否则照抄会在
+>    `git status` 里冒出 `?? tmp.html` / `?? out.png`。
 >
 > 渲染产物放临时目录，**不要进仓库**。
 
