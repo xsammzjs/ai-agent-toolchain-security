@@ -9,6 +9,8 @@ SVG_NS = "{http://www.w3.org/2000/svg}"
 MARKER_EXT = 4.0
 # 连线被后画矩形遮住 ≥ 这个比例就算「视觉上消失」
 OCCLUSION_THRESHOLD = 0.90
+# 锚点落在框右侧这个比例以内 → 视为「贴在框右边距上的标注」，不按越框处理
+ANNOTATION_MARGIN = 0.15
 FIGS = [
     # 现行口径图（对外材料用）
     "docs/figures/05_三段式流水线架构图.svg",
@@ -114,15 +116,44 @@ def check(path: str) -> bool:
                     best = (area, rx, ry, rw, rh, fill)
         # 未找到容纳矩形时，退而检查是否与某个矩形明显相交
         if best is None:
+            over = 0.0          # 🔴 2026-10-28：必须先初始化。
+            #    这行原本被误 dedent 到了内层 if 之外（b0cd0bc 里是正确的嵌套），
+            #    于是当**没有任何矩形包含该文本锚点**（= 文本冲出画布）时，
+            #    `over` 从未被赋值 → UnboundLocalError 崩溃。
+            #    守卫的价值恰恰在于「图坏掉时能报警」，在自己最该响的时候
+            #    崩给人家看，比不检查还糟。QA 与 team-lead 各复现了一次。
             for rx, ry, rw, rh, fill in rects:
                 if rx <= x0 < rx + rw and ry <= ty < ry + rh:
                     over = max(0.0, (x1 - (rx + rw)))
-                if over > 1.0:
-                    problems.append(
-                        f"文本疑似溢出矩形: {content!r} 右溢出 {over:.1f}px "
-                        f"(rect x={rx} w={rw}, 文本 x=[{x0:.1f},{x1:.1f}])"
-                    )
+                    if over > 1.0:
+                        problems.append(
+                            f"文本疑似溢出矩形: {content!r} 右溢出 {over:.1f}px "
+                            f"(rect x={rx} w={rw}, 文本 x=[{x0:.1f},{x1:.1f}])"
+                        )
                     break
+
+        # 3) 是否越过「逻辑所在框」的右边线（2026-10-28 新增）
+        #    【为什么需要这一项】上面第 2 项在结构上**抓不到**「正文越过框边线」：
+        #    背景整幅画布被当作候选容器，任何**画布内**的文本都能被它「包含」，
+        #    于是 best 永远不是 None，第 2 项的兜底分支根本不会走。
+        #    结果就是：正文文本冲出自己那个框、被右边线穿过，守卫一声不吭。
+        #    （04_扫描流程图 的 ③ 框就出现过这种情形。）
+        #    这里改用「锚点落在哪个最小非背景框里」来定位文本的**逻辑所在框**，
+        #    再看它的右端有没有越过该框的右边线。
+        #    【边注标注的豁免】锚点位于框右侧 15% 内的文本视为「贴在框右边距上的
+        #    标注」（如 04 图里 x=660 的灰色代码引用标注 engine._prepare_files() 等，
+        #    它们本来就设计成跨在框线上），不按溢出处理；正文（锚点在框左侧）
+        #    越过右边线则一律报错。
+        logical = _logical_box(rects, tx, ty)
+        if logical is not None:
+            lx, ly, lw, lh = logical
+            margin_zone = lx + lw * (1.0 - ANNOTATION_MARGIN)
+            if tx <= margin_zone and x1 > lx + lw + 1.0:
+                problems.append(
+                    f"文本越过所在框的右边线: {content!r} 右端 {x1:.1f} 越过 "
+                    f"{lx + lw:.1f} 达 {x1 - (lx + lw):.1f}px "
+                    f"(框 x=[{lx:.1f},{lx + lw:.1f}] y=[{ly:.1f},{ly + lh:.1f}])"
+                )
 
     problems.extend(check_occlusion(root, vb))
     if problems:
@@ -131,8 +162,22 @@ def check(path: str) -> bool:
         for p in problems:
             print("  - " + p)
     else:
-        print("检查通过：无 text 越界 / 无文本溢出 / 无连线被遮挡")
+        print("检查通过：无 text 越界 / 无文本溢出 / 无文字越框 / 无连线被遮挡")
     return ok
+
+
+def _logical_box(rects, tx, ty):
+    """找出锚点 (tx, ty) 落在的**最小非背景矩形**（文本的逻辑所在框）。
+
+    背景（fill == "#bg"，即整幅画布）不参与：任何画布内的锚点都会落进背景，
+    那样就分不出文本「属于哪个框」了。找不到就是不属于任何框，返回 None。
+    """
+    cands = [r for r in rects
+             if r[4] != "#bg" and r[0] <= tx < r[0] + r[2] and r[1] <= ty < r[1] + r[3]]
+    if not cands:
+        return None
+    b = min(cands, key=lambda r: r[2] * r[3])
+    return (b[0], b[1], b[2], b[3])
 
 
 def check_occlusion(root, vb) -> list:
@@ -188,8 +233,29 @@ def check_occlusion(root, vb) -> list:
 
 
 if __name__ == "__main__":
-    all_ok = True
+    # 🔴 2026-10-28：每张图**独立** try/except。
+    #    原来写的是 `all_ok = check(f) and all_ok` —— check(f) 一旦抛异常，
+    #    整个 for 循环中断，**后面的图一张都不会被检查**。
+    #    FIGS 顺序是 [05,06,01,02,03,04]，04 在最后所以暂时没掩盖别的图；
+    #    但 05/06 一旦出同类崩溃，01~04 就完全失去检查。
+    #    现在某张图抛异常 → 记为该图 FAIL → 打印清楚是哪张图、什么异常 →
+    #    继续检查下一张；所有图跑完后统一汇总。
+    results = []
+    all_ok = True          # 先初始化，避免 `and` 短路时未绑定（NameError）
     for f in FIGS:
-        all_ok = check(f) and all_ok
+        try:
+            ok = check(f)
+        except Exception as e:                       # noqa: BLE001
+            ok = False
+            print(f"\n=== {f} ===")
+            print(f"  ❌ 检查过程中抛出异常：{type(e).__name__}: {e}")
+            print("  （该图判定为 FAIL，继续检查后面的图）")
+        results.append((f, ok))
+        all_ok = all_ok and ok
+
+    print("\n" + "=" * 76)
+    print("逐图结果：")
+    for f, ok in results:
+        print(f"  [{'PASS' if ok else 'FAIL'}] {f}")
     print("\nRESULT:", "PASS" if all_ok else "FAIL")
     sys.exit(0 if all_ok else 1)

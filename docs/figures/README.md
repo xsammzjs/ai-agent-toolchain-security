@@ -81,5 +81,45 @@
 
 | 文件 | 说明 |
 |---|---|
-| `../../qa/check_svg_overflow.py` | SVG 自检脚本（检查 **01~06 全部 6 张图**）：① text 是否超出 viewBox ② text 是否溢出所在矩形 ③ **连线是否被后画的不透明矩形盖住而消失**。2026-10-28 起把 01~04 存档图也纳入（它们带了存档水印），并补了第③项——起因是 04 图曾因挪盒子而把 ⑤→⑥ 的连接箭头整段盖住，脚本当时报 PASS 却漏了。改图后跑一次：`.venv/Scripts/python.exe qa/check_svg_overflow.py`，通过时输出 `RESULT: PASS` |
+| `../../qa/check_svg_overflow.py` | SVG 自检脚本（检查 **01~06 全部 6 张图**）：① text 是否超出 viewBox ② text 是否溢出所在矩形 ③ **文字是否越过所在框的右边线**（正文越框会被边框线穿过，2026-10-28 补）④ **连线是否被后画的不透明矩形盖住而消失**。2026-10-28 起把 01~04 存档图也纳入（它们带了存档水印），并补了第③④项——起因是 04 图曾因挪盒子而把 ⑤→⑥ 的连接箭头整段盖住、以及正文越框，脚本当时都报 PASS 却漏了。改图后跑一次：`.venv/Scripts/python.exe qa/check_svg_overflow.py`，通过时输出 `RESULT: PASS` |
 | `codearts/` | CodeArts 审计过程相关素材（`放这里.md`），非配图 |
+
+---
+
+## 五、改图后怎么自检（脚本查不出来的，得靠眼睛）
+
+脚本能查几何（越界 / 溢出 / 越框 / 遮挡），但**查不出「看起来是不是做坏了」**。
+比如 2026-10-28 那次：脚本一路报 `RESULT: PASS`，实渲染一看 04 图的 ⑤→⑥ 箭头
+被盒子整个盖住了 —— 这种事只有看图才发现。
+
+**渲染方式**（Playwright + headless Edge，仓库已装 playwright）：
+
+```python
+import os
+from playwright.sync_api import sync_playwright
+HTML = ("<!doctype html><html><head><meta charset='utf-8'>"
+        "<style>html,body{margin:0;padding:0;background:#fff}</style></head>"
+        "<body>" + open("docs/figures/04_扫描流程图.svg", encoding="utf-8").read() +
+        "</body></html>")
+open("tmp.html", "w", encoding="utf-8").write(HTML)
+with sync_playwright() as p:
+    b = p.chromium.launch(channel="msedge", headless=True)
+    pg = b.new_page(viewport={"width": 1000, "height": 560}, device_scale_factor=2)
+    pg.goto("file:///" + os.path.abspath("tmp.html").replace("\\", "/"))
+    pg.wait_for_timeout(600)
+    pg.screenshot(path="out.png", clip={"x": 0, "y": 0, "width": 1000, "height": 512})
+    b.close()
+```
+
+> ⚠️ **两个坑**（2026-10-28 实测踩过）：
+> 1. **别直接 `file://` 打开 `.svg` 截图** —— Playwright 的 `full_page` 截图会卡在
+>    `waiting for fonts to load` 直到 30s 超时。**把 SVG 内联进一个 HTML 壳**（如上）
+>    就稳定了。
+> 2. `full_page=True` 对裸 SVG 不可靠，用 `clip={"x","y","width","height"}` 显式框，
+>    局部放大也靠 `clip`（配合 `device_scale_factor=2` 能看清 2px 的线）。
+>
+> 渲染产物放临时目录，**不要进仓库**。
+
+**建议的目视清单**：① 连线/箭头是否都在、② 每个框是否完整没被裁、③ 正文有没有
+越过框的边线、④ 标题与正文有没有互相压字、⑤ 水印在不在画布内且不压图形。
+
