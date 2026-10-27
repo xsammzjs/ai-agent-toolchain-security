@@ -81,5 +81,5 @@
 
 | 文件 | 说明 |
 |---|---|
-| `../../qa/check_svg_overflow.py` | SVG 文本溢出自检脚本（检查 **01~06 全部 6 张图**的文字有没有跑出画布——2026-10-28 起把 01~04 存档图也纳入，因为它们带了存档水印）。改图后跑一次：`.venv/Scripts/python.exe qa/check_svg_overflow.py`，通过时输出 `RESULT: PASS` |
+| `../../qa/check_svg_overflow.py` | SVG 自检脚本（检查 **01~06 全部 6 张图**）：① text 是否超出 viewBox ② text 是否溢出所在矩形 ③ **连线是否被后画的不透明矩形盖住而消失**。2026-10-28 起把 01~04 存档图也纳入（它们带了存档水印），并补了第③项——起因是 04 图曾因挪盒子而把 ⑤→⑥ 的连接箭头整段盖住，脚本当时报 PASS 却漏了。改图后跑一次：`.venv/Scripts/python.exe qa/check_svg_overflow.py`，通过时输出 `RESULT: PASS` |
 | `codearts/` | CodeArts 审计过程相关素材（`放这里.md`），非配图 |
