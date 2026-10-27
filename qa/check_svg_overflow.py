@@ -77,6 +77,49 @@ _CHAR_WIDTH = {
     "punct": 0.3885,
 }
 
+# East Asian **Ambiguous**（'A'）字符在 CJK 字体里**逐字符**的实测宽度。
+#
+# 【为什么不能按「Ambiguous 一律 1.0」处理】
+# Unicode 把这类字符定为「歧义宽度」：拉丁字体里按窄、CJK 字体里按宽。
+# 本项目的 font-family 首位是 Microsoft YaHei（`"Microsoft YaHei, SimHei, sans-serif"`），
+# 但**YaHei 并不是所有 Ambiguous 字符都按全角给字形** —— 实测：
+#   `·`  = 0.24em（窄！）  `→` = 1.00em（宽）  `—` = 1.08em  `①` = 1.00em
+#   `±`/`×`/`≥` = 0.74em   `•` = 0.44em  `–` = 0.54em  `↑`/`↓` = 0.50em
+# 若一律取 1.0，`·`（6 张图里 89 次）会被高估 0.76em/字 —— 比修之前更糟。
+# 所以这里用**逐字符实测表**：表里没有的 Ambiguous 字符按 CJK 惯例取 1.0。
+#
+# 【这张表解决的真实问题】
+# 2026-10-28 之前所有 Ambiguous 字符一律按 punct 0.3885em 算，导致：
+#   · `→` 每字低估 0.61em —— 04 图「OSV → NVD → GitHub → EPSS　线程池并发（实测
+#     5.75×加速）」那行累计低估 18.3px（误差带 18.6px），是全库唯一
+#     安全系数 < 1.5 的临界样本（QA 用浏览器真实度量全库扫描定位到的）
+#   · `①`–`⑥`（Python 的 str.isdigit() 对它们返回 True）每字低估 0.42em
+#   · U+FE0F 变体选择符真实宽度是 0，每字高估 0.39em
+# 实测修正后那行误差从 18.6px（-6.2%）降到 0.3px（-0.1%）。
+#
+# 【怎么扩充】用 headless Edge 量一个字符的真实宽度：
+#   <span style="font-family:'Microsoft YaHei',SimHei,sans-serif;font-size:100px">X</span>
+#   → getBoundingClientRect().width / 100 即 em 倍数
+_AMBIGUOUS_WIDTH = {
+    "·": 0.2408,   # MIDDLE DOT
+    "•": 0.4395,   # BULLET
+    "–": 0.5402,   # EN DASH
+    "↑": 0.5000,   # UPWARDS ARROW
+    "↓": 0.5000,   # DOWNWARDS ARROW
+    "±": 0.7417,   # PLUS-MINUS SIGN
+    "×": 0.7417,   # MULTIPLICATION SIGN
+    "≥": 0.7417,   # GREATER-THAN OR EQUAL TO
+    "→": 1.0000,   # RIGHTWARDS ARROW
+    "—": 1.0802,   # EM DASH
+    "①": 1.0000,   # CIRCLED DIGIT ONE
+    "②": 1.0000,   # CIRCLED DIGIT TWO
+    "③": 1.0000,   # CIRCLED DIGIT THREE
+    "④": 1.0000,   # CIRCLED DIGIT FOUR
+    "⑤": 1.0000,   # CIRCLED DIGIT FIVE
+    "⑥": 1.0000,   # CIRCLED DIGIT SIX
+    "️": 0.0000,   # VARIATION SELECTOR-16（零宽组合符）
+}
+
 
 def _char_class(ch: str) -> str:
     """把字符分到 6 类宽度系数里。"""
@@ -98,7 +141,12 @@ def char_width(ch: str) -> float:
 
     系数由 headless Edge 的 getComputedTextLength() 对 6 张图全部 280 条
     text 实测后最小二乘标定（相对误差 平均 3.3% / 最大 24.9%）。
+
+    East Asian Ambiguous（'A'）字符**逐字符**查 _AMBIGUOUS_WIDTH 实测表
+    （同一个字体里它们有的宽、有的窄，见该表的说明）；表里没有的取 1.0。
     """
+    if unicodedata.east_asian_width(ch) == "A":
+        return _AMBIGUOUS_WIDTH.get(ch, 1.0)
     return _CHAR_WIDTH[_char_class(ch)]
 
 
@@ -174,7 +222,11 @@ def check_out_of_box(texts, rects) -> list:
     那个框的边线 → 报。锚点不落在任何框里的文字（05/06 那种故意放在框外的
     支线说明、图例）不属于任何框，不按越框处理。
 
-    ⚠️ 背景整幅画布**不参与**归属判定。它只参与 ① 的 viewBox 检查。
+    ⚠️ 「不参与归属判定」指的是**本脚本合成的**那一项（check() 里把整幅画布
+    额外加进候选、fill 标成 "#bg"）；**SVG 自己那块整幅背景 rect
+    （fill="#f8fafc" 等）仍然参与归属判定** —— 详见 _logical_box 的 docstring
+    （那里写清了由此产生的两个后果：合法的框外文字归属到画布、以及 ② 对
+    画布留白处的文字退化成 ①）。
     （早期版本把背景也当候选容器，于是任何画布内的文字都能被它「包含」，
       越框检测形同虚设 —— 这正是 04 图那批文字缺陷长期存活的原因。）
     """
