@@ -43,9 +43,9 @@
       "ecosystem": "PyPI"
     }
   ],
-  "serial_seconds": 294.8,
-  "concurrent_seconds": 63.65,
-  "speedup": 4.63,
+  "serial_seconds": 315.69,
+  "concurrent_seconds": 58.25,
+  "speedup": 5.42,
   "vulns_identical": true,
   "n_vulns_serial": 165,
   "n_vulns_concurrent": 165,
@@ -64,8 +64,15 @@
       "speedup": 4.45,
       "n_vulns": 165,
       "vulns_identical": true
+    },
+    {
+      "serial_seconds": 315.69,
+      "concurrent_seconds": 58.25,
+      "speedup": 5.42,
+      "n_vulns": 165,
+      "vulns_identical": true
     }
   ],
-  "speedup_range": "4.45~4.63",
-  "speedup_range_note": "3 次实测的加速比区间（含本文件 latest 一次）；单点值随网络状况浮动，材料里写区间而非单点值。"
+  "speedup_range": "4.45~5.42",
+  "speedup_range_note": "3 次实测的加速比区间；单点值随网络状况浮动，材料里写区间而非单点值。"
 }
