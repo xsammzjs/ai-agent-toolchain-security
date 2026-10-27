@@ -69,8 +69,8 @@ class ScanEngine:
                 )
 
         # ===== 阶段 2：漏洞研判 =====
-        # 并发改造（2026-10-15）：依赖粒度开线程池，实测 5.75 倍加速，
-        # 且结果与串行完全一致（并发只改速度不改结论）。
+        # 并发改造（2026-10-15）：依赖粒度开线程池，实测加速 4.45~5.42×（区间），
+        # 且结果与串行完全一致（并发只改速度不改结论）。来源 samples/public_bench/_concurrency_bench.json
         use_concurrent = True
         max_workers = min(8, max(2, len(self.dep_list)))
         if use_concurrent and len(self.dep_list) > 1:
