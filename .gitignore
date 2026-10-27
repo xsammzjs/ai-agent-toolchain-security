@@ -58,6 +58,8 @@ data_store/
 # ===== 第三方源码参考（不入库，按第三方许可惯例）=====
 samples/public_bench/_ref/
 
-# ===== 依赖侧并发测速基准（需联网约6分钟，数字与正文口径不一致，不随作品分发）=====
-samples/bench_vuln_concurrency.py
-samples/public_bench/_concurrency_bench.json
+# 注：依赖侧并发测速基准（samples/bench_vuln_concurrency.py 与
+# samples/public_bench/_concurrency_bench.json）**随作品分发**——
+# 材料正文引用了这两个文件，附录 B 承诺「所有数字均可在文件中找到」，
+# 不入库会让引用落空。该基准需联网约 6 分钟，已明确标注为「可选、
+# 不在 verify_reproduction.py 的 14 项必跑清单内」。

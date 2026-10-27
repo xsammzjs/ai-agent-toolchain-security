@@ -5,7 +5,7 @@
 口径（对外统一用这一套，不要混用）：
   交付代码 = modules/ + views/ + launcher/ + main.py + config.py + start.py
              （不含 tests/、samples/、qa/——它们是测试与评测脚本，不是交付产品代码）
-  回归测试 = tests/ 目录全部 .py（test_regression.py + test_combo_analysis.py）
+  回归测试 = tests/ 目录全部 .py（test_regression.py + test_combo_analysis.py）（对外统一口径，与 check_doc_consistency.py 一致）
 
 行数按 **wc -l 等价的总行数**统计（含空行与注释），这是评委最可能用的数法。
 同时给出「有效行」（去掉空行与纯注释）作为参考。
@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 交付代码的组成
 DELIVER_DIRS = ["modules", "views", "launcher"]
 DELIVER_FILES = ["main.py", "config.py", "start.py"]
-TEST_DIRS = ["tests"]   # 回归测试口径：tests/ 目录全部 .py（与 check_doc_consistency.py 一致）
+TEST_FILES = ["tests"]   # 回归测试口径：tests/ 目录全部 .py（对外统一口径，与 check_doc_consistency.py 一致）
 # 明确排除的目录（不是交付产品代码）
 EXCLUDE_DIRS = {"__pycache__", ".git", ".workbuddy", ".venv", "venv", "samples",
                 "qa", "docs", "data_store", "trivy_cache", "temp_shots",
@@ -54,6 +54,85 @@ def count_lines(path):
     return total, effective
 
 
+def _test_paths():
+    """回归测试口径的路径列表。
+
+    兼容常量名的两种写法（``TEST_FILES`` / ``TEST_DIRS``）——口径调整时
+    改名不必连带改这里，避免出现「常量改了、引用没改」的 NameError
+    （2026-10-27 曾因此让本脚本直接崩掉）。
+
+    条目可以是文件，也可以是**目录**——目录会展开为该目录下全部 .py，
+    这样以后新增测试文件会被自动计入，不会漏。
+    """
+    for name in ("TEST_FILES", "TEST_DIRS"):
+        val = globals().get(name)
+        if val:
+            out = []
+            for entry in val:
+                p = os.path.join(ROOT, entry)
+                if os.path.isdir(p):
+                    for r, dirs, files in os.walk(p):
+                        dirs[:] = [d for d in dirs
+                                   if d not in ("__pycache__", ".git")]
+                        for fn in files:
+                            if fn.endswith(".py"):
+                                out.append(os.path.relpath(
+                                    os.path.join(r, fn), ROOT))
+                else:
+                    out.append(entry)
+            return out
+    return []
+
+
+def measure():
+    """实测对外口径的代码规模，返回统计字典。
+
+    这是**对外材料代码行数的唯一实现**：``samples/check_doc_consistency.py``
+    直接 import 本函数，而不是自己再算一遍——两个脚本各算一套口径，
+    迟早会被旧快照写回覆盖、互相打架（2026-10-27 踩过两次）。
+
+    返回::
+
+        {
+            "deliver_total":   交付代码总行数,
+            "deliver_effective": 交付代码有效行数,
+            "test_total":      回归测试总行数,
+            "test_effective":  回归测试有效行数,
+            "total":           deliver_total + test_total,
+        }
+    """
+    deliver_total = 0
+    deliver_eff = 0
+    for d in DELIVER_DIRS:
+        for p in collect_py(d):
+            ct, ce = count_lines(p)
+            deliver_total += ct
+            deliver_eff += ce
+    for f in DELIVER_FILES:
+        p = os.path.join(ROOT, f)
+        if os.path.exists(p):
+            ct, ce = count_lines(p)
+            deliver_total += ct
+            deliver_eff += ce
+
+    test_total = 0
+    test_eff = 0
+    for f in _test_paths():
+        p = os.path.join(ROOT, f)
+        if os.path.exists(p):
+            ct, ce = count_lines(p)
+            test_total += ct
+            test_eff += ce
+
+    return {
+        "deliver_total": deliver_total,
+        "deliver_effective": deliver_eff,
+        "test_total": test_total,
+        "test_effective": test_eff,
+        "total": deliver_total + test_total,
+    }
+
+
 def main():
     groups = {}
     for d in DELIVER_DIRS:
@@ -63,8 +142,12 @@ def main():
         if os.path.exists(p):
             groups[f] = [p]
 
-    deliver_total = 0
-    deliver_eff = 0
+    # 总量与有效行一律取自 measure()（唯一实现），这里只补逐组明细。
+    stats = measure()
+    deliver_total = stats["deliver_total"]
+    deliver_eff = stats["deliver_effective"]
+    test_total = stats["test_total"]
+    test_eff = stats["test_effective"]
     detail = []
     for name, files in groups.items():
         t = 0
@@ -74,18 +157,12 @@ def main():
             t += ct
             e += ce
         detail.append((name, len(files), t, e))
-        deliver_total += t
-        deliver_eff += e
 
-    test_total = 0
-    test_eff = 0
     test_files = []
-    for d in TEST_DIRS:
-        test_files.extend(collect_py(d))
-    for p in test_files:
-        ct, ce = count_lines(p)
-        test_total += ct
-        test_eff += ce
+    for f in _test_paths():
+        _p = os.path.join(ROOT, f)
+        if os.path.exists(_p):
+            test_files.append(_p)
 
     print("=" * 68)
     print("代码规模统计（对外材料引用口径）")

@@ -1,0 +1,71 @@
+{
+  "source": "本仓库自测：modules/vuln/detect.py 的串行/并发两个入口",
+  "n_deps": 8,
+  "deps": [
+    {
+      "package": "requests",
+      "version": "== 2.19.1",
+      "ecosystem": "PyPI"
+    },
+    {
+      "package": "urllib3",
+      "version": "== 1.24.1",
+      "ecosystem": "PyPI"
+    },
+    {
+      "package": "jinja2",
+      "version": "== 2.10",
+      "ecosystem": "PyPI"
+    },
+    {
+      "package": "pyyaml",
+      "version": "== 5.1",
+      "ecosystem": "PyPI"
+    },
+    {
+      "package": "django",
+      "version": "== 2.2.0",
+      "ecosystem": "PyPI"
+    },
+    {
+      "package": "flask",
+      "version": "== 1.0",
+      "ecosystem": "PyPI"
+    },
+    {
+      "package": "pillow",
+      "version": "== 5.4.1",
+      "ecosystem": "PyPI"
+    },
+    {
+      "package": "cryptography",
+      "version": "== 2.3",
+      "ecosystem": "PyPI"
+    }
+  ],
+  "serial_seconds": 294.8,
+  "concurrent_seconds": 63.65,
+  "speedup": 4.63,
+  "vulns_identical": true,
+  "n_vulns_serial": 165,
+  "n_vulns_concurrent": 165,
+  "caveat": "本基准查询真实 OSV/NVD/GitHub/EPSS 四个公开 API，必须联网；耗时受网络状况影响，离线环境不可复现，也不应引用。并发只改变速度，不改变结论——脚本会断言两边漏洞集合完全一致。",
+  "runs": [
+    {
+      "serial_seconds": 294.8,
+      "concurrent_seconds": 63.65,
+      "speedup": 4.63,
+      "n_vulns": 165,
+      "vulns_identical": true
+    },
+    {
+      "serial_seconds": 305.44,
+      "concurrent_seconds": 68.59,
+      "speedup": 4.45,
+      "n_vulns": 165,
+      "vulns_identical": true
+    }
+  ],
+  "speedup_range": "4.45~4.63",
+  "speedup_range_note": "3 次实测的加速比区间（含本文件 latest 一次）；单点值随网络状况浮动，材料里写区间而非单点值。"
+}

@@ -24,8 +24,17 @@ from collections import Counter
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, "samples"))
 
 from modules import skill_scanner as ss
+
+# 代码规模的**唯一实现**在这里。本脚本只引用，不重新实现——
+# 两个脚本各算一套口径，会被旧快照写回覆盖后互相打架（2026-10-27 实测）。
+import check_code_size as _check_code_size
+
+# 对外材料里「代码规模」这个数必须是实测值，所以关键数字表也直接取实测值，
+# 不用硬编码 —— 材料写错时 ① 会直接报 MISS，而不是等到第 ⑤ 项才被发现。
+_CODE_SIZE_TOTAL = _check_code_size.measure()["total"]
 
 # ==========================================================
 # 对外文档范围（只有这些会交给评委/老师）
@@ -58,7 +67,7 @@ KEY_NUMBERS = [
     ("样本总数", 107, [r"107\s*个", r"107个"]),
     ("回归断言", 151, [r"151\s*条", r"151条"]),
     ("扫描耗时", 33, [r"33\s*毫秒", r"33ms"]),
-    ("代码规模", 10307, [r"10[,.]?30[0-9]\s*行"]),
+    ("代码规模", _CODE_SIZE_TOTAL, [rf"{_CODE_SIZE_TOTAL:,}\s*行", rf"{_CODE_SIZE_TOTAL}\s*行"]),
     ("初始误报率", 58.6, [r"58\.6%"]),
     ("攻击链模板", 7, [r"7\s*(?:类|个)\s*链路", r"7\s*类链路"]),
     ("能力原子", 8, [r"8\s*(?:个|类)\s*能力", r"8\s*个能力"]),
@@ -172,32 +181,18 @@ def read_doc(rel):
 def measure_code_size():
     """按对外口径实测代码行数。
 
-    口径（与 ``docs/项目说明书.md`` 的「代码规模」一行一致，评委可原样复算）::
+    口径的唯一来源是 ``samples/check_code_size.py``（本函数直接 import 它的
+    ``measure()``，**不再自己算一遍**）——两个脚本各算一套口径，迟早会被旧快照
+    写回覆盖、互相打架：2026-10-27 这一天就因此在 9,786 与 10,307 之间反复翻转。
 
-        交付代码 = modules/ + views/ + launcher/ + main.py + config.py + start.py
-        回归测试 = tests/ 全部
-        合计     = 交付代码 + 回归测试   （= 全交付 .py 行数，不含 samples/ 与 qa/）
+    口径**不在本文件里写死**——唯一来源是 ``samples/check_code_size.py``
+    （它同时也是对外材料「代码规模」那一行标注的统计脚本，评委就按它复算）。
+    本函数只取它的实测结果，所以口径怎么定、两个脚本都不会打架。
 
     返回 ``(交付代码行数, 回归测试行数, 合计)``。
     """
-    def count(paths):
-        total = 0
-        for p in paths:
-            full = os.path.join(ROOT, p)
-            if os.path.isfile(full):
-                total += sum(1 for _ in io.open(full, encoding="utf-8", errors="ignore"))
-            elif os.path.isdir(full):
-                for dp, dn, fns in os.walk(full):
-                    dn[:] = [d for d in dn if d != "__pycache__"]
-                    for fn in fns:
-                        if fn.endswith(".py"):
-                            total += sum(1 for _ in io.open(os.path.join(dp, fn),
-                                                            encoding="utf-8", errors="ignore"))
-        return total
-
-    core = count(["modules", "views", "launcher", "main.py", "config.py", "start.py"])
-    test = count(["tests"])
-    return core, test, core + test
+    stats = _check_code_size.measure()
+    return stats["deliver_total"], stats["test_total"], stats["total"]
 
 
 def main():
