@@ -57,3 +57,7 @@ data_store/
 
 # ===== 第三方源码参考（不入库，按第三方许可惯例）=====
 samples/public_bench/_ref/
+
+# ===== 依赖侧并发测速基准（需联网约6分钟，数字与正文口径不一致，不随作品分发）=====
+samples/bench_vuln_concurrency.py
+samples/public_bench/_concurrency_bench.json

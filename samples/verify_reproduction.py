@@ -64,8 +64,8 @@ EXPECT = {
     "malicious_samples": 5,    # 真实恶意样本数
     "regression_assertions": 151,
     "core_lines": 9211,         # modules/ + views/ + launcher/ + main.py + config.py + start.py
-    "test_lines": 575,          # tests/test_regression.py
-    "total_lines": 9786,        # 对外口径 9,786 行
+    "test_lines": 1096,          # tests/ 全部（test_regression.py 575 + test_combo_analysis.py 521）
+    "total_lines": 10307,        # 对外口径 10,307 行 = 全交付 .py（不含 samples/ 与 qa/）
     "total_samples": 107,       # 5 恶意 + 102 良性
 }
 
@@ -233,12 +233,19 @@ def check_rules():
 # ⑥ 代码规模（防止文档口径漂移）
 # ==========================================================
 def _count_lines(paths):
+    """统计行数。paths 里可以是文件，也可以是目录（递归取 .py，排除 __pycache__）。"""
     n = 0
     for p in paths:
-        if not os.path.isfile(p):
-            continue
-        with open(p, "rb") as f:
-            n += sum(1 for _ in f)
+        if os.path.isfile(p):
+            with open(p, "rb") as f:
+                n += sum(1 for _ in f)
+        elif os.path.isdir(p):
+            for dp, dirnames, filenames in os.walk(p):
+                dirnames[:] = [d for d in dirnames if d != "__pycache__"]
+                for fn in filenames:
+                    if fn.endswith(".py"):
+                        with open(os.path.join(dp, fn), "rb") as f:
+                            n += sum(1 for _ in f)
     return n
 
 
@@ -261,7 +268,7 @@ def check_code_size():
                    os.path.join(ROOT, "start.py")]
 
     core = _count_lines(core_files)
-    test = _count_lines([os.path.join(ROOT, "tests", "test_regression.py")])
+    test = _count_lines([os.path.join(ROOT, "tests")])
     total = core + test
 
     # 行数会随开发变动，只做提示不作为 FAIL 项（避免每次改代码都红）

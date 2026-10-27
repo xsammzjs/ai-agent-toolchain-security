@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 交付代码的组成
 DELIVER_DIRS = ["modules", "views", "launcher"]
 DELIVER_FILES = ["main.py", "config.py", "start.py"]
-TEST_FILES = ["tests/test_regression.py"]
+TEST_DIRS = ["tests"]   # 回归测试口径：tests/ 目录全部 .py（与 check_doc_consistency.py 一致）
 # 明确排除的目录（不是交付产品代码）
 EXCLUDE_DIRS = {"__pycache__", ".git", ".workbuddy", ".venv", "venv", "samples",
                 "qa", "docs", "data_store", "trivy_cache", "temp_shots",
@@ -79,12 +79,13 @@ def main():
 
     test_total = 0
     test_eff = 0
-    for f in TEST_FILES:
-        p = os.path.join(ROOT, f)
-        if os.path.exists(p):
-            ct, ce = count_lines(p)
-            test_total += ct
-            test_eff += ce
+    test_files = []
+    for d in TEST_DIRS:
+        test_files.extend(collect_py(d))
+    for p in test_files:
+        ct, ce = count_lines(p)
+        test_total += ct
+        test_eff += ce
 
     print("=" * 68)
     print("代码规模统计（对外材料引用口径）")
@@ -97,15 +98,18 @@ def main():
     print("  " + "-" * 48)
     print(f"  {'交付代码合计':<22s} {sum(d[1] for d in detail):>6d} "
           f"{deliver_total:>8d} {deliver_eff:>8d}")
-    print(f"  {'回归测试':<22s} {len(TEST_FILES):>6d} "
+    print(f"  {'回归测试':<22s} {len(test_files):>6d} "
           f"{test_total:>8d} {test_eff:>8d}")
     print()
     print(f"  ▶ 对外表述：交付代码 {deliver_total} 行"
-          f"（有效行 {deliver_eff}），另有回归测试 {test_total} 行")
+          f"（有效行 {deliver_eff}），另有回归测试 {test_total} 行，"
+          f"合计 {deliver_total + test_total} 行")
     print()
     print("  口径说明：")
     print("    · 交付代码 = modules/ + views/ + launcher/ + main.py + config.py + start.py")
-    print("    · 不含 tests/、samples/、qa/（测试与评测脚本，非交付产品代码）")
+    print("    · 回归测试 = tests/ 目录全部 .py"
+          "（test_regression.py + test_combo_analysis.py）")
+    print("    · 不含 samples/、qa/（评测与自测脚本，非交付产品代码）")
     print("    · 行数按 wc -l 等价的总行数计（含空行与注释）")
     print()
 
