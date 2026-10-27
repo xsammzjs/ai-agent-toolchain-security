@@ -5,7 +5,7 @@
 口径（对外统一用这一套，不要混用）：
   交付代码 = modules/ + views/ + launcher/ + main.py + config.py + start.py
              （不含 tests/、samples/、qa/——它们是测试与评测脚本，不是交付产品代码）
-  回归测试 = tests/test_regression.py
+  回归测试 = tests/ 目录全部 .py（test_regression.py + test_combo_analysis.py）
 
 行数按 **wc -l 等价的总行数**统计（含空行与注释），这是评委最可能用的数法。
 同时给出「有效行」（去掉空行与纯注释）作为参考。
