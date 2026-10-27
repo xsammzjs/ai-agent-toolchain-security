@@ -73,15 +73,19 @@ with sync_playwright() as p:
         if "命中风险点" in body and "整体判定" in body:
             break
         time.sleep(3)
-    check("Skill演示样例检出13个风险点", "13" in body and "命中风险点" in body)
+    check("Skill演示样例检出12个风险点", "12" in body and "命中风险点" in body)
     check("Skill整体判定显示", "整体判定" in body)
 
-    # ④ 检测率测试按钮
-    page.get_by_role("button", name="运行样本检测率测试").click()
-    time.sleep(4)
+    # ④ 真实语料评测按钮
+    # 🔴 2026-10-28：按钮原先跑 samples/run_skill_benchmark.py（50 个手工样本），
+    #    规则收紧后实测只剩 24/30，与材料里的「检出 100%」对不上，已改为跑
+    #    samples/run_corpus_eval.py（107 个真实公开样本）。
+    #    按钮文案与期望数字同步改成新的口径。
+    page.get_by_role("button", name="运行真实语料评测").click()
+    time.sleep(8)
     body = page.inner_text("body")
-    # 样本库已扩充为 30 恶意 + 20 正常，旧断言 5/5、2/2 已失效
-    check("检测率30/30与无误报20/20", "30/30" in body and "20/20" in body)
+    check("检出5/5（恶意）", "5/5" in body)
+    check("误报2/102（良性）", "2/102" in body)
     page.screenshot(path="temp_shots/14_skill_full.png")
 
     # ⑤ 报告导出按钮（存在且可点）

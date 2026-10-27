@@ -190,7 +190,14 @@ def main():
     print("=" * 76)
     print("真实语料评测 · 检出率与误报率（合并输出完整混淆矩阵）")
     print("=" * 76)
-    print(f"规则数量：{len(ss.RULE_TABLE)} 条")
+    # 🔴 2026-10-28 修正：原来打印 len(ss.RULE_TABLE)=30，但本脚本走的是
+    #    ss.scan_skill_text()，实际跑的是**完整规则集**（30 条正则 + 1 条隐藏
+    #    字符检测通道 + 1 条跨行组合规则 = 32 条）。写 30 会跟材料里的
+    #    「32 条规则」对不上，而这份输出会原样显示在界面按钮的输出框里。
+    #    口径改为直接取 stats.rule_count —— 与界面「检测规则数」指标卡同源，
+    #    改一处两处一起变，不会再各算各的。
+    _rule_count = ss.scan_skill_text("", "")["stats"]["rule_count"]
+    print(f"规则数量：{_rule_count} 条")
     print("所有样本仅做静态分析，不执行")
     print()
 

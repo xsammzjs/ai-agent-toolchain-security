@@ -63,9 +63,9 @@ EXPECT = {
     "benign_samples": 100,     # 真实科研良性样本数
     "malicious_samples": 5,    # 真实恶意样本数
     "regression_assertions": 151,
-    "core_lines": 9232,         # modules/ + views/ + launcher/ + main.py + config.py + start.py
+    "core_lines": 9325,         # modules/ + views/ + launcher/ + main.py + config.py + start.py
     "test_lines": 1096,          # tests/ 全部（test_regression.py 575 + test_combo_analysis.py 521）
-    "total_lines": 10328,        # 对外口径 10,328 行 = 全交付 .py（不含 samples/ 与 qa/）
+    "total_lines": 10421,        # 对外口径 10,421 行 = 全交付 .py（不含 samples/ 与 qa/）
     "total_samples": 107,       # 5 恶意 + 102 良性
 }
 
