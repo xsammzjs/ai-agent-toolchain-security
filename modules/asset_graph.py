@@ -26,6 +26,7 @@ attack_chain.py 关注「单个技能包内部的能力链」（规则级），
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import Optional
 
 # ==========================================================
@@ -52,11 +53,41 @@ def _nid(node_type: str, name: str, version: str = "") -> str:
 
 
 # ==========================================================
+# 技能正文 → 第三方依赖名（纯本地正则，不联网）
+# ==========================================================
+_DEP_PATTERNS = [
+    re.compile(r"pip3?\s+install\s+([^\n&|;]+)", re.I),
+    re.compile(r"npm\s+(?:install|i)\s+([^\n&|;]+)", re.I),
+    re.compile(r"(?:apt|apt-get)\s+install\s+([^\n&|;]+)", re.I),
+]
+
+
+def _extract_dep_names(text: str) -> list:
+    """从技能正文提取「声称安装」的第三方包名（去版本号，纯本地、不联网）。
+
+    只为「技能 → 依赖」建模用；不查 PyPI、不查 CVE——线上网络波动不影响建图。
+    """
+    out: list = []
+    for rx in _DEP_PATTERNS:
+        for m in rx.finditer(text or ""):
+            for tok in m.group(1).split():
+                tok = tok.strip()
+                if not tok or tok.startswith(("-", ".", "http")):
+                    continue
+                pkg = re.split(r"[<>=!~\[\];]", tok)[0].strip()
+                if pkg and re.match(r"^[A-Za-z0-9_.@/-]+$", pkg) and pkg not in out:
+                    out.append(pkg)
+    return out
+
+
+# ==========================================================
 # 构建
 # ==========================================================
 def build_graph(dep_list: Optional[list] = None,
                 skill_results: Optional[list] = None,
-                chain_result: Optional[dict] = None) -> dict:
+                chain_result: Optional[dict] = None,
+                skill_texts: Optional[dict] = None,
+                vulns: Optional[list] = None) -> dict:
     """
     构建资产图谱。
 
@@ -174,6 +205,34 @@ def build_graph(dep_list: Optional[list] = None,
                                    "line": f.get("line"),
                                    "reason": f"技能通过{host} 外发数据"})
                         break
+
+    # ---------- 3b. 技能 → 依赖 边（从 SKILL.md 提取，纯本地、不联网） ----------
+    if skill_texts:
+        for name, text in skill_texts.items():
+            sn = skill_nodes.get(name)
+            if not sn or not text:
+                continue
+            for pkg in _extract_dep_names(text):
+                dn = _add_node("依赖", pkg, "",
+                               meta={"ecosystem": "PyPI", "declared_by": name})
+                _add_edge(sn, dn, "依赖",
+                          {"reason": f"技能声明依赖 {pkg}", "ecosystem": "PyPI"})
+
+    # ---------- 3c. 依赖 → CVE 边（来自依赖漏洞扫描结果；纯本地推断，不联网） ----------
+    for v in vulns or []:
+        pkg = v.get("package") or ""
+        cve = v.get("cve_id") or ""
+        if not pkg or not cve:
+            continue
+        dep_nid = dep_nodes.get(f"{pkg}|{v.get('version', '')}")
+        if dep_nid is None:
+            dep_nid = _add_node("依赖", pkg, v.get("version", ""),
+                                meta={"ecosystem": "PyPI"})
+        cve_nid = _add_node("工具", f"CVE:{cve}", "",
+                            severity=v.get("severity", "中危"),
+                            meta={"is_cve": True, "cvss": v.get("cvss_score", 0)})
+        _add_edge(dep_nid, cve_nid, "引用",
+                  {"cve_id": cve, "severity": v.get("severity", "")})
 
     # ---------- 4. 攻击链边（跨资产的实际攻击路径） ----------
     if chain_result:

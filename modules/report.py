@@ -243,3 +243,71 @@ def generate_pdf_report(scan_result: dict, sbom_data: dict) -> str:
 
     c.save()
     return report_path
+
+
+# ==========================================
+# 《AI 技能安全评估报告》（技能侧，非依赖漏洞；数据全来自确定性输出）
+# ==========================================
+def generate_skill_report(skill_results: list, chain_result: dict | None = None,
+                          decision: str = "", score_map: dict | None = None) -> str:
+    """生成《AI 技能安全评估报告》DOCX，返回文件路径。
+
+    结构：① 安装决定 ② 技能风险评分（0–100） ③ 组合攻击链路 ④ 证据溯源（原文行号）。
+    所有数字/结论均来自确定性输出，不含模型推断值。
+    """
+    doc = Document()
+    style = doc.styles['Normal']
+    style.font.name = 'Microsoft YaHei'
+    style.font.size = Pt(10)
+    style._element.rPr.rFonts.set(qn('w:eastAsia'), 'Microsoft YaHei')
+
+    title = doc.add_heading('AI 技能安全评估报告', 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph(f'生成时间：{datetime.now().strftime("%Y-%m-%d %H:%M")}')
+    doc.add_paragraph('评估工具：AI 技能组合风险体检站')
+    doc.add_paragraph(f'安装决定：{decision or "见正文"}')
+
+    # 一、技能风险评分
+    doc.add_heading('一、技能风险评分（0–100，越高越危险）', level=1)
+    if score_map:
+        t = doc.add_table(rows=1, cols=3, style='Light Grid Accent 1')
+        _set_cell(t, 0, 0, '技能'); _set_cell(t, 0, 1, '风险分'); _set_cell(t, 0, 2, '等级')
+        for name, sc in sorted(score_map.items(),
+                               key=lambda kv: -int(kv[1].get('score', 0))):
+            row = t.add_row()
+            row.cells[0].text = name
+            row.cells[1].text = str(sc.get('score', ''))
+            row.cells[2].text = str(sc.get('level', ''))
+    else:
+        doc.add_paragraph('（未提供评分）')
+
+    # 二、组合攻击链路
+    doc.add_heading('二、组合攻击链路', level=1)
+    chains = (chain_result or {}).get('chains', [])
+    if not chains:
+        doc.add_paragraph('未发现组合风险（能力互补 × 意图闸门 × 外发闸门 未成链）。')
+    else:
+        t = doc.add_table(rows=1, cols=4, style='Light Grid Accent 1')
+        for i, h in enumerate(['链路', '严重度', '作用域', '元凶技能']):
+            _set_cell(t, 0, i, h)
+        for c in chains:
+            row = t.add_row()
+            row.cells[0].text = c.get('chain_name', '')
+            row.cells[1].text = c.get('severity', '')
+            row.cells[2].text = c.get('scope', '')
+            row.cells[3].text = c.get('mal', '')
+
+    # 三、证据溯源（原文行号）
+    doc.add_heading('三、证据溯源（原文行号，可当场核验）', level=1)
+    for r in skill_results or []:
+        doc.add_heading(f'{r.get("skill_name", "")} · {r.get("verdict", "")}', level=2)
+        doc.add_paragraph(f'风险点 {len(r.get("findings", []))} 条：')
+        for f in r.get("findings", [])[:15]:
+            doc.add_paragraph(
+                f'  - [{f.get("severity", "")}] {f.get("rule", "")} '
+                f'@ {f.get("file", "")}:{f.get("line", 0)}')
+
+    os.makedirs("reports", exist_ok=True)
+    path = f"reports/AI技能安全评估报告_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+    doc.save(path)
+    return path

@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-"""views 包：Streamlit 的五个功能视图。
+"""views 包：首页 + 离线演示 + 主题；其余历史视图已删除。
 
-每个视图一个模块，main.py 只负责入口与路由。
-拆分的目的是让每个文件都保持在可读规模（75-400 行），
-而不是把近 2000 行 UI 全堆在一个文件里。
+当前界面只有一个入口：main.py → overview.render()（首页）。
+    1. overview.py    🏠 首页「一键体检」：上传 → 结论卡 → 数据看板
+                      → 标签页（总览 / 关系图 / 依赖漏洞 / 合规对照）
+    2. combo_view.py  首页流水线（规则 → AI → 组合 → 依赖）与内置示例的底层实现
+    3. demo_view.py   🎬 离线演示（首页底部「断网备用」展开区调用）
+    4. common.py      共享组件与工具
+    5. theme.py       统一视觉主题（浅色 · 简洁商务风）
 
-五个视图与 main.py 侧边栏的对应关系（顺序即侧边栏顺序）：
-    1. skill_scan.py  🛡️ AI 技能安全检测（规则快筛的证据页）
-    2. combo_view.py  🧬 组合体检（★主线：三段式流水线）
-    3. dep_scan.py    📦 依赖漏洞检测（+ dep_tabs.py 渲染四个 tab）
-    4. chain_view.py  🔗 资产关联分析
-    5. demo_view.py   🎬 离线演示
-    common.py 为共享组件与工具，不算功能视图。
+说明：首页改版时已删除旧的独立视图 skill_scan / dep_scan / dep_tabs /
+chain_view，其能力（单点规则、依赖漏洞四源、资产关系图）全部并入首页。
 """

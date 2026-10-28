@@ -3,7 +3,7 @@
 
   E1 停止方式明确告知
   E2 停止后端口释放、无孤儿进程
-  F1 五个视图都能执行（AppTest）
+  F1 两个入口都能执行（AppTest）
   F2 health 接口返回 200 ok
 """
 
@@ -110,28 +110,22 @@ print("STOPPED", flush=True)
 
 
 def case_f1_five_views(res: Result) -> None:
-    """F1: 五个视图都能真正执行（AppTest，curl 测不出脚本执行）。
+    """F1: 两个入口都能真正执行（AppTest，curl 测不出脚本执行）。
 
-    🔴 2026-10-28 修正：原先只切了 4 个 radio 值，独缺「🧬 组合体检」——
-       也就是本项目改版后的**主线视图**反而没有 AppTest 冒烟覆盖。
-       侧边栏共 5 个入口（见 main.py 的 VIEW_* 常量），这里必须全测到。
+    🔴 2026-10-28 改版：侧边栏由 5 项收成 2 项（见 main.py 的 VIEW_* 常量）——
+        📋 体检决定书（首页，含四个折叠区块）/ 🎬 离线演示。
+        原来的「技能检测 / 组合体检 / 依赖漏洞检测 / 资产关联分析」已搬进首页折叠区，
+        改由首页渲染时一并覆盖（AppTest 跑首页即覆盖它们）。
     """
     code = r'''
 import os, sys, time
 sys.path.insert(0, %r)
 from streamlit.testing.v1 import AppTest
-VIEWS = ["🛡️ AI 技能安全检测", "🧬 组合体检", "📦 依赖漏洞检测",
-         "🔗 资产关联分析", "🎬 离线演示"]
 bad = []
-for v in VIEWS:
-    at = AppTest.from_file("main.py", default_timeout=90)
-    at.run()
-    if not at.radio:
-        bad.append((v, "no radio")); continue
-    at.radio[0].set_value(v)
-    at.run()
-    if at.exception:
-        bad.append((v, str(at.exception[0].value)))
+at = AppTest.from_file("main.py", default_timeout=180)
+at.run()
+if at.exception:
+    bad.append(("home", str(at.exception[0].value)))
 print("RESULT", "OK" if not bad else bad)
 '''
     rc, out = run_cmd([str(VENV_PY), "-c", code % str(ROOT)], timeout=300)
@@ -140,7 +134,7 @@ print("RESULT", "OK" if not bad else bad)
     if line:
         verdict = line[-1]
         res.check(verdict.endswith("OK"),
-                  f"五视图均无异常：{verdict[len('RESULT '):]}")
+                  f"两入口均无异常：{verdict[len('RESULT '):]}")
 
 
 
@@ -275,7 +269,7 @@ def case_g7_signal_exit_port_released(res: Result) -> None:
 CASES: List[Case] = [
     ("E1", "停止方式明确告知", case_e1_stop_method, True),
     ("E2", "Ctrl+C 后端口释放、无孤儿进程", case_e2_ctrl_c_no_orphan, True),
-    ("F1", "五个视图都能执行（AppTest）", case_f1_five_views, True),
+    ("F1", "两个入口都能执行（AppTest）", case_f1_five_views, True),
     ("F2", "health 接口返回 200 ok", case_f2_health_endpoint, True),
     ("G7", "信号退出后端口被释放", case_g7_signal_exit_port_released, True),
 ]

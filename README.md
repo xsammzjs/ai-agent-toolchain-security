@@ -112,7 +112,7 @@ python samples/fetch_real_samples.py
 ## 项目结构
 
 ```
-main.py                      Streamlit 界面（5 个功能）
+main.py                      Streamlit 界面（2 个入口：体检决定书 / 离线演示）
 config.py                    全局配置
 modules/
   engine.py                  扫描调度

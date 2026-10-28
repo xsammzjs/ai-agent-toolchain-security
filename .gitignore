@@ -63,3 +63,8 @@ samples/public_bench/_ref/
 # 材料正文引用了这两个文件，附录 B 承诺「所有数字均可在文件中找到」，
 # 不入库会让引用落空。该基准需联网约 6 分钟，已明确标注为「可选、
 # 不在 verify_reproduction.py 的 14 项必跑清单内」。
+
+# ===== 校验输出残留 / 其他工具缓存（不入库）=====
+v_corpus.txt
+v_repro.txt
+.opencode/

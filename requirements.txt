@@ -25,3 +25,10 @@ rarfile>=4.0
 # 不装也不影响主流程；装上后可直接运行该模块做连通性自检。
 pymysql>=1.1.0
 redis>=5.0.0
+
+# ===== 风险关系图可视化 =====
+# networkx + pyvis：交互版关系图（缺失时优雅降级，不阻断主流程）
+# matplotlib：静态版关系图导出（SVG / PNG，供 PPT / 录屏引用）
+networkx>=3.1
+pyvis>=0.3.2
+matplotlib>=3.7

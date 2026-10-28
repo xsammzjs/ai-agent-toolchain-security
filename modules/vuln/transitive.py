@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
 """漏洞研判 · 间接依赖推断与修复方案生成。
 
+【当前定位（2026-10-28 批 0 复核：停用，但不作废、不删除）】
+本模块提供「传递依赖推断」与「修复方案生成」两项能力，属完整 SCA 场景的能力储备。
+当前产品主线是「AI 技能组合风险」：依赖侧作为流水线的第 5 步，只做「直接依赖的
+四源查询」，**不启用传递依赖推断**（engine 的 include_transitive 默认 False）。
+
+保留（不删）的原因：
+  - tests/test_regression.py 仍覆盖 _constraint_to_version / _parse_requires_entry /
+    generate_fix_plan —— 删除会直接破坏回归基线；
+  - 其他 SCA 场景可按需复用（engine 传 include_transitive=True 即调用）。
+即：这是「从主线停用」，不是「能力废弃」；代码级证据见 modules/engine.py:30 的开关。
+
 - 间接依赖：基于 PyPI requires_dist 的一层推断
 - 修复方案：汇总可修复版本，冲突时取最高
 """

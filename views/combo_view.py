@@ -66,11 +66,12 @@ def _load_scenario_skills(option: str) -> dict:
     return skills
 
 
-def _run_pipeline(skills: dict) -> None:
-    """执行三段式流水线，结果写入 session_state。
+def _run_pipeline(skills: dict, do_deps: bool = True) -> None:
+    """执行四段式流水线，结果写入 session_state。
 
+    规则快筛(A) → AI 意图分诊(B) → 组合判定(C) → 依赖研判(D)。
     🔴 AI 分诊严格串行（逐个技能更新进度）——禁止并发轰炸 API。
-    未配置 MaaS 时跳过阶段B，只跑 1→2→4，不中断。
+    未配置 MaaS 时跳过阶段B；do_deps=False 或技能无依赖声明时跳过阶段D，均不中断。
     """
     from modules import adjudicator as adj
     from modules import skill_scanner as ss
@@ -106,6 +107,10 @@ def _run_pipeline(skills: dict) -> None:
     caps = {n: extract_caps(skills[n]) for n in names}
     chains = build_chains(names, caps, intents)
 
+    # ---- 阶段D：依赖研判（技能声明的第三方依赖 → 四源漏洞库）----
+    dep = (_run_dep_stage(skills, names) if do_deps
+           else {"status": "skipped", "msg": "", "result": None, "pkgs": []})
+
     st.session_state.combo_result = {
         "skills": skills,
         "rule_hits": rule_hits,
@@ -113,8 +118,60 @@ def _run_pipeline(skills: dict) -> None:
         "ai_ok": ai_ok,
         "chains": chains,
         "call_info": call_info,
+        "dep_status": dep["status"],
+        "dep_msg": dep["msg"],
+        "dep_result": dep["result"],
+        "dep_pkgs": dep["pkgs"],
     }
     st.rerun()
+
+
+def _run_dep_stage(skills: dict, names: list) -> dict:
+    """阶段D：技能声明的第三方依赖 → OSV / NVD / GitHub / EPSS 四源漏洞研判。
+
+    - 依赖名取自技能正文里的 ``pip / npm / apt install`` 声明，纯本地正则提取，不联网；
+    - 漏洞查询需联网；无任何依赖声明时直接跳过（status="none"），不拖慢体检；
+    - 断网或查询失败时把原因记入 ``status="error"``，**绝不把「查不到」当成
+      「没漏洞」**——与规则 / 意图两条链的 fail-closed 口径保持一致。
+
+    返回 ``{"status", "msg", "result", "pkgs"}``：
+      status ∈ {"ok", "none", "error"}；result 即 ScanEngine.run_full_scan() 的返回。
+    """
+    import shutil
+    import tempfile
+
+    from modules.asset_graph import _extract_dep_names
+
+    pkgs: list = []
+    for n in names:
+        for p in _extract_dep_names(skills.get(n, "")):
+            if p not in pkgs:
+                pkgs.append(p)
+    if not pkgs:
+        return {"status": "none", "msg": "", "result": None, "pkgs": []}
+
+    tmpd = tempfile.mkdtemp(prefix="ov_dep_")
+    try:
+        req = os.path.join(tmpd, "requirements.txt")
+        with open(req, "w", encoding="utf-8") as f:
+            f.write("\n".join(pkgs) + "\n")
+        from modules.engine import ScanEngine
+        prog = st.progress(0.0, text="依赖漏洞研判中…")
+
+        def _cb(msg, percent=None):
+            if percent is not None:
+                prog.progress(min(max(percent, 0), 100) / 100.0,
+                              text=f"依赖漏洞研判：{msg}")
+
+        r = ScanEngine().run_full_scan(
+            uploaded_file_path=req, upload_mode="requirements",
+            project_name="技能声明的依赖", include_transitive=False,
+            use_nvd=True, do_epss=True, progress_cb=_cb)
+        return {"status": "ok", "msg": "", "result": r, "pkgs": pkgs}
+    except Exception as e:
+        return {"status": "error", "msg": str(e), "result": None, "pkgs": pkgs}
+    finally:
+        shutil.rmtree(tmpd, ignore_errors=True)
 
 
 def _degraded_count(intents: dict) -> int:
