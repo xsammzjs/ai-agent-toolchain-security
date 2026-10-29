@@ -286,11 +286,13 @@ def _tab_compliance(res) -> None:
     for n, t in res["skills"].items():
         for cat, cnt in cm.summary(ss.scan_skill_text(n, t)["findings"]).items():
             rows.append({"技能": n, "风险类型": cat, "命中数": cnt,
-                         "OWASP 条目": cm.owasp_label(cm.owasp_for(cat)) or "—"})
+                         "OWASP 条目": cm.owasp_label(cm.owasp_for(cat)) or "—",
+                         "官方证据": cm.evidence_for(cm.owasp_for(cat)) or "—"})
     if rows:
         st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-        st.caption("**OWASP 条目**取自 OWASP Agentic Skills Top 10 官方总表"
-                   "（`owasp.github.io/www-project-agentic-skills-top-10`）；"
+        st.caption("**OWASP 条目**与**官方证据**均取自 OWASP Agentic Skills Top 10 官方总表"
+                   "（`owasp.github.io/www-project-agentic-skills-top-10`，"
+                   "Summary Table 的 Real-World Evidence 列）；"
                    "「风险类型 → 条目」为**依据官方条目名的语义对照，非官方认证映射**。"
                    "MITRE ATLAS 条目编号待官方核实后回填。")
     else:

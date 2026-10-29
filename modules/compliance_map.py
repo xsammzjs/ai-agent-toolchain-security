@@ -49,6 +49,21 @@ OWASP_BY_CATEGORY = {
 # MITRE ATLAS 对照：本轮留空，待官方核实后回填
 ATLAS_BY_CATEGORY: dict = {}
 
+# OWASP 官方「Real-World Evidence」列（逐条摘录自官方 Summary Table，未改写事实）
+# 来源：https://owasp.github.io/www-project-agentic-skills-top-10/（Summary Table）
+OWASP_EVIDENCE = {
+    "AST01": "ClawHavoc（1,184 个恶意技能）、ToxicSkills（76 个载荷）",
+    "AST02": "ClawHub 崩塌、Claude Code CVE-2025-59536",
+    "AST03": "Snyk 2026-02 发现 280+ 个泄露凭据的技能",
+    "AST04": "伪造「Google」技能冒充；SKILL.md 内投递 YAML 载荷",
+    "AST05": "Air 的 PoC 绕过全部扫描器，26,000 个 agent 受威胁",
+    "AST06": "OpenClaw 主机模式执行，13.5 万实例暴露",
+    "AST07": "ClawJacked（CVE-2026-28363）、补丁滞后被利用",
+    "AST08": "用自然语言注入绕过模式匹配扫描器",
+    "AST09": "5.3 万实例无 SOC 可见性",
+    "AST10": "恶意技能在 ClawHub、skills.sh 之间移植",
+}
+
 _ETL_NOTE = "类别 → OWASP 条目为依据官方条目名的语义对照，非 OWASP 官方认证映射"
 
 
@@ -78,6 +93,11 @@ def owasp_label(codes: list) -> str:
         name, cn = OWASP_AST10.get(c, ("", ""))
         out.append(f"{c} · {name}（{cn}）" if name else c)
     return "；".join(out)
+
+
+def evidence_for(codes: list) -> str:
+    """返回这些条目的官方 Real-World Evidence（多条拼接，无则空串）。"""
+    return "；".join(OWASP_EVIDENCE[c] for c in codes or [] if OWASP_EVIDENCE.get(c))
 
 
 def to_standard(finding: dict) -> dict:
