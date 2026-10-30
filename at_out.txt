@@ -1,0 +1,4 @@
+EXC_INIT 0
+EXC_CLICK_DEMO 0
+BUTTONS ['▶ 一键体检', '用内置示例', '📄 导出报告', '🖼️ 导出关系图（SVG，供 PPT）', '▶ 运行（离线）', '🌐 检查网络', '🎬 加载示例数据']
+NO_DEPDEMO_BUTTON

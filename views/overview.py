@@ -232,20 +232,94 @@ def _tab_graph(res) -> None:
         width="stretch", hide_index=True)
 
 
+_DEMO_SKILL_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "samples", "demo_skills", "sales-report-helper")
+
+
+def _render_dep_demo() -> None:
+    """用**真实示例技能包**跑一次依赖漏洞检查（真查 OSV/NVD/GitHub/EPSS，需联网）。
+
+    示例包是仓库里的 ``samples/demo_skills/sales-report-helper``（自建，不属评测语料），
+    声明了两个**真实存在已知漏洞的旧版依赖**，用来演示依赖检查的完整输出形态。
+    """
+    if st.button("🎬 用依赖示例跑一次（真实查询）", key="ov_dep_demo_btn"):
+        path = os.path.join(_DEMO_SKILL_DIR, "SKILL.md")
+        try:
+            with open(path, encoding="utf-8", errors="ignore") as fh:
+                text = fh.read()
+        except OSError as e:
+            st.error(f"读不到示例技能包：{e}")
+            return
+        with st.spinner("正在查四个官方漏洞库（约十几秒到 1 分钟）…"):
+            st.session_state.ov_dep_demo_result = combo_view._run_dep_stage(
+                {"sales-report-helper": text}, ["sales-report-helper"])
+        st.rerun()
+
+    st.caption("示例技能包 `samples/demo_skills/sales-report-helper` 里声明了 "
+               "`requests==2.25.0` 与 `pyyaml==5.3.1` 两个真实的旧版依赖——"
+               "点一次就能看到「四个官方漏洞库交叉核对 → 置信度评级 → 修复优先级」"
+               "的完整输出（需联网）。")
+
+    dep = st.session_state.get("ov_dep_demo_result")
+    if not dep:
+        return
+    stt = dep.get("status")
+    if stt == "error":
+        st.error(f"查询未完成（多为断网或数据源不可达）：{dep.get('msg')}。"
+                 "失败不等于「无漏洞」，联网后重试。")
+        return
+    if stt == "none":
+        st.warning("示例技能包里没解析到依赖声明。")
+        return
+    r = dep.get("result") or {}
+    vulns = r.get("vulns") or []
+    summary = r.get("summary") or {}
+    st.success(f"已解析到依赖：{'、'.join(dep.get('pkgs') or [])}（**真实查询结果**）")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("依赖总数", summary.get("total_dependencies",
+                                     len(dep.get("pkgs") or [])))
+    m2.metric("漏洞总数", summary.get("total_vulnerabilities", len(vulns)))
+    m3.metric("严重/高危", summary.get("critical_count", 0))
+    m4.metric("需立即修复", summary.get("priority_1_count", 0))
+    if vulns:
+        rows = [{
+            "依赖": v.get("package", ""),
+            "版本": v.get("version", "") or "—",
+            "CVE": v.get("cve_id", ""),
+            "严重度": v.get("severity", "未知"),
+            "CVSS": v.get("cvss_score", 0),
+            "EPSS%": round((v.get("epss_score") or 0) * 100, 1),
+            "置信度": (v.get("confidence") or {}).get("level", "—"),
+            "修复优先级": (v.get("fix_priority") or {}).get("label", "—"),
+        } for v in vulns]
+        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+    else:
+        st.info("这两个版本的依赖在四个漏洞库里没有查到已知漏洞。")
+    if summary.get("query_error_total"):
+        st.warning(f"⚠️ 本次有 {summary['query_error_total']} 次数据源查询失败，"
+                   "「零漏洞」不可全信，请联网后重试。")
+
+
 def _tab_deps(res) -> None:
     if not res:
         st.info("先在上方点「一键体检」。")
+        st.markdown("**或者：直接跑一次依赖示例**")
+        _render_dep_demo()
         return
     stt = res.get("dep_status")
     if stt == "skipped":
         st.info("本次未启用依赖检查（可在入口处勾选后重新体检）。")
+        _render_dep_demo()
         return
     if stt == "none":
-        st.info("技能正文里没有 `pip / npm / apt install` 形式的依赖声明，无需依赖检查。")
+        st.info("技能正文里没有 `pip / npm / apt install` 形式的依赖声明，未触发依赖检查。")
+        _render_dep_demo()
         return
     if stt == "error":
         st.error(f"依赖检查未完成（多为断网或数据源不可达）：{res.get('dep_msg')}。"
                  "失败不等于「无漏洞」，联网后请重新体检。")
+        _render_dep_demo()
         return
     d = res.get("dep_result") or {}
     vulns = d.get("vulns") or []
@@ -322,11 +396,13 @@ def render() -> None:
             st.session_state.pop("ov_graph", None)
             st.session_state.pop("ov_svg", None)
             st.session_state.pop("ov_html", None)
+            st.session_state.pop("ov_dep_demo_result", None)
             _run_upload(files, do_deps=do_deps)
         if st.button("用内置示例", key="ov_demo_btn", width="stretch"):
             st.session_state.pop("ov_graph", None)
             st.session_state.pop("ov_svg", None)
             st.session_state.pop("ov_html", None)
+            st.session_state.pop("ov_dep_demo_result", None)
             _one_click_demo(do_deps=do_deps)
     st.caption("上传一个技能包就自动跑完整条流水线（规则快筛 → AI 判断 → "
                "组合判定 → 依赖漏洞检查）；或点「用内置示例」直接出结果。"

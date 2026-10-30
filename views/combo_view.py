@@ -126,6 +126,31 @@ def _run_pipeline(skills: dict, do_deps: bool = True) -> None:
     st.rerun()
 
 
+def _extract_req_specs(skills: dict, names: list) -> list:
+    """从技能正文提取 requirements 行，**尽量保留 `==` 版本号**。
+
+    为什么不能直接用 asset_graph._extract_dep_names：那个函数是给「建图」用的，
+    会把 `requests==2.25.0` 里的版本**剥掉**，只剩包名 —— 拿去查漏洞库时
+    就变成「查这个包的所有历史漏洞」，报出来的漏洞对不上声明的版本。
+    这里专门保留版本，让查询结果与技能里写的版本一一对应。
+    """
+    import re as _re
+
+    rx = _re.compile(r"pip3?\s+install\s+([^\n&|;]+)", _re.I)
+    valid = _re.compile(r"^[A-Za-z0-9_.@/-]+(==[A-Za-z0-9_.*+-]+)?$")
+    out: list = []
+    for n in names:
+        for m in rx.finditer(skills.get(n, "") or ""):
+            for tok in m.group(1).split():
+                tok = tok.strip()
+                if not tok or tok.startswith(("-", ".", "http")):
+                    continue
+                spec = _re.split(r"[;\[\]]", tok)[0].strip()
+                if spec and valid.match(spec) and spec not in out:
+                    out.append(spec)
+    return out
+
+
 def _run_dep_stage(skills: dict, names: list) -> dict:
     """阶段D：技能声明的第三方依赖 → OSV / NVD / GitHub / EPSS 四源漏洞研判。
 
@@ -140,13 +165,7 @@ def _run_dep_stage(skills: dict, names: list) -> dict:
     import shutil
     import tempfile
 
-    from modules.asset_graph import _extract_dep_names
-
-    pkgs: list = []
-    for n in names:
-        for p in _extract_dep_names(skills.get(n, "")):
-            if p not in pkgs:
-                pkgs.append(p)
+    pkgs = _extract_req_specs(skills, names)
     if not pkgs:
         return {"status": "none", "msg": "", "result": None, "pkgs": []}
 
