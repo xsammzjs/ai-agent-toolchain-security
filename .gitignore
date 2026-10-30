@@ -68,3 +68,7 @@ samples/public_bench/_ref/
 v_corpus.txt
 v_repro.txt
 .opencode/
+
+# 文档生成流水线的中间产物（pipeline-state / stage1 md / stage2 html / stage3 docx）
+# 最终 Word 交付物请单独交付，不要入库
+output/
