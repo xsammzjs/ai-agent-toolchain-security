@@ -59,10 +59,11 @@ def _read_upload(files) -> dict:
     return skills
 
 
-def _one_click_demo(do_deps: bool = True) -> None:
-    """内置真链路场景，一键出结果。"""
+def _one_click_demo(do_deps: bool = True, pick: str | None = None) -> None:
+    """内置场景，一键出结果；pick 为空时取第一个真链路场景。"""
     opts = combo_view._load_scenario_options()
-    pick = next((o for o in opts if "假链路" not in o), None)
+    if not pick:
+        pick = next((o for o in opts if "假链路" not in o), None)
     if not pick:
         st.error("未找到内置示例场景（samples/scenarios/_truth.json）。")
         return
@@ -398,6 +399,10 @@ def render() -> None:
         files = st.file_uploader("上传技能包（.zip / .md，可多选）",
                                  type=["zip", "md"], accept_multiple_files=True,
                                  key="ov_up", label_visibility="collapsed")
+        demo_pick = st.selectbox(
+            "内置示例场景（R 开头 = 真链路，F 开头 = 假链路对照）",
+            combo_view._load_scenario_options(), key="ov_demo_pick",
+            help="想看多条链选 R4（实测 4 条）；想看「不该报警」选 F4（实测 0 条）。")
         do_deps = st.checkbox(
             "顺带检查技能声明的依赖有没有已知漏洞"
             "（OSV / NVD / GitHub / EPSS 四库，需联网，约 1–2 分钟）",
@@ -415,7 +420,7 @@ def render() -> None:
             st.session_state.pop("ov_svg", None)
             st.session_state.pop("ov_html", None)
             st.session_state.pop("ov_dep_demo_result", None)
-            _one_click_demo(do_deps=do_deps)
+            _one_click_demo(do_deps=do_deps, pick=demo_pick)
     st.caption("上传一个技能包就自动跑完整条流水线（规则快筛 → AI 判断 → "
                "组合判定 → 依赖漏洞检查）；或点「用内置示例」直接出结果。"
                "只查**单个技能**也可以——上传 1 个 `.md` 即可"
