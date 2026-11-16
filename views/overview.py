@@ -158,6 +158,8 @@ def _tab_overview(res) -> None:
         })
     if rows:
         st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+    else:
+        st.info("本次没有 AI 判断结果（未配置 MaaS，阶段 B 已跳过），下表为空。")
     st.markdown("**组合风险**（单个技能都正常，凑在一起才出现的问题）")
     chains = res["chains"]
     if chains:
@@ -166,7 +168,17 @@ def _tab_overview(res) -> None:
             "关键技能": c["mal"], "为什么危险": c["why"]} for c in chains]),
             width="stretch", hide_index=True)
     else:
-        st.success("未发现组合风险（能力互补 / 意图 / 外发 三要素没有同时满足）。")
+        # 三态：有链 / 已跑完 AI 但没链 / 没跑 AI（不能把「未判定」说成「无风险」）
+        if not res.get("ai_ok"):
+            st.warning(
+                "⚠️ **组合判定未生效**：本次未配置 MaaS（MAAS_BASE_URL / API_KEY / MODEL），"
+                "AI 意图判定整段跳过，链路模板拿不到「意图闸门」这一道输入。\n\n"
+                "按设计，三要素缺一道就一律不成链 —— 所以这里显示 0 条，"
+                "**不代表这个套装没有组合风险**。\n\n"
+                "要看真实组合判定，请配好 MaaS 后重跑，或在本地点「用内置示例」"
+                "（示例里有已跑通 AI 判定的对照结果）。")
+        else:
+            st.success("未发现组合风险（AI 意图判定已完成，能力互补 / 意图 / 外发 三要素没有同时满足）。")
 
 
 def _tab_graph(res) -> None:
@@ -425,7 +437,7 @@ def render() -> None:
         elif res.get("ai_ok"):
             title, cls = "✅ 可安装", "dec-pass"
         else:
-            title, cls = "🟡 规则侧未发现组合风险", "dec-review"
+            title, cls = "🟡 仅完成规则侧检查（组合判定未生效）", "dec-review"
         d1, d2 = st.columns([4, 1])
         with d1:
             st.markdown(_decision_html(title, cls, res), unsafe_allow_html=True)
