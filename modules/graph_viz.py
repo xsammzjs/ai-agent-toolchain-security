@@ -64,30 +64,62 @@ def to_pyvis_html(graph: dict, height: int = 540) -> str | None:
 def _layout(G):
     """节点布局。
 
-    稀疏图（节点少、边少）下 networkx 的 spring_layout 会把节点甩到画布四角，
-    标签互相压盖、可读性极差；因此节点数较少时改用「按类型分层」：
-    技能 / 依赖 / 工具 各占一列，列内均匀分布——既可读，也符合「技能→依赖」的语义。
-    节点多时仍用 spring_layout（层次太多反而看不清）。
+    目标：静态图与网页端的可交互图（pyvis）视觉一致——**每个技能自己成一簇**，
+    它的依赖围着它，不同技能互不干扰。
+
+    - 节点少（≤8）：按类型分层（技能 / 依赖 / 工具 各占一列），最紧凑易读；
+    - 节点多：按**连通分量**分簇——每个「技能 + 它的依赖」是一个独立分量，
+      簇内用 spring_layout，簇与簇横向排开。
+      （全局 spring_layout 会把所有叶子甩到四周、不同技能的依赖混在一起，
+        与 pyvis 的分簇效果不一致。）
     """
     import networkx as nx
     n = G.number_of_nodes()
-    if n > 8:
-        return nx.spring_layout(G, seed=42, k=0.9)
-    order = ["技能", "依赖", "工具", "其他"]
-    layers = {}
-    for node in G.nodes:
-        t = G.nodes[node].get("node_type", "其他")
-        layers.setdefault(t, []).append(node)
-    keys = [k for k in order if k in layers] + [k for k in layers if k not in order]
-    ncol = max(1, len(keys))
+    if n <= 8:
+        order = ["技能", "依赖", "工具", "其他"]
+        layers = {}
+        for node in G.nodes:
+            t = G.nodes[node].get("node_type", "其他")
+            layers.setdefault(t, []).append(node)
+        keys = [k for k in order if k in layers] + [k for k in layers if k not in order]
+        ncol = max(1, len(keys))
+        pos = {}
+        for ci, key in enumerate(keys):
+            members = layers[key]
+            x = (ci / (ncol - 1)) if ncol > 1 else 0.5
+            cnt = len(members)
+            for i, node in enumerate(members):
+                y = 1 - (i + 1) / (cnt + 1)
+                pos[node] = (x, y)
+        return pos
+
+    # 节点多：按连通分量分簇（技能 + 它的依赖 = 一个簇）
+    und = G.to_undirected()
+    comps = list(nx.connected_components(und))
+    comps.sort(key=len, reverse=True)
     pos = {}
-    for ci, key in enumerate(keys):
-        members = layers[key]
-        x = (ci / (ncol - 1)) if ncol > 1 else 0.5
-        cnt = len(members)
-        for i, node in enumerate(members):
-            y = 1 - (i + 1) / (cnt + 1)
-            pos[node] = (x, y)
+    gap = 1.9           # 簇间距（要放得开，避免相邻簇的标签互相压盖）
+    span = 0.8          # 单簇归一化后的宽度
+    per_row = 3 if len(comps) > 4 else len(comps)
+    for idx, comp in enumerate(comps):
+        sub = G.subgraph(comp)
+        if sub.number_of_nodes() == 1:
+            local = {list(comp)[0]: (0.0, 0.0)}
+        else:
+            # k 调大 → 簇内斥力增强、节点散得更开，标签不易重叠
+            local = nx.spring_layout(sub, seed=42, k=1.25)
+        xs = [float(v[0]) for v in local.values()]
+        ys = [float(v[1]) for v in local.values()]
+        cx = (min(xs) + max(xs)) / 2.0
+        cy = (min(ys) + max(ys)) / 2.0
+        w = max(1e-6, max(xs) - min(xs))
+        h = max(1e-6, max(ys) - min(ys))
+        row, col = divmod(idx, per_row)
+        off_x = col * gap
+        off_y = -row * gap
+        for node, (x, y) in local.items():
+            pos[node] = (off_x + (float(x) - cx) / w * span,
+                         off_y + (float(y) - cy) / h * span)
     return pos
 
 
