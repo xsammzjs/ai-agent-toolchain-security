@@ -30,7 +30,7 @@
 | 恶意样本检出率 TPR | **100%** | Snyk ToxicSkills 真实样本 |
 | 真实良性语料误报率 FPR | **2.0%** | 100 个真实科研类技能 |
 | 单次扫描耗时 | **33 ms** | 纯本地规则引擎，零网络请求 |
-| 回归测试 | **151 条断言全绿** | — |
+| 回归测试 | **166 条断言全绿** | — |
 
 ### 数据集
 
@@ -96,7 +96,7 @@ streamlit run main.py
 python samples/run_corpus_eval.py    # 完整混淆矩阵：TPR + FPR + 特异度
 python samples/run_real_eval.py      # 恶意样本逐条明细
 python samples/run_bench_eval.py     # 威胁类型分布分析
-python tests/test_regression.py      # 151 条回归测试
+python tests/test_regression.py      # 166 条回归测试
 ```
 
 ### 重新拉取最新语料（可选）

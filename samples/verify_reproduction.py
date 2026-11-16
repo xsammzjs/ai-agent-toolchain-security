@@ -30,7 +30,7 @@
   ② 检出率 TPR   —— 恶意样本检出比例
   ③ 误报率 FPR   —— 良性样本误报比例 + 特异度
   ④ 规则规模     —— 规则条数、威胁类别数
-  ⑤ 回归测试     —— 151 条断言是否全绿
+  ⑤ 回归测试     —— 166 条断言是否全绿
 
 任一项 FAIL 时以非零退出码结束，方便在 CI 或答辩前自查。
 """
@@ -62,7 +62,7 @@ EXPECT = {
     "fpr_percent": 2.0,        # 良性样本误报率
     "benign_samples": 100,     # 真实科研良性样本数
     "malicious_samples": 5,    # 真实恶意样本数
-    "regression_assertions": 151,
+    "regression_assertions": 166,
     "core_lines": 9325,         # modules/ + views/ + launcher/ + main.py + config.py + start.py
     "test_lines": 1096,          # tests/ 全部（test_regression.py 575 + test_combo_analysis.py 521）
     "total_lines": 10421,        # 对外口径 10,421 行 = 全交付 .py（不含 samples/ 与 qa/）
@@ -326,7 +326,7 @@ def check_regression():
 
     script = os.path.join(ROOT, "tests", "test_regression.py")
     if not os.path.isfile(script):
-        record("151 条回归断言全绿", False, "151 条", "测试文件不存在")
+        record("166 条回归断言全绿", False, "166 条", "测试文件不存在")
         return
 
     try:
@@ -341,13 +341,13 @@ def check_regression():
                 seg = line.split("合计：通过")[1]
                 n_ok = int(seg.split("，")[0].strip().isdigit() and
                            seg.split("，")[0].strip() or 0)
-        record("151 条回归断言全绿",
+        record("166 条回归断言全绿",
                n_ok == EXPECT["regression_assertions"] and r.returncode == 0,
                f"{EXPECT['regression_assertions']} 条",
                f"{n_ok if n_ok is not None else '?'} 条",
                "行为锁定组必须全绿，否则说明改动破坏了原有功能")
     except subprocess.TimeoutExpired:
-        record("151 条回归断言全绿", False, "151 条", "执行超时")
+        record("166 条回归断言全绿", False, "166 条", "执行超时")
 
 
 

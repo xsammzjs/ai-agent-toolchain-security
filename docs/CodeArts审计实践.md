@@ -244,7 +244,7 @@ python samples/run_real_eval.py
 # CodeArts 建议的双用例验证
 python samples/verify_codearts_suggestions.py
 
-# 151 条回归测试
+# 166 条回归测试
 python tests/test_regression.py
 ```
 

@@ -524,6 +524,32 @@ check(G, "真实窃取链路命中组合规则",
 
 
 # ==========================================
+# 第 13 组：技能正文依赖名提取（2026-11-16 新增，行为锁定）
+# ==========================================
+# 真实语料 skills__aeon__SKILL.md 第 48 行：
+#   For the matrix-profile examples: `uv pip install "aeon==1.6.0" stumpy`.
+#   Range precision/recall/F-score depend on `prts`, whose current NumPy<2 requires ...
+# 旧实现按空格切整段，把说明文字里的每个单词都当成了依赖包
+# （on / with / whose / depend / current / conflicts / requirement / Range …），
+# 关系图里出现大量假节点。此处锁定「只保留真包名」这一行为。
+G = "13-DepExtract"
+from modules import asset_graph as ag
+_dep_txt = (
+    'For the matrix-profile examples: `uv pip install "aeon==1.6.0" stumpy`. '
+    'Range precision/recall/F-score depend on `prts`, whose current NumPy<2 requires Python 3.11.'
+)
+_deps = ag._extract_dep_names(_dep_txt)
+for _bad in ("on", "with", "whose", "depend", "current", "conflicts",
+             "requirement", "Range", "1.6"):
+    check(G, f"说明用词不进依赖 {_bad}", _bad in _deps, False)
+for _good in ("aeon", "stumpy", "prts", "NumPy"):
+    check(G, f"真包名被保留 {_good}", _good in _deps, True)
+check(G, "依赖总数不超过 5", len(_deps) <= 5, True)
+check(G, "纯安装命令能抽出包名",
+      ag._extract_dep_names("pip install requests flask") , ["requests", "flask"])
+
+
+# ==========================================
 # pytest 入口（2026-10-28 新增）
 # ==========================================
 # 直接运行本文件时走下方脚本入口（打印汇总并按退出码判成败）；

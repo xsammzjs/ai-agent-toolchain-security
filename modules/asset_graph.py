@@ -61,22 +61,73 @@ _DEP_PATTERNS = [
     re.compile(r"(?:apt|apt-get)\s+install\s+([^\n&|;]+)", re.I),
 ]
 
+# 英文说明用词 —— 出现在依赖声明同一行里，但不是包名。
+# 典型场景：SKILL.md 里写
+#   `uv pip install "aeon==1.6.0" stumpy`. Range precision/recall/F-score
+#   depend on `prts`, whose current NumPy<2 requires ...
+# 旧实现按空格切词，把这句说明里的每个单词都当成了依赖包。
+_DEP_STOPWORDS = frozenset("""
+on with whose whom whose depend depends depending dependency dependencies
+requirement requirements require requires required current currently conflicts conflict
+and or the for from to in of is are be been being as at by not no but can could will
+would shall should may might must use used using uses need needs needed please see
+also when then than that this these those it its if so all any only more most much
+such which while via etc into over under after before between both each few other
+some own same too very just now here there what where who whom how why did does done
+""".split())
+
+# 常见「首字母大写」的第三方库名（小写形式）。
+# 首字母大写的词只有在表里才算包名 —— 这样 NumPy/TensorFlow 保留，
+# 而说明文字里的 Range、Recall 这类词会被排除。
+_DEP_KNOWN_UPPER = frozenset("""
+numpy pandas sklearn scipy torch tensorflow matplotlib seaborn requests pillow flask
+django pytorch polars statsmodels networkx pyvis sqlalchemy fastapi uvicorn pytest
+setuptools wheel pip keras jupyter tabutils six attrs
+""".split())
+
+
+def _looks_like_dep_pkg(tok: str) -> bool:
+    """判断一个 token 是否像第三方包名（而不是正文说明里的英文词）。
+
+    PyPI / npm 包名规范：字母或数字开头，可含 . _ -，不含 /；
+    多数为小写，或属于已知的大写库名。
+    """
+    if not tok or len(tok) < 3:
+        return False
+    if tok.lower() in _DEP_STOPWORDS:
+        return False
+    if not re.match(r"^[A-Za-z0-9][A-Za-z0-9._-]*$", tok):
+        return False
+    if tok.replace(".", "").replace("-", "").isdigit():
+        return False
+    if tok[0].isupper():
+        return tok.lower() in _DEP_KNOWN_UPPER
+    return bool(re.search(r"[-_.]", tok)) or len(tok) >= 3
+
 
 def _extract_dep_names(text: str) -> list:
     """从技能正文提取「声称安装」的第三方包名（去版本号，纯本地、不联网）。
 
     只为「技能 → 依赖」建模用；不查 PyPI、不查 CVE——线上网络波动不影响建图。
+
+    切分策略（2026-11-16 修正）：
+      1) 先按标点把捕获段切成「片段」——说明文字通常被逗号/句号隔开；
+      2) 再按空格切词；
+      3) 每个词过包名合法性校验（停用词 / 纯数字 / 含 / / 首字母大写需在白名单）。
+    旧实现直接按空格切整段，会把说明文字里的每个单词当成依赖包，
+    导致关系图出现 on / with / whose / current 等假节点。
     """
     out: list = []
     for rx in _DEP_PATTERNS:
         for m in rx.finditer(text or ""):
-            for tok in m.group(1).split():
-                tok = tok.strip()
-                if not tok or tok.startswith(("-", ".", "http")):
-                    continue
-                pkg = re.split(r"[<>=!~\[\];]", tok)[0].strip()
-                if pkg and re.match(r"^[A-Za-z0-9_.@/-]+$", pkg) and pkg not in out:
-                    out.append(pkg)
+            for frag in re.split(r"[,;、，；:：]+", m.group(1)):
+                for tok in frag.split():
+                    tok = tok.strip().strip("'\"`")
+                    if not tok or tok.startswith(("-", ".", "http")):
+                        continue
+                    pkg = re.split(r"[<>=!~\[\]`'\"]", tok)[0].strip().rstrip(".,;:")
+                    if pkg and _looks_like_dep_pkg(pkg) and pkg not in out:
+                        out.append(pkg)
     return out
 
 
