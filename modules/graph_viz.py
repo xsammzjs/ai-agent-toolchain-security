@@ -61,6 +61,36 @@ def to_pyvis_html(graph: dict, height: int = 540) -> str | None:
         return getattr(net, "html", None)
 
 
+def _layout(G):
+    """节点布局。
+
+    稀疏图（节点少、边少）下 networkx 的 spring_layout 会把节点甩到画布四角，
+    标签互相压盖、可读性极差；因此节点数较少时改用「按类型分层」：
+    技能 / 依赖 / 工具 各占一列，列内均匀分布——既可读，也符合「技能→依赖」的语义。
+    节点多时仍用 spring_layout（层次太多反而看不清）。
+    """
+    import networkx as nx
+    n = G.number_of_nodes()
+    if n > 8:
+        return nx.spring_layout(G, seed=42, k=0.9)
+    order = ["技能", "依赖", "工具", "其他"]
+    layers = {}
+    for node in G.nodes:
+        t = G.nodes[node].get("node_type", "其他")
+        layers.setdefault(t, []).append(node)
+    keys = [k for k in order if k in layers] + [k for k in layers if k not in order]
+    ncol = max(1, len(keys))
+    pos = {}
+    for ci, key in enumerate(keys):
+        members = layers[key]
+        x = (ci / (ncol - 1)) if ncol > 1 else 0.5
+        cnt = len(members)
+        for i, node in enumerate(members):
+            y = 1 - (i + 1) / (cnt + 1)
+            pos[node] = (x, y)
+    return pos
+
+
 def to_static_svg(graph: dict, path: str) -> str | None:
     """静态版：把 {nodes, edges} 渲染成 SVG 文件。缺 matplotlib/networkx 返回 None。"""
     try:
@@ -81,6 +111,7 @@ def to_static_svg(graph: dict, path: str) -> str | None:
     G = nx.DiGraph()
     for n in nodes:
         G.add_node(n["node_id"], name=str(n.get("name", "")),
+                   node_type=str(n.get("node_type", "其他")),
                    color=_NODE_COLOR.get(n.get("node_type"), "#8395a8"))
     for e in edges:
         if G.has_node(e.get("src")) and G.has_node(e.get("dst")):
@@ -90,16 +121,26 @@ def to_static_svg(graph: dict, path: str) -> str | None:
 
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     fig, ax = plt.subplots(figsize=(11, 7))
-    pos = nx.spring_layout(G, seed=42, k=0.9)
+    pos = _layout(G)
     ncolors = [G.nodes[n].get("color", "#8395a8") for n in G.nodes]
     nx.draw_networkx_edges(G, pos, ax=ax, edge_color="#c7d7fe",
                            arrows=True, arrowsize=8, width=0.8)
     nx.draw_networkx_nodes(G, pos, ax=ax, node_color=ncolors, node_size=200,
                            edgecolors="#ffffff", linewidths=0.6)
-    labels = {n: G.nodes[n].get("name", "")[:14] for n in G.nodes}
-    nx.draw_networkx_labels(G, pos, labels=labels, ax=ax, font_size=7,
-                            font_color="#16202e")
+    # 标签手工绘制并上移一点（networkx 的 draw_networkx_labels 不支持 label_pos，
+    # 且默认会把文字压在节点圆点正中）——白底保证与连线重叠时仍可读
+    for n in pos:
+        nx_, ny_ = pos[n]
+        ax.text(nx_, ny_ + 0.055, G.nodes[n].get("name", "")[:14],
+                fontsize=7.5, color="#16202e", ha="center", va="bottom",
+                bbox=dict(facecolor="white", edgecolor="none", alpha=0.92, pad=0.6))
     ax.set_axis_off()
+    if pos:
+        xs = [float(v[0]) for v in pos.values()]
+        ys = [float(v[1]) for v in pos.values()]
+        pad = 0.22
+        ax.set_xlim(min(xs) - pad, max(xs) + pad)
+        ax.set_ylim(min(ys) - pad, max(ys) + pad)
     fig.tight_layout()
     try:
         fig.savefig(path, format="svg", bbox_inches="tight", transparent=True)
